@@ -1,0 +1,85 @@
+import java.util.function.BooleanSupplier
+
+apply plugin: 'com.android.library'
+apply plugin: 'com.novoda.bintray-release'
+
+
+android {
+    compileSdkVersion 28
+    buildToolsVersion = '28.0.3'
+    defaultConfig {
+        minSdkVersion 21
+        targetSdkVersion 28
+        versionCode 1
+        versionName "5.4.2"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        multiDexEnabled true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            testCoverageEnabled = true
+        }
+    }
+
+    android.libraryVariants.all { variant ->
+        variant.outputs.all {
+            def manifestParser = new com.android.builder.core.DefaultManifestParser(
+                    android.sourceSets.main.manifest.srcFile, new BooleanSupplier() {
+                @Override
+                boolean getAsBoolean() {
+                    return true
+                }
+            }, null)
+            outputFileName = manifestParser.getPackage() + "-${buildType.name}.aar"
+        }
+    }
+    compileOptions {
+        sourceCompatibility = '1.8'
+        targetCompatibility = '1.8'
+    }
+    lintOptions {
+        abortOnError false
+    }
+}
+
+
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
+
+    //implementation 'org.elastos:carrier:5.4.2'
+    implementation project(':carrier')
+     implementation 'org.webrtc:google-webrtc:1.0.30039'
+
+
+    implementation 'org.awaitility:awaitility:3.0.0'
+    implementation 'com.google.guava:guava:28.1-android'
+    implementation 'org.apache.commons:commons-lang3:3.9'
+    implementation 'com.google.code.gson:gson:2.8.6'
+    implementation 'org.slf4j:slf4j-api:1.7.29'
+    implementation 'com.github.tony19:logback-android:2.0.0'
+    implementation 'commons-codec:commons-codec:1.10'
+
+    implementation 'org.osgi:org.osgi.framework:1.9.0'
+
+
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'junit:junit:4.12'
+    implementation 'androidx.annotation:annotation:1.0.0'
+
+}
+
+publish {
+    userOrg = 'elastos'
+    groupId = 'org.elastos.carrier'
+    artifactId = 'webrtc'
+    publishVersion = '1.0.0'
+    desc = 'Elastos Carrier WebRTC SDK'
+    repoName = 'Elastos.NET.Carrier.WebRTC.Android.SDK'
+    website = 'https://github.com/elastos/Elastos.NET.Carrier.WebRTC.Android.SDK'
+}

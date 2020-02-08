@@ -1,0 +1,4 @@
+include ':app', ':carrier', ':AppRTCMobile', ':ElastosWebrtcAndroidDemo', ':elastos-webrtc'
+project(":AppRTCMobile").projectDir = file("demo/AppRTCMobile")
+project(':ElastosWebrtcAndroidDemo').projectDir = new File('demo/ElastosWebrtcAndroidDemo/app')
+project(':elastos-webrtc').projectDir = new File('demo/ElastosWebrtcAndroidDemo/elastos-webrtc')
