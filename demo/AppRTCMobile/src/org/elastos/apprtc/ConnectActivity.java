@@ -42,6 +42,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.google.zxing.integration.android.IntentIntegrator;
@@ -52,10 +53,11 @@ import org.elastos.carrier.AbstractCarrierHandler;
 import org.elastos.carrier.Carrier;
 import org.elastos.carrier.TurnServer;
 import org.elastos.carrier.exceptions.CarrierException;
-import org.elastos.carrier.webrtc.signaling.carrier.CarrierClient;
-import org.elastos.carrier.webrtc.signaling.carrier.SignalingServiceCarrierClient;
+import org.elastos.carrier.webrtc.WebrtcClient;
+import org.elastos.carrier.webrtc.signaling.CarrierClient;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 
@@ -89,9 +91,7 @@ public class ConnectActivity extends Activity {
   private TextView mAdrress;
 
   @Nullable
-  private AppRTCClient appRtcClient;
-
-  private SignalingServiceCarrierClient signalingClient;
+  private WebrtcClient appRtcClient;
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
@@ -138,11 +138,11 @@ public class ConnectActivity extends Activity {
 
     requestPermissions();
 
-    String address = CarrierClient.getInstance(this, null).getMyAddress();
-    if (CarrierClient.getInstance(this, null).getCarrier().isReady()) {
+    String address = CarrierClient.getInstance(this).getMyAddress();
+    if (CarrierClient.getInstance(this).getCarrier().isReady()) {
       mAdrress.append("\n service ready!!!");
     }
-    CarrierClient.getInstance(this, null).addCarrierHandler(new AbstractCarrierHandler() {
+    CarrierClient.getInstance(this).addCarrierHandler(new AbstractCarrierHandler() {
       @Override
       public void onReady(Carrier carrier) {
         mAdrress.post(()->{
@@ -155,6 +155,33 @@ public class ConnectActivity extends Activity {
           }
           mAdrress.append("\n service ready and turn server is: " + turn_address);
         });
+      }
+
+      @Override
+      public void onFriendInviteRequest(Carrier carrier, String from, String data) {
+        super.onFriendInviteRequest(carrier, from, data);
+        roomEditText.post(() -> {
+          Toast.makeText(ConnectActivity.this, "carrier friend invite onFriendInviteRequest from : " + from, Toast.LENGTH_LONG).show();
+          Log.e(TAG, "carrier friend invite  onFriendInviteRequest from: " + from);
+
+          if (data != null && data.contains("calleeAddress")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
+
+            //启动进去CallActivity
+            JSONObject json = null;
+            try {
+              json = new JSONObject(data);
+
+              if (json.has("calleeAddress")) {
+                String calleeAddress = json.optString("calleeAddress");
+                connectToRoom(calleeAddress, false, false, 0);
+              }
+
+            } catch (JSONException e) {
+              e.printStackTrace();
+            }
+          }
+
+      });
       }
     });
 
@@ -206,9 +233,6 @@ public class ConnectActivity extends Activity {
     if (item.getItemId() == R.id.action_settings) {
       Intent intent = new Intent(this, SettingsActivity.class);
       startActivity(intent);
-      return true;
-    } else if (item.getItemId() == R.id.action_loopback) {
-      connectToRoom(null, false, true, false, 0);
       return true;
     }  else if (item.getItemId() == R.id.addfriend) {
       showCamera();
@@ -297,7 +321,7 @@ public class ConnectActivity extends Activity {
           public void run() {
             roomEditText.setText(result);
             try {
-              CarrierClient.getInstance(ConnectActivity.this, null).addFriend(result);
+              CarrierClient.getInstance(ConnectActivity.this).addFriend(result);
             } catch (CarrierException e) {
               e.printStackTrace();
             }
@@ -376,12 +400,11 @@ public class ConnectActivity extends Activity {
     // If an implicit VIEW intent is launching the app, go directly to that URL.
     final Intent intent = getIntent();
     if ("android.intent.action.VIEW".equals(intent.getAction()) && !commandLineRun) {
-      boolean loopback = intent.getBooleanExtra(CallActivity.EXTRA_LOOPBACK, false);
       int runTimeMs = intent.getIntExtra(CallActivity.EXTRA_RUNTIME, 0);
       boolean useValuesFromIntent =
           intent.getBooleanExtra(CallActivity.EXTRA_USE_VALUES_FROM_INTENT, false);
       String room = sharedPref.getString(keyprefRoom, "");
-      connectToRoom(room, true, loopback, useValuesFromIntent, runTimeMs);
+      connectToRoom(room, true, useValuesFromIntent, runTimeMs);
     }
   }
 
@@ -488,20 +511,14 @@ public class ConnectActivity extends Activity {
   }
 
   @SuppressWarnings("StringSplitter")
-  private void connectToRoom(String roomId, boolean commandLineRun, boolean loopback,
+  private void connectToRoom(String roomId, boolean commandLineRun,
       boolean useValuesFromIntent, int runTimeMs) {
     ConnectActivity.commandLineRun = commandLineRun;
-
-    // calleeAddress is random for loopback.
-    if (loopback) {
-      //calleeAddress = Integer.toString((new Random()).nextInt(100000000));
-      roomId =  CarrierClient.getInstance(this, null).getMyAddress();
-    }
 
     String roomUrl = sharedPref.getString(
         keyprefRoomServerUrl, getString(R.string.pref_room_server_url_default));
 
-    // Video call enabled flag.
+    // Video register enabled flag.
     boolean videoCallEnabled = sharedPrefGetBoolean(R.string.pref_videocall_key,
         CallActivity.EXTRA_VIDEO_CALL, R.string.pref_videocall_default, useValuesFromIntent);
 
@@ -682,7 +699,6 @@ public class ConnectActivity extends Activity {
       Intent intent = new Intent(this, CallActivity.class);
       intent.setData(uri);
       intent.putExtra(CallActivity.EXTRA_ROOMID, roomId);
-      intent.putExtra(CallActivity.EXTRA_LOOPBACK, loopback);
       intent.putExtra(CallActivity.EXTRA_VIDEO_CALL, videoCallEnabled);
       intent.putExtra(CallActivity.EXTRA_SCREENCAPTURE, useScreencapture);
       intent.putExtra(CallActivity.EXTRA_CAMERA2, useCamera2);
@@ -777,7 +793,7 @@ public class ConnectActivity extends Activity {
         @Override
         public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
           String roomId = ((TextView) view).getText().toString();
-          connectToRoom(roomId, false, false, false, 0);
+          connectToRoom(roomId, false, false, 0);
         }
       };
 
@@ -795,7 +811,7 @@ public class ConnectActivity extends Activity {
   private final OnClickListener connectListener = new OnClickListener() {
     @Override
     public void onClick(View view) {
-      connectToRoom(roomEditText.getText().toString(), false, false, false, 0);
+      connectToRoom(roomEditText.getText().toString(), false, false, 0);
     }
   };
 }

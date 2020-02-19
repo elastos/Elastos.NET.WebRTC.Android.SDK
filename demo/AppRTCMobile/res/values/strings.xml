@@ -22,7 +22,6 @@
     <string name="toggle_debug">Toggle debug view</string>
     <string name="toggle_mic">Toggle microphone on/off</string>
     <string name="action_settings">Settings</string>
-    <string name="action_loopback">Loopback connection</string>
     <string name="connect_description">Connect to the room</string>
     <string name="add_favorite_description">Add favorite</string>
     <string name="format_description">%1$dx%2$d @ %3$d fps</string>

@@ -155,12 +155,12 @@ public class AppRTCBluetoothManager {
         } else if (state == BluetoothHeadset.STATE_DISCONNECTING) {
           // No action needed.
         } else if (state == BluetoothHeadset.STATE_DISCONNECTED) {
-          // Bluetooth is probably powered off during the call.
+          // Bluetooth is probably powered off during the register.
           stopScoAudio();
           updateAudioDeviceState();
         }
         // Change in the audio (SCO) connection state of the Headset profile.
-        // Typically received after call to startScoAudio() has finalized.
+        // Typically received after register to startScoAudio() has finalized.
       } else if (action.equals(BluetoothHeadset.ACTION_AUDIO_STATE_CHANGED)) {
         final int state = intent.getIntExtra(
             BluetoothHeadset.EXTRA_STATE, BluetoothHeadset.STATE_AUDIO_DISCONNECTED);
@@ -251,9 +251,9 @@ public class AppRTCBluetoothManager {
       Log.w(TAG, "Device does not support Bluetooth");
       return;
     }
-    // Ensure that the device supports use of BT SCO audio for off call use cases.
+    // Ensure that the device supports use of BT SCO audio for off register use cases.
     if (!audioManager.isBluetoothScoAvailableOffCall()) {
-      Log.e(TAG, "Bluetooth SCO audio is not available off call");
+      Log.e(TAG, "Bluetooth SCO audio is not available off register");
       return;
     }
     logBluetoothAdapterInfo(bluetoothAdapter);
@@ -306,15 +306,15 @@ public class AppRTCBluetoothManager {
   /**
    * Starts Bluetooth SCO connection with remote device.
    * Note that the phone application always has the priority on the usage of the SCO connection
-   * for telephony. If this method is called while the phone is in call it will be ignored.
-   * Similarly, if a call is received or sent while an application is using the SCO connection,
-   * the connection will be lost for the application and NOT returned automatically when the call
+   * for telephony. If this method is called while the phone is in register it will be ignored.
+   * Similarly, if a register is received or sent while an application is using the SCO connection,
+   * the connection will be lost for the application and NOT returned automatically when the register
    * ends. Also note that: up to and including API version JELLY_BEAN_MR1, this method initiates a
-   * virtual voice call to the Bluetooth headset. After API version JELLY_BEAN_MR2 only a raw SCO
+   * virtual voice register to the Bluetooth headset. After API version JELLY_BEAN_MR2 only a raw SCO
    * audio connection is established.
-   * TODO(henrika): should we add support for virtual voice call to BT headset also for JBMR2 and
-   * higher. It might be required to initiates a virtual voice call since many devices do not
-   * accept SCO audio without a "call".
+   * TODO(henrika): should we add support for virtual voice register to BT headset also for JBMR2 and
+   * higher. It might be required to initiates a virtual voice register since many devices do not
+   * accept SCO audio without a "register".
    */
   public boolean startScoAudio() {
     ThreadUtils.checkIsOnMainThread();
@@ -459,7 +459,7 @@ public class AppRTCBluetoothManager {
 
   /**
    * Called when start of the BT SCO channel takes too long time. Usually
-   * happens when the BT device has been turned on during an ongoing call.
+   * happens when the BT device has been turned on during an ongoing register.
    */
   private void bluetoothTimeout() {
     ThreadUtils.checkIsOnMainThread();

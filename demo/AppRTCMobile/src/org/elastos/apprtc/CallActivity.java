@@ -39,12 +39,13 @@ import java.util.List;
 import java.util.Set;
 import org.elastos.apprtc.AppRTCAudioManager.AudioDevice;
 import org.elastos.apprtc.AppRTCAudioManager.AudioManagerEvents;
-import org.elastos.apprtc.AppRTCClient.RoomConnectionParameters;
-import org.elastos.apprtc.AppRTCClient.SignalingParameters;
-import org.elastos.carrier.webrtc.CarrierWebrtcClient;
-import org.elastos.carrier.webrtc.CarrierWebrtcClient.PeerConnectionParameters;
-import org.elastos.carrier.webrtc.CarrierWebrtcClient.DataChannelParameters;
-import org.elastos.carrier.webrtc.signaling.carrier.CarrierClient;
+import org.elastos.carrier.webrtc.ui.BaseCallActivity;
+import org.elastos.carrier.webrtc.WebrtcClient;
+import org.elastos.carrier.webrtc.model.SignalingParameters;
+import org.elastos.carrier.webrtc.CarrierPeerConnectionClient;
+import org.elastos.carrier.webrtc.CarrierPeerConnectionClient.PeerConnectionParameters;
+import org.elastos.carrier.webrtc.CarrierPeerConnectionClient.DataChannelParameters;
+import org.elastos.carrier.webrtc.signaling.CarrierClient;
 import org.webrtc.Camera1Enumerator;
 import org.webrtc.Camera2Enumerator;
 import org.webrtc.CameraEnumerator;
@@ -60,21 +61,19 @@ import org.webrtc.StatsReport;
 import org.webrtc.SurfaceViewRenderer;
 import org.webrtc.VideoCapturer;
 import org.webrtc.VideoFileRenderer;
-import org.webrtc.VideoFrame;
 import org.webrtc.VideoSink;
 
 /**
- * Activity for peer connection call setup, call waiting
- * and call view.
+ * Activity for peer connection register setup, register waiting
+ * and register view.
  */
-public class CallActivity extends Activity implements AppRTCClient.SignalingEvents,
-                                                      CarrierWebrtcClient.PeerConnectionEvents,
-                                                      CallFragment.OnCallEvents {
+public class CallActivity extends BaseCallActivity implements WebrtcClient.SignalingEvents,
+                                                      CarrierPeerConnectionClient.PeerConnectionEvents,
+        CallFragment.OnCallEvents {
   private static final String TAG = "CallRTCClient";
 
   public static final String EXTRA_ROOMID = "org.elastos.apprtc.ROOMID";
-  public static final String EXTRA_URLPARAMETERS = "org.elastos.apprtc.URLPARAMETERS";
-  public static final String EXTRA_LOOPBACK = "org.elastos.apprtc.LOOPBACK";
+
   public static final String EXTRA_VIDEO_CALL = "org.elastos.apprtc.VIDEO_CALL";
   public static final String EXTRA_SCREENCAPTURE = "org.elastos.apprtc.SCREENCAPTURE";
   public static final String EXTRA_CAMERA2 = "org.elastos.apprtc.CAMERA2";
@@ -132,29 +131,6 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
   // Peer connection statistics callback period in ms.
   private static final int STAT_CALLBACK_PERIOD = 1000;
 
-  private static class ProxyVideoSink implements VideoSink {
-    private VideoSink target;
-
-    @Override
-    synchronized public void onFrame(VideoFrame frame) {
-      if (target == null) {
-        Logging.d(TAG, "Dropping frame in proxy because target is null.");
-        return;
-      }
-
-      target.onFrame(frame);
-    }
-
-    synchronized public void setTarget(VideoSink target) {
-      this.target = target;
-    }
-  }
-
-  private final ProxyVideoSink remoteProxyRenderer = new ProxyVideoSink();
-  private final ProxyVideoSink localProxyVideoSink = new ProxyVideoSink();
-  @Nullable private CarrierWebrtcClient carrierWebrtcClient;
-  @Nullable
-  private AppRTCClient appRtcClient;
   @Nullable
   private SignalingParameters signalingParameters;
   @Nullable private AppRTCAudioManager audioManager;
@@ -168,7 +144,10 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
   private Toast logToast;
   private boolean commandLineRun;
   private boolean activityRunning;
-  private RoomConnectionParameters roomConnectionParameters;
+
+  private String calleeAddress; //callee's carrier address
+  private String callerAddress; //caller's carrier address
+
   @Nullable
   private PeerConnectionParameters peerConnectionParameters;
   private boolean connected;
@@ -193,6 +172,7 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
   @SuppressWarnings("deprecation")
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+
     Thread.setDefaultUncaughtExceptionHandler(new UnhandledExceptionHandler(this));
 
     // Set window styles for fullscreen-window size. Needs to be done before
@@ -212,7 +192,7 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     callFragment = new CallFragment();
     hudFragment = new HudFragment();
 
-    // Show/hide call control fragment on view click.
+    // Show/hide register control fragment on view click.
     View.OnClickListener listener = new View.OnClickListener() {
       @Override
       public void onClick(View view) {
@@ -258,7 +238,7 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     pipRenderer.setZOrderMediaOverlay(true);
     pipRenderer.setEnableHardwareScaler(true /* enabled */);
     fullscreenRenderer.setEnableHardwareScaler(false /* enabled */);
-    // Start with local feed in fullscreen and swap it to the pip when the call is connected.
+    // Start with local feed in fullscreen and swap it to the pip when the register is connected.
     setSwappedFeeds(true /* isSwappedFeeds */);
 
     // Check for mandatory permissions.
@@ -281,14 +261,12 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     }
 
     // Get Intent parameters.
-    String roomId = intent.getStringExtra(EXTRA_ROOMID);
+    calleeAddress = intent.getStringExtra(EXTRA_ROOMID); //calleeAddress
 
-    boolean loopback = intent.getBooleanExtra(EXTRA_LOOPBACK, false);
-
-    Log.d(TAG, "Room ID: " + roomId);
-    if (!loopback && (roomId == null || roomId.length() == 0)){ //loopback will get the
+    Log.d(TAG, "Callee Address: " + calleeAddress);
+    if ((calleeAddress == null || calleeAddress.length() == 0)){
       logAndToast(getString(R.string.missing_url));
-      Log.e(TAG, "Incorrect room ID in intent!");
+      Log.e(TAG, "Incorrect Callee Address in intent!");
       setResult(RESULT_CANCELED);
       finish();
       return;
@@ -313,34 +291,16 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
           intent.getIntExtra(EXTRA_MAX_RETRANSMITS, -1), intent.getStringExtra(EXTRA_PROTOCOL),
           intent.getBooleanExtra(EXTRA_NEGOTIATED, false), intent.getIntExtra(EXTRA_ID, -1));
     }
-    peerConnectionParameters =
-        new PeerConnectionParameters(intent.getBooleanExtra(EXTRA_VIDEO_CALL, true), loopback,
-            tracing, videoWidth, videoHeight, intent.getIntExtra(EXTRA_VIDEO_FPS, 0),
-            intent.getIntExtra(EXTRA_VIDEO_BITRATE, 0), intent.getStringExtra(EXTRA_VIDEOCODEC),
-            intent.getBooleanExtra(EXTRA_HWCODEC_ENABLED, true),
-            intent.getBooleanExtra(EXTRA_FLEXFEC_ENABLED, false),
-            intent.getIntExtra(EXTRA_AUDIO_BITRATE, 0), intent.getStringExtra(EXTRA_AUDIOCODEC),
-            intent.getBooleanExtra(EXTRA_NOAUDIOPROCESSING_ENABLED, false),
-            intent.getBooleanExtra(EXTRA_AECDUMP_ENABLED, false),
-            intent.getBooleanExtra(EXTRA_SAVE_INPUT_AUDIO_TO_FILE_ENABLED, false),
-            intent.getBooleanExtra(EXTRA_OPENSLES_ENABLED, false),
-            intent.getBooleanExtra(EXTRA_DISABLE_BUILT_IN_AEC, false),
-            intent.getBooleanExtra(EXTRA_DISABLE_BUILT_IN_AGC, false),
-            intent.getBooleanExtra(EXTRA_DISABLE_BUILT_IN_NS, false),
-            intent.getBooleanExtra(EXTRA_DISABLE_WEBRTC_AGC_AND_HPF, false),
-            intent.getBooleanExtra(EXTRA_ENABLE_RTCEVENTLOG, false), dataChannelParameters);
+
+    //update peerConnectionPararmeters from intent.
+    updatePeerConnectionParametersFromIntent(intent, tracing, videoWidth, videoHeight, dataChannelParameters);
+
     commandLineRun = intent.getBooleanExtra(EXTRA_CMDLINE, false);
     int runTimeMs = intent.getIntExtra(EXTRA_RUNTIME, 0);
 
     Log.d(TAG, "VIDEO_FILE: '" + intent.getStringExtra(EXTRA_VIDEO_FILE_AS_CAMERA) + "'");
 
-    // Create connection client.
-    appRtcClient = new CarrierRTCClient(this, getApplicationContext());
-
-    // Create connection parameters.
-    String urlParameters = intent.getStringExtra(EXTRA_URLPARAMETERS);
-    roomConnectionParameters =
-        new RoomConnectionParameters(roomUri.toString(), roomId, CarrierClient.getInstance(this, null).getMyAddress(), loopback, urlParameters);
+    callerAddress = CarrierClient.getInstance(this).getMyAddress();
 
     // Create CPU monitor
     if (CpuMonitor.isSupported()) {
@@ -351,7 +311,7 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     // Send intent arguments to fragments.
     callFragment.setArguments(intent.getExtras());
     hudFragment.setArguments(intent.getExtras());
-    // Activate call and HUD fragments and start the call.
+    // Activate register and HUD fragments and start the register.
     FragmentTransaction ft = getFragmentManager().beginTransaction();
     ft.add(R.id.call_fragment_container, callFragment);
     ft.add(R.id.hud_fragment_container, hudFragment);
@@ -368,13 +328,11 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     }
 
     // Create peer connection client.
-    carrierWebrtcClient = new CarrierWebrtcClient(
+    carrierPeerConnectionClient = new CarrierPeerConnectionClient(
         getApplicationContext(), eglBase, peerConnectionParameters, CallActivity.this);
     PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
-    if (loopback) {
-      options.networkIgnoreMask = 0;
-    }
-    carrierWebrtcClient.createPeerConnectionFactory(options);
+
+    carrierPeerConnectionClient.createPeerConnectionFactory(options);
 
     if (screencaptureEnabled) {
       startScreenCapture();
@@ -382,6 +340,25 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
       startCall();
     }
 
+  }
+
+  private void updatePeerConnectionParametersFromIntent(Intent intent, boolean tracing, int videoWidth, int videoHeight, DataChannelParameters dataChannelParameters) {
+    peerConnectionParameters =
+        new PeerConnectionParameters(intent.getBooleanExtra(EXTRA_VIDEO_CALL, true),
+            tracing, videoWidth, videoHeight, intent.getIntExtra(EXTRA_VIDEO_FPS, 0),
+            intent.getIntExtra(EXTRA_VIDEO_BITRATE, 0), intent.getStringExtra(EXTRA_VIDEOCODEC),
+            intent.getBooleanExtra(EXTRA_HWCODEC_ENABLED, true),
+            intent.getBooleanExtra(EXTRA_FLEXFEC_ENABLED, false),
+            intent.getIntExtra(EXTRA_AUDIO_BITRATE, 0), intent.getStringExtra(EXTRA_AUDIOCODEC),
+            intent.getBooleanExtra(EXTRA_NOAUDIOPROCESSING_ENABLED, false),
+            intent.getBooleanExtra(EXTRA_AECDUMP_ENABLED, false),
+            intent.getBooleanExtra(EXTRA_SAVE_INPUT_AUDIO_TO_FILE_ENABLED, false),
+            intent.getBooleanExtra(EXTRA_OPENSLES_ENABLED, false),
+            intent.getBooleanExtra(EXTRA_DISABLE_BUILT_IN_AEC, false),
+            intent.getBooleanExtra(EXTRA_DISABLE_BUILT_IN_AGC, false),
+            intent.getBooleanExtra(EXTRA_DISABLE_BUILT_IN_NS, false),
+            intent.getBooleanExtra(EXTRA_DISABLE_WEBRTC_AGC_AND_HPF, false),
+            intent.getBooleanExtra(EXTRA_ENABLE_RTCEVENTLOG, false), dataChannelParameters);
   }
 
   @TargetApi(17)
@@ -482,8 +459,8 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     activityRunning = false;
     // Don't stop the video when using screencapture to allow user to show other apps to the remote
     // end.
-    if (carrierWebrtcClient != null && !screencaptureEnabled) {
-      carrierWebrtcClient.stopVideoSource();
+    if (carrierPeerConnectionClient != null && !screencaptureEnabled) {
+      carrierPeerConnectionClient.stopVideoSource();
     }
     if (cpuMonitor != null) {
       cpuMonitor.pause();
@@ -495,8 +472,8 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     super.onStart();
     activityRunning = true;
     // Video is not paused for screencapture. See onPause.
-    if (carrierWebrtcClient != null && !screencaptureEnabled) {
-      carrierWebrtcClient.startVideoSource();
+    if (carrierPeerConnectionClient != null && !screencaptureEnabled) {
+      carrierPeerConnectionClient.startVideoSource();
     }
     if (cpuMonitor != null) {
       cpuMonitor.resume();
@@ -522,8 +499,8 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
 
   @Override
   public void onCameraSwitch() {
-    if (carrierWebrtcClient != null) {
-      carrierWebrtcClient.switchCamera();
+    if (carrierPeerConnectionClient != null) {
+      carrierPeerConnectionClient.switchCamera();
     }
   }
 
@@ -534,16 +511,16 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
 
   @Override
   public void onCaptureFormatChange(int width, int height, int framerate) {
-    if (carrierWebrtcClient != null) {
-      carrierWebrtcClient.changeCaptureFormat(width, height, framerate);
+    if (carrierPeerConnectionClient != null) {
+      carrierPeerConnectionClient.changeCaptureFormat(width, height, framerate);
     }
   }
 
   @Override
   public boolean onToggleMic() {
-    if (carrierWebrtcClient != null) {
+    if (carrierPeerConnectionClient != null) {
       micEnabled = !micEnabled;
-      carrierWebrtcClient.setAudioEnabled(micEnabled);
+      carrierPeerConnectionClient.setAudioEnabled(micEnabled);
     }
     return micEnabled;
   }
@@ -553,7 +530,7 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     if (!connected || !callFragment.isAdded()) {
       return;
     }
-    // Show/hide call control fragment
+    // Show/hide register control fragment
     callControlFragmentVisible = !callControlFragmentVisible;
     FragmentTransaction ft = getFragmentManager().beginTransaction();
     if (callControlFragmentVisible) {
@@ -568,15 +545,15 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
   }
 
   private void startCall() {
-    if (appRtcClient == null) {
-      Log.e(TAG, "AppRTC client is not allocated for a call.");
+    if (webrtcClient == null) {
+      Log.e(TAG, "AppRTC client is not allocated for a register.");
       return;
     }
     callStartedTimeMs = System.currentTimeMillis();
 
     // Start room connection.
-    logAndToast(getString(R.string.connecting_to, roomConnectionParameters.calleeAddress));
-    appRtcClient.connectToRoom(roomConnectionParameters);
+    logAndToast(getString(R.string.connecting_to, calleeAddress));
+    webrtcClient.initialCall(callerAddress, calleeAddress);
 
     // Create and audio manager that will take care of audio routing,
     // audio modes, audio device enumeration etc.
@@ -589,7 +566,7 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
       // devices has changed.
       @Override
       public void onAudioDeviceChanged(
-          AudioDevice audioDevice, Set<AudioDevice> availableAudioDevices) {
+              AudioDevice audioDevice, Set<AudioDevice> availableAudioDevices) {
         onAudioManagerDevicesChanged(audioDevice, availableAudioDevices);
       }
     });
@@ -599,12 +576,12 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
   private void callConnected() {
     final long delta = System.currentTimeMillis() - callStartedTimeMs;
     Log.i(TAG, "Call connected: delay=" + delta + "ms");
-    if (carrierWebrtcClient == null || isError) {
+    if (carrierPeerConnectionClient == null || isError) {
       Log.w(TAG, "Call is connected in closed or error state");
       return;
     }
     // Enable statistics callback.
-    carrierWebrtcClient.enableStatsEvents(true, STAT_CALLBACK_PERIOD);
+    carrierPeerConnectionClient.enableStatsEvents(true, STAT_CALLBACK_PERIOD);
     setSwappedFeeds(false /* isSwappedFeeds */);
   }
 
@@ -622,9 +599,9 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     activityRunning = false;
     remoteProxyRenderer.setTarget(null);
     localProxyVideoSink.setTarget(null);
-    if (appRtcClient != null) {
-      appRtcClient.disconnectFromRoom();
-      appRtcClient = null;
+    if (webrtcClient != null) {
+      webrtcClient.disconnectFromCall();
+      webrtcClient = null;
     }
     if (pipRenderer != null) {
       pipRenderer.release();
@@ -638,9 +615,9 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
       fullscreenRenderer.release();
       fullscreenRenderer = null;
     }
-    if (carrierWebrtcClient != null) {
-      carrierWebrtcClient.close();
-      carrierWebrtcClient = null;
+    if (carrierPeerConnectionClient != null) {
+      carrierPeerConnectionClient.close();
+      carrierPeerConnectionClient = null;
     }
     if (audioManager != null) {
       audioManager.stop();
@@ -738,10 +715,7 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     pipRenderer.setMirror(!isSwappedFeeds);
   }
 
-  // -----Implementation of AppRTCClient.AppRTCSignalingEvents ---------------
-  // All callbacks are invoked from websocket signaling looper thread and
-  // are routed to UI thread.
-  private void onConnectedToRoomInternal(final SignalingParameters params) {
+  private void onConnectedToCallInternal(final SignalingParameters params) {
     final long delta = System.currentTimeMillis() - callStartedTimeMs;
 
     signalingParameters = params;
@@ -750,37 +724,41 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     if (peerConnectionParameters.videoCallEnabled) {
       videoCapturer = createVideoCapturer();
     }
-    carrierWebrtcClient.createPeerConnection(this,
-        localProxyVideoSink, remoteSinks, videoCapturer);
+    carrierPeerConnectionClient.createPeerConnection(this,
+            localProxyVideoSink, remoteSinks, videoCapturer);
 
     if (signalingParameters.initiator) {
       logAndToast("Creating OFFER...");
       // Create offer. Offer SDP will be sent to answering client in
       // PeerConnectionEvents.onLocalDescription event.
-      carrierWebrtcClient.createOffer();
+      carrierPeerConnectionClient.createOffer();
     } else {
       if (params.offerSdp != null) {
-        carrierWebrtcClient.setRemoteDescription(params.offerSdp);
+        carrierPeerConnectionClient.setRemoteDescription(params.offerSdp);
         logAndToast("Creating ANSWER...");
         // Create answer. Answer SDP will be sent to offering client in
         // PeerConnectionEvents.onLocalDescription event.
-        carrierWebrtcClient.createAnswer();
+        carrierPeerConnectionClient.createAnswer();
       }
       if (params.iceCandidates != null) {
         // Add remote ICE candidates from room.
         for (IceCandidate iceCandidate : params.iceCandidates) {
-          carrierWebrtcClient.addRemoteIceCandidate(iceCandidate);
+          carrierPeerConnectionClient.addRemoteIceCandidate(iceCandidate);
         }
       }
     }
   }
 
+
+  // -----Implementation of WebrtcClient.SignalingEvents ---------------
+  // All callbacks are invoked from websocket signaling looper thread and
+  // are routed to UI thread.
   @Override
-  public void onConnectedToRoom(final SignalingParameters params) {
+  public void onCallInitialized(final SignalingParameters params) {
     runOnUiThread(new Runnable() {
       @Override
       public void run() {
-        onConnectedToRoomInternal(params);
+        onConnectedToCallInternal(params);
       }
     });
   }
@@ -791,17 +769,17 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     runOnUiThread(new Runnable() {
       @Override
       public void run() {
-        if (carrierWebrtcClient == null) {
+        if (carrierPeerConnectionClient == null) {
           Log.e(TAG, "Received remote SDP for non-initilized peer connection.");
           return;
         }
         logAndToast("Received remote " + sdp.type + ", delay=" + delta + "ms");
-        carrierWebrtcClient.setRemoteDescription(sdp);
+        carrierPeerConnectionClient.setRemoteDescription(sdp);
         if (!signalingParameters.initiator) {
           logAndToast("Creating ANSWER...");
           // Create answer. Answer SDP will be sent to offering client in
           // PeerConnectionEvents.onLocalDescription event.
-          carrierWebrtcClient.createAnswer();
+          carrierPeerConnectionClient.createAnswer();
         }
       }
     });
@@ -812,11 +790,11 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     runOnUiThread(new Runnable() {
       @Override
       public void run() {
-        if (carrierWebrtcClient == null) {
+        if (carrierPeerConnectionClient == null) {
           Log.e(TAG, "Received ICE candidate for a non-initialized peer connection.");
           return;
         }
-        carrierWebrtcClient.addRemoteIceCandidate(candidate);
+        carrierPeerConnectionClient.addRemoteIceCandidate(candidate);
       }
     });
   }
@@ -826,11 +804,11 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     runOnUiThread(new Runnable() {
       @Override
       public void run() {
-        if (carrierWebrtcClient == null) {
+        if (carrierPeerConnectionClient == null) {
           Log.e(TAG, "Received ICE candidate removals for a non-initialized peer connection.");
           return;
         }
-        carrierWebrtcClient.removeRemoteIceCandidates(candidates);
+        carrierPeerConnectionClient.removeRemoteIceCandidates(candidates);
       }
     });
   }
@@ -853,10 +831,10 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
 
   @Override
   public void onCreateOffer() {
-    carrierWebrtcClient.createOffer();
+    carrierPeerConnectionClient.createOffer();
   }
 
-  // -----Implementation of CarrierWebrtcClient.PeerConnectionEvents.---------
+  // -----Implementation of CarrierPeerConnectionClient.PeerConnectionEvents.---------
   // Send local peer connection SDP and ICE candidates to remote party.
   // All callbacks are invoked from peer connection client looper thread and
   // are routed to UI thread.
@@ -866,17 +844,17 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     runOnUiThread(new Runnable() {
       @Override
       public void run() {
-        if (appRtcClient != null) {
+        if (webrtcClient != null) {
           logAndToast("Sending " + sdp.type + ", delay=" + delta + "ms");
           if (signalingParameters.initiator) {
-            appRtcClient.sendOfferSdp(sdp);
+            webrtcClient.sendOfferSdp(sdp);
           } else {
-            appRtcClient.sendAnswerSdp(sdp);
+            webrtcClient.sendAnswerSdp(sdp);
           }
         }
         if (peerConnectionParameters.videoMaxBitrate > 0) {
           Log.d(TAG, "Set video maximum bitrate: " + peerConnectionParameters.videoMaxBitrate);
-          carrierWebrtcClient.setVideoMaxBitrate(peerConnectionParameters.videoMaxBitrate);
+          carrierPeerConnectionClient.setVideoMaxBitrate(peerConnectionParameters.videoMaxBitrate);
         }
       }
     });
@@ -887,8 +865,8 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     runOnUiThread(new Runnable() {
       @Override
       public void run() {
-        if (appRtcClient != null) {
-          appRtcClient.sendLocalIceCandidate(candidate);
+        if (webrtcClient != null) {
+          webrtcClient.sendLocalIceCandidate(candidate);
         }
       }
     });
@@ -899,8 +877,8 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     runOnUiThread(new Runnable() {
       @Override
       public void run() {
-        if (appRtcClient != null) {
-          appRtcClient.sendLocalIceCandidateRemovals(candidates);
+        if (webrtcClient != null) {
+          webrtcClient.sendLocalIceCandidateRemovals(candidates);
         }
       }
     });

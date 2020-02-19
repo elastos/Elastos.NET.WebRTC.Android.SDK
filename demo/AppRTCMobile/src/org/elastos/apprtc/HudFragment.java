@@ -19,7 +19,7 @@ import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
-import org.elastos.carrier.webrtc.CarrierWebrtcClient;
+import org.elastos.carrier.webrtc.CarrierPeerConnectionClient;
 import org.webrtc.StatsReport;
 
 import java.util.HashMap;
@@ -130,7 +130,7 @@ public class HudFragment extends Fragment {
         // Send video statistics.
         Map<String, String> reportMap = getReportMap(report);
         String trackId = reportMap.get("googTrackId");
-        if (trackId != null && trackId.contains(CarrierWebrtcClient.VIDEO_TRACK_ID)) {
+        if (trackId != null && trackId.contains(CarrierPeerConnectionClient.VIDEO_TRACK_ID)) {
           fps = reportMap.get("googFrameRateSent");
           videoSendStat.append(report.id).append("\n");
           for (StatsReport.Value value : report.values) {

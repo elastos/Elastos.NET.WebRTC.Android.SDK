@@ -109,7 +109,7 @@ public class AppRTCProximitySensor implements SensorEventListener {
       lastStateReportIsNear = false;
     }
 
-    // Report about new state to listening client. Client can then call
+    // Report about new state to listening client. Client can then register
     // sensorReportsNearState() to query the current state (NEAR or FAR).
     if (onSensorStateListener != null) {
       onSensorStateListener.run();

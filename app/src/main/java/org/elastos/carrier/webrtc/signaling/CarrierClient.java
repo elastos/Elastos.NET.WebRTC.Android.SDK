@@ -1,4 +1,26 @@
-package org.elastos.carrier.webrtc.signaling.carrier;
+/*
+ * Copyright (c) 2018 Elastos Foundation
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+package org.elastos.carrier.webrtc.signaling;
 
 import android.content.Context;
 import android.os.Handler;
@@ -13,12 +35,11 @@ import org.elastos.carrier.FriendInviteResponseHandler;
 import org.elastos.carrier.TurnServer;
 import org.elastos.carrier.UserInfo;
 import org.elastos.carrier.exceptions.CarrierException;
-import org.elastos.carrier.webrtc.signaling.Signaling;
 
 import java.util.LinkedList;
 
 /**
- * Initialize Carrier instance and connect to the carrier network, you can also register your customer carrier handle by call addCarrierHandler()
+ * Initialize Carrier instance and connect to the carrier network, you can also register your customer carrier handle by register addCarrierHandler()
  *
  */
 public class CarrierClient {
@@ -26,16 +47,15 @@ public class CarrierClient {
 	private static CarrierClient carrierClient;
 	private static Carrier carrier;
 	private Handler androidHandler;
-	private Signaling signaling;
 	private static String basePath;
 	private WrapHandler carrierHandler;
 
 	private FriendInviteResponseHandler friendInviteResponseHandler;
 
 
-	public static CarrierClient getInstance(Context context, Signaling signaling) {
+	public static CarrierClient getInstance(Context context) {
 		if (carrierClient == null) {
-			carrierClient = new CarrierClient(context, signaling);
+			carrierClient = new CarrierClient(context);
 		}
 
 		return carrierClient;
@@ -52,7 +72,7 @@ public class CarrierClient {
 		if (friendInviteResponseHandler==null){
 			throw CarrierException.fromErrorCode(-1, "FriendInviteResponseHandler not initialized.");
 		}else if(fid!=null && !fid.equals(carrier.getUserId())){
-			carrier.inviteFriend(fid,message, friendInviteResponseHandler);
+			carrier.inviteFriend(fid, message, friendInviteResponseHandler);
 		}
 	}
 
@@ -100,13 +120,9 @@ public class CarrierClient {
 		return carrier;
 	}
 
-	private CarrierClient(Context context, Signaling signaling) {
+	private CarrierClient(Context context) {
 		carrierHandler = new WrapHandler(context);
 		basePath = context.getFilesDir().getParent();
-		this.signaling = signaling;
-		if(signaling!=null){
-			carrierHandler.addHandler(signaling.getCarrierHandler());
-		}
 		CarrierOptions options = new CarrierOptions(basePath);
 
 		try {

@@ -23,7 +23,7 @@ import android.widget.TextView;
 import org.webrtc.RendererCommon.ScalingType;
 
 /**
- * Fragment for call control.
+ * Fragment for register control.
  */
 public class CallFragment extends Fragment {
   private TextView contactView;

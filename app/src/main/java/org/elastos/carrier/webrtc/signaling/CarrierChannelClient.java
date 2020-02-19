@@ -1,60 +1,67 @@
 /*
- *  Copyright 2014 The WebRTC Project Authors. All rights reserved.
+ * Copyright (c) 2018 Elastos Foundation
  *
- *  Use of this source code is governed by a BSD-style license
- *  that can be found in the LICENSE file in the root of the source
- *  tree. An additional intellectual property rights grant can be found
- *  in the file PATENTS.  All contributing project authors may
- *  be found in the AUTHORS file in the root of the source tree.
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 
-package org.elastos.apprtc;
+package org.elastos.carrier.webrtc.signaling;
 
 import android.content.Context;
 import android.os.Handler;
-import androidx.annotation.Nullable;
 import android.util.Log;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.elastos.apprtc.util.AsyncHttpURLConnection;
-import org.elastos.apprtc.util.AsyncHttpURLConnection.AsyncHttpEvents;
 import org.elastos.carrier.AbstractCarrierHandler;
 import org.elastos.carrier.Carrier;
 import org.elastos.carrier.ConnectionStatus;
 import org.elastos.carrier.FriendInviteResponseHandler;
 import org.elastos.carrier.UserInfo;
 import org.elastos.carrier.exceptions.CarrierException;
-import org.elastos.carrier.webrtc.signaling.carrier.CarrierClient;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * Carrier client implementation.
+ * Carrier message channel client implementation.
  *
  * <p>All public methods should be called from a looper executor thread
  * passed in a constructor, otherwise exception will be thrown.
  * All events are dispatched on the same thread.
  */
 public class CarrierChannelClient {
-  private static final String TAG = "CarrierChannelRTCClient";
+  private static final String TAG = "CarrierChannelClient";
   private static final int CLOSE_TIMEOUT = 1000;
   private final CarrierChannelEvents events;
   private final Handler handler;
 
-  private CarrierClient ws;
+  private CarrierClient carrierClient;
   private String calleeUserId;
   private String callerUserId;
   @Nullable
   private String calleeAddress;
   private String callerAddress;
-  @Nullable
-  private String clientID;
+
   private CarrierConnectionState state;
   // Do not remove this member variable. If this is removed, the observer gets garbage collected and
   // this causes test breakages.
@@ -62,40 +69,24 @@ public class CarrierChannelClient {
   private final Object closeEventLock = new Object();
   private boolean closeEvent;
   // Carrier send queue. Messages are added to the queue when Carrier
-  // client is not registered and are consumed in register() call.
-  private final List<String> wsSendQueue = new ArrayList<>();
+  // client is not registered and are consumed in register() register.
+  private final List<String> msgSendQueue = new ArrayList<>();
 
   private Context context;
 
   private FriendInviteResponseHandler friendInviteResponseHandler;
 
   public boolean isInitiator(String address) {
-    String myAddress = ws.getMyAddress();
+    String myAddress = carrierClient.getMyAddress();
     return address!=null && !address.equals(myAddress);
   }
 
   public String getMyCarrierAddress() {
-    return ws.getMyAddress();
+    return carrierClient.getMyAddress();
   }
 
   public Carrier getCarrier() {
-    return ws.getCarrier();
-  }
-
-  /**
-   * Possible Carrier connection states.
-   */
-  public enum CarrierConnectionState { NEW, CONNECTED, REGISTERED, CLOSED, ERROR }
-
-  /**
-   * Callback interface for messages delivered on Carrier.
-   * All events are dispatched from a looper executor thread.
-   */
-  public interface CarrierChannelEvents {
-    void onCarrierMessage(final String message);
-    void onSdpReceived(final String calleeUserId);
-    void onCarrierClose();
-    void onCarrierError(final String description);
+    return carrierClient.getCarrier();
   }
 
   public CarrierChannelClient(Handler handler, CarrierChannelEvents events, Context context) {
@@ -103,16 +94,15 @@ public class CarrierChannelClient {
     this.events = events;
     calleeAddress = null;
     callerAddress = null;
-    clientID = null;
     state = CarrierConnectionState.NEW;
     this.context = context;
 
     carrierObserver = new CarrierObserver();
     friendInviteResponseHandler = new CarrierMessageObserver();
-    ws = CarrierClient.getInstance(context,null);
-    //ws.setmHandler(handler);
-    ws.addCarrierHandler(carrierObserver);
-    ws.setFriendInviteResponseHandler(friendInviteResponseHandler);
+    carrierClient = CarrierClient.getInstance(context);
+    //carrierClient.setmHandler(handler);
+    carrierClient.addCarrierHandler(carrierObserver);
+    carrierClient.setFriendInviteResponseHandler(friendInviteResponseHandler);
   }
 
   public CarrierConnectionState getState() {
@@ -129,17 +119,15 @@ public class CarrierChannelClient {
     this.calleeAddress = calleeAddress;
     this.callerAddress = callerAddress;
 
-    CarrierClient cf = CarrierClient.getInstance(context, null);
+    CarrierClient cf = CarrierClient.getInstance(context);
 
     calleeUserId = cf.getUserIdFromAddress(calleeAddress);
     callerUserId = cf.getUserIdFromAddress(callerAddress);
     closeEvent = false;
 
-    //Log.d(TAG, "Connecting Carrier to: " + calleeAddress + ". Post URL: " + callerAddress);
-
     try {
       if (!calleeAddress.equals(callerAddress)) {
-        ws.addFriend(calleeAddress);
+        carrierClient.addFriend(calleeAddress); //if carrier node can add friend, then it's status should be connected.
       }
       state = CarrierConnectionState.CONNECTED;
     } catch (CarrierException e) {
@@ -148,102 +136,25 @@ public class CarrierChannelClient {
 
   }
 
-  //call
-  public void register(final String calleeAddress, final String callerAddress, final String clientID) {
+  //register
+  public void register(final String calleeAddress, final String callerAddress) {
     checkIfCalledOnValidThread();
     this.calleeAddress = calleeAddress;
-    this.clientID = clientID;
     if (state != CarrierConnectionState.CONNECTED) {
       Log.w(TAG, "Carrier register() in state " + state);
       return;
     }
-    Log.d(TAG, "Registering Carrier for callee " + calleeAddress + ". ClientID: " + clientID);
-    JSONObject json = new JSONObject();
-    try {
-      json.put("cmd", "register");
-      json.put("roomid", calleeAddress);
-      json.put("clientid", clientID);
-      Log.d(TAG, "C->WSS: " + json.toString());
-      //sendJsonMessage(calleeUserId, callerUserId, json, false);
-      state = CarrierConnectionState.REGISTERED;
-      // Send any previously accumulated messages.
-      for (String sendMessage : wsSendQueue) {
-        send(sendMessage);
-      }
-      wsSendQueue.clear();
-    } catch (JSONException e) {
-      reportError("Carrier register JSON error: " + e.getMessage());
-    } /*catch (CarrierException e) {
-      e.printStackTrace();
-      reportError("carrier send message error: " + e.getMessage());
-    }*/
-  }
+    Log.d(TAG, "Registering Carrier for callee " + calleeAddress);
 
-
-  private static final int MAX_LENGTH = 800;
-
-
-  private void sendJsonMessage(String calleeUserId, String callerUserId, JSONObject messageJson, boolean needSplit) throws CarrierException, JSONException {
-      if(calleeUserId.equals(callerUserId)){
-        return; //因为carrier不能发送消息给自己的限制，被呼叫方进入无需发送消息给自己，等待offer.
-      }
-      if(!needSplit || messageJson.toString().length() < 1024){
-          ws.sendMessageByInvite(calleeUserId, messageJson.toString());
-          Log.w(TAG, "Message length: " + messageJson.toString().length() + ", no need to split it: " + messageJson);
-      }else{
-        //拆分remove-candidates和sdp.
-        if(messageJson.has("candidates") && messageJson.optString("type")!=null && messageJson.optString("type").equals("remove-candidates")){
-          JSONArray candidates = messageJson.optJSONArray("candidates");
-          if(candidates!=null){
-            for (int i = 0; i < candidates.length(); i++) { //send remove-candidates one by one
-              JSONObject candidate = candidates.optJSONObject(i);
-              if(candidate!=null){
-                JSONObject msg = new JSONObject();
-                JSONObject jsonObject = new JSONObject(messageJson.toString());
-                JSONArray jsonArray = new JSONArray();
-                jsonArray.put(candidate);
-                jsonObject.put("candidates", jsonArray);
-                msg.put("msg", jsonObject);
-                ws.sendMessageByInvite(calleeUserId, msg.toString());
-                Log.w(TAG, "Split message length: " + msg.toString().length() + ", content: " + messageJson);
-              }
-            }
-          }
-        }else if(messageJson.has("sdp")){
-           JSONObject sdp = messageJson.optJSONObject("sdp");
-           if(sdp!=null) {
-             String message = sdp.toString();
-             String[] lines = message.split("\r\n");
-             int length = 0;
-             StringBuilder buffer = new StringBuilder();
-             for (String line : lines) {
-               if (length + line.length() >= MAX_LENGTH) { //平均每行不超过100个字符，所以一旦sdp累计字符超过800就立即送出
-                 JSONObject msg = new JSONObject();
-
-                 JSONObject jsonObject = new JSONObject(messageJson.toString());
-                 jsonObject.put("sdp", buffer.toString());
-                 msg.put("msg", jsonObject);
-                 ws.sendMessageByInvite(calleeUserId, msg.toString());
-                 Log.w(TAG, "Split message length: " + msg.toString().length() + ", content: " + messageJson);
-                 buffer.setLength(0);
-               }
-               buffer.append(line).append("\r\n");
-               length += line.length() + 4;
-             }
-           }
-        }
-      }
-  }
-
-
-  // Put a |key|->|value| mapping in |json|.
-  private static void jsonPut(JSONObject json, String key, Object value) {
-    try {
-      json.put(key, value);
-    } catch (JSONException e) {
-      throw new RuntimeException(e);
+    state = CarrierConnectionState.REGISTERED;
+    // Send any previously accumulated messages.
+    for (String sendMessage : msgSendQueue) {
+      send(sendMessage);
     }
+    msgSendQueue.clear();
   }
+
+
 
   //send message
   public void send(String message) {
@@ -253,8 +164,8 @@ public class CarrierChannelClient {
       case CONNECTED:
         // Store outgoing messages and send them after Carrier client
         // is registered.
-        Log.d(TAG, "WS ACC: " + message);
-        wsSendQueue.add(message);
+        Log.d(TAG, "C ACC: " + message);
+        msgSendQueue.add(message);
         return;
       case ERROR:
       case CLOSED:
@@ -265,10 +176,15 @@ public class CarrierChannelClient {
         try {
           json.put("cmd", "send");
           json.put("msg", message);
+          json.put("calleeAddress", calleeAddress);
           message = json.toString();
-          Log.d(TAG, "C->WSS: " + message);
 
-          sendJsonMessage(calleeUserId, callerUserId, json, false);
+          Log.d(TAG, "C->Call: " + message);
+
+          if (calleeUserId.equals(callerUserId)) {
+            return; //因为carrier不能发送消息给自己的限制，被呼叫方进入无需发送消息给自己，等待offer.
+          }
+          carrierClient.sendMessageByInvite(calleeUserId, message);
 
         } catch (JSONException e) {
           reportError("Carrier send JSON error: " + e.getMessage());
@@ -280,12 +196,6 @@ public class CarrierChannelClient {
     }
   }
 
-  // This call can be used to send Carrier messages before Carrier
-  // connection is opened.
-  public void post(String message) {
-    checkIfCalledOnValidThread();
-    sendWSSMessage("POST", message);
-  }
 
   public void disconnect(boolean waitForComplete) {
     checkIfCalledOnValidThread();
@@ -294,12 +204,10 @@ public class CarrierChannelClient {
       // Send "bye" to Carrier server.
       send("{\"type\": \"bye\"}");
       state = CarrierConnectionState.CONNECTED;
-      // Send http DELETE to http Carrier server.
-      //sendWSSMessage("DELETE", "");
     }
     // Close Carrier in CONNECTED or ERROR states only.
     if (state == CarrierConnectionState.CONNECTED || state == CarrierConnectionState.ERROR) {
-//      ws.getsCarrier().kill();
+      //carrierClient.getsCarrier().kill(); todo: do we need to kill the carrier instance?
       state = CarrierConnectionState.CLOSED;
 
       // Wait for Carrier close event to prevent Carrier library from
@@ -333,22 +241,6 @@ public class CarrierChannelClient {
     });
   }
 
-  // Asynchronously send POST/DELETE to Carrier server.
-  private void sendWSSMessage(final String method, final String message) {
-    String postUrl = callerUserId + "/" + calleeAddress + "/" + clientID;
-    Log.d(TAG, "WS " + method + " : " + postUrl + " : " + message);
-    AsyncHttpURLConnection httpConnection =
-        new AsyncHttpURLConnection(method, postUrl, message, new AsyncHttpEvents() {
-          @Override
-          public void onHttpError(String errorMessage) {
-            reportError("WS " + method + " error: " + errorMessage);
-          }
-
-          @Override
-          public void onHttpComplete(String response) {}
-        });
-    httpConnection.send();
-  }
 
   // Helper method for debugging purposes. Ensures that Carrier method is
   // called on a looper thread.
@@ -368,8 +260,8 @@ public class CarrierChannelClient {
           if (status == ConnectionStatus.Connected) {
             state = CarrierConnectionState.CONNECTED;
             // Check if we have pending register request.
-            if (calleeAddress != null && clientID != null) {
-              register(calleeAddress, callerAddress,  clientID);
+            if (calleeAddress != null) {
+              register(calleeAddress, callerAddress);
             }
           }
         }

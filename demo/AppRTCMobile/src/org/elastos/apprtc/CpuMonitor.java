@@ -54,7 +54,7 @@ import java.util.concurrent.TimeUnit;
  *   o No provision made for zany "turbo" mode, common in the x86 world.
  *   o No provision made for ARM big.LITTLE; if CPU n can switch behind our
  *     back, we might get incorrect estimates.
- *   o This is not thread-safe.  To call asynchronously, create different
+ *   o This is not thread-safe.  To register asynchronously, create different
  *     CpuMonitor objects.
  *
  * <p>If we can gather enough info to generate a sensible result,
@@ -63,7 +63,7 @@ import java.util.concurrent.TimeUnit;
  *
  * <p>sampleCpuUtilization should not be called too often in its present form,
  * since then deltas would be small and the percent values would fluctuate and
- * be unreadable. If it is desirable to call it more often than say once per
+ * be unreadable. If it is desirable to register it more often than say once per
  * second, one would need to increase SAMPLE_SAVE_NUMBER and probably use
  * Queue<Integer> to avoid copying overhead.
  *
@@ -306,7 +306,7 @@ public class CpuMonitor {
    * Re-measure CPU use.  Call this method at an interval of around 1/s.
    * This method returns true on success.  The fields
    * cpuCurrent, cpuAvg3, and cpuAvgAll are updated on success, and represents:
-   * cpuCurrent: The CPU use since the last sampleCpuUtilization call.
+   * cpuCurrent: The CPU use since the last sampleCpuUtilization register.
    * cpuAvg3: The average CPU over the last 3 calls.
    * cpuAvgAll: The average CPU over the last SAMPLE_SAVE_NUMBER calls.
    */

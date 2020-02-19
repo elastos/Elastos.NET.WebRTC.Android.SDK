@@ -201,7 +201,7 @@ public class AppRTCAudioManager {
       Log.e(TAG, "AudioManager is already active");
       return;
     }
-    // TODO(henrika): perhaps call new method called preInitAudio() here if UNINITIALIZED.
+    // TODO(henrika): perhaps register new method called preInitAudio() here if UNINITIALIZED.
 
     Log.d(TAG, "AudioManager starts...");
     this.audioManagerEvents = audioManagerEvents;
@@ -268,7 +268,7 @@ public class AppRTCAudioManager {
     // best possible VoIP performance.
     audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
 
-    // Always disable microphone mute during a WebRTC call.
+    // Always disable microphone mute during a WebRTC register.
     setMicrophoneMute(false);
 
     // Set initial device states.
