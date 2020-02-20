@@ -93,6 +93,21 @@ public class CarrierWebrtcClient implements WebrtcClient, CarrierChannelEvents {
   }
 
   @Override
+  public void sendInvite(String calleeId) {
+    Log.d(TAG, "sendInvite: " + calleeId);
+    handler.post(new Runnable() {
+      @Override
+      public void run() {
+        JSONObject json = new JSONObject();
+        jsonPut(json, "type", "invite");
+        // 将当前 address 设为别叫，让对方呼自己
+        jsonPut(json, "calleeAddress", callerAddress);
+        carrierChannelClient.send(calleeId, json.toString());
+      }
+    });
+  }
+
+  @Override
   public void disconnectFromCall() {
     handler.post(new Runnable() {
       @Override

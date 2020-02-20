@@ -38,6 +38,12 @@ public interface WebrtcClient {
   void initialCall(String callerAddress, String calleeAddress);
 
   /**
+   * send invite message to callee.
+   * @param calleeAddress callee address
+   */
+  void sendInvite(String calleeAddress);
+
+  /**
    * Send offer SDP to the other participant.
    */
   void sendOfferSdp(final SessionDescription sdp);

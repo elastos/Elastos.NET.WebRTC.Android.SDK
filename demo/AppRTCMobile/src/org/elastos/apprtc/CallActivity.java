@@ -72,6 +72,7 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
         CallFragment.OnCallEvents {
   private static final String TAG = "CallRTCClient";
 
+  public static final String EXTRA_IS_CALLER = "org.elastos.apprtc.IS_CALLER";
   public static final String EXTRA_ROOMID = "org.elastos.apprtc.ROOMID";
 
   public static final String EXTRA_VIDEO_CALL = "org.elastos.apprtc.VIDEO_CALL";
@@ -145,8 +146,10 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
   private boolean commandLineRun;
   private boolean activityRunning;
 
+  private boolean isCaller;
   private String calleeAddress; //callee's carrier address
   private String callerAddress; //caller's carrier address
+  private String remoteAddress; //remote's carrier address
 
   @Nullable
   private PeerConnectionParameters peerConnectionParameters;
@@ -260,8 +263,15 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
       return;
     }
 
+    isCaller = intent.getBooleanExtra(EXTRA_IS_CALLER, false);
     // Get Intent parameters.
-    calleeAddress = intent.getStringExtra(EXTRA_ROOMID); //calleeAddress
+    if (isCaller) {
+      remoteAddress = intent.getStringExtra(EXTRA_ROOMID);
+      calleeAddress = CarrierClient.getInstance(this).getMyAddress();
+    } else {
+      calleeAddress = intent.getStringExtra(EXTRA_ROOMID); //calleeAddress
+      remoteAddress = calleeAddress;
+    }
 
     Log.d(TAG, "Callee Address: " + calleeAddress);
     if ((calleeAddress == null || calleeAddress.length() == 0)){
@@ -554,6 +564,16 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
     // Start room connection.
     logAndToast(getString(R.string.connecting_to, calleeAddress));
     webrtcClient.initialCall(callerAddress, calleeAddress);
+    Log.d(TAG, "startCall: isCaller = " + isCaller + "; caller = " + callerAddress + "; callee = " + calleeAddress + "; remote = " + remoteAddress);
+    if (isCaller) {
+      try {
+        Thread.sleep(500);
+      } catch (Exception e) {
+        Log.e(TAG, "startCall: ", e);
+      }
+      String remoteId = CarrierClient.getInstance(this).getUserIdFromAddress(remoteAddress);
+      webrtcClient.sendInvite(remoteId);
+    }
 
     // Create and audio manager that will take care of audio routing,
     // audio modes, audio device enumeration etc.

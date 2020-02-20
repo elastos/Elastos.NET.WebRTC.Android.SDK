@@ -26,6 +26,8 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
+
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.KeyEvent;
@@ -162,20 +164,23 @@ public class ConnectActivity extends Activity {
         super.onFriendInviteRequest(carrier, from, data);
         roomEditText.post(() -> {
           Toast.makeText(ConnectActivity.this, "carrier friend invite onFriendInviteRequest from : " + from, Toast.LENGTH_LONG).show();
-          Log.e(TAG, "carrier friend invite  onFriendInviteRequest from: " + from);
+          Log.e(TAG, "carrier friend invite  onFriendInviteRequest from: " + from + "\r\n" + data);
 
-          if (data != null && data.contains("calleeAddress")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
+          if (data != null && data.contains("invite") && data.contains("calleeAddress")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
 
             //启动进去CallActivity
             JSONObject json = null;
+            JSONObject msg = null;
             try {
               json = new JSONObject(data);
+              String message = json.optString("msg");
+              msg = new JSONObject(message);
+              String type = msg.optString("type");
+              String callee = msg.optString("calleeAddress");
 
-              if (json.has("calleeAddress")) {
-                String calleeAddress = json.optString("calleeAddress");
-                connectToRoom(calleeAddress, false, false, 0);
+              if ("invite".equalsIgnoreCase(type) && !TextUtils.isEmpty(callee)) {
+                connectToRoom(callee, false, false, 0, false);
               }
-
             } catch (JSONException e) {
               e.printStackTrace();
             }
@@ -404,7 +409,7 @@ public class ConnectActivity extends Activity {
       boolean useValuesFromIntent =
           intent.getBooleanExtra(CallActivity.EXTRA_USE_VALUES_FROM_INTENT, false);
       String room = sharedPref.getString(keyprefRoom, "");
-      connectToRoom(room, true, useValuesFromIntent, runTimeMs);
+      connectToRoom(room, true, useValuesFromIntent, runTimeMs, true);
     }
   }
 
@@ -512,7 +517,7 @@ public class ConnectActivity extends Activity {
 
   @SuppressWarnings("StringSplitter")
   private void connectToRoom(String roomId, boolean commandLineRun,
-      boolean useValuesFromIntent, int runTimeMs) {
+      boolean useValuesFromIntent, int runTimeMs, boolean isCaller) {
     ConnectActivity.commandLineRun = commandLineRun;
 
     String roomUrl = sharedPref.getString(
@@ -698,6 +703,7 @@ public class ConnectActivity extends Activity {
       Uri uri = Uri.parse(roomUrl);
       Intent intent = new Intent(this, CallActivity.class);
       intent.setData(uri);
+      intent.putExtra(CallActivity.EXTRA_IS_CALLER, isCaller);
       intent.putExtra(CallActivity.EXTRA_ROOMID, roomId);
       intent.putExtra(CallActivity.EXTRA_VIDEO_CALL, videoCallEnabled);
       intent.putExtra(CallActivity.EXTRA_SCREENCAPTURE, useScreencapture);
@@ -793,7 +799,7 @@ public class ConnectActivity extends Activity {
         @Override
         public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
           String roomId = ((TextView) view).getText().toString();
-          connectToRoom(roomId, false, false, 0);
+          connectToRoom(roomId, false, false, 0, true);
         }
       };
 
@@ -811,7 +817,7 @@ public class ConnectActivity extends Activity {
   private final OnClickListener connectListener = new OnClickListener() {
     @Override
     public void onClick(View view) {
-      connectToRoom(roomEditText.getText().toString(), false, false, 0);
+      connectToRoom(roomEditText.getText().toString(), false, false, 0, true);
     }
   };
 }

@@ -196,6 +196,31 @@ public class CarrierChannelClient {
     }
   }
 
+  //send message
+  public void send(String to, String message) {
+    checkIfCalledOnValidThread();
+    JSONObject json = new JSONObject();
+    try {
+      json.put("cmd", "send");
+      json.put("msg", message);
+      message = json.toString();
+
+      Log.d(TAG, "send_to: " + to + "; message: " + message);
+
+      if (to.equals(callerUserId)) {
+        return; //因为carrier不能发送消息给自己的限制，被呼叫方进入无需发送消息给自己，等待offer.
+      }
+      carrierClient.sendMessageByInvite(to, message);
+    } catch (JSONException e) {
+      Log.e(TAG, "send_to: " + to + "; message: " + message, e);
+      reportError("Carrier send JSON error: " + e.getMessage());
+    } catch (CarrierException e) {
+      e.printStackTrace();
+      Log.e(TAG, "send_to: " + to + "; message: " + message, e);
+      reportError("carrier send message error: " + e.getMessage());
+    }
+  }
+
 
   public void disconnect(boolean waitForComplete) {
     checkIfCalledOnValidThread();
