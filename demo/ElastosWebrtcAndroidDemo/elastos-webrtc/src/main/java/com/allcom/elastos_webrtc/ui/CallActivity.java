@@ -111,7 +111,7 @@ public class CallActivity extends AppCompatActivity implements CallFragment.OnCa
 
     @Override
     public void onCallHangUp() {
-        ElastosWebrtc.getInstance().disconnect(true);
+        ElastosWebrtc.getInstance().hangup();
         finish();
     }
 
@@ -138,7 +138,7 @@ public class CallActivity extends AppCompatActivity implements CallFragment.OnCa
     @Override
     public void onRejectCall() {
         ElastosWebrtc.getInstance().reject();
-        ElastosWebrtc.getInstance().disconnect(true);
+        ElastosWebrtc.getInstance().hangup();
         finish();
     }
 

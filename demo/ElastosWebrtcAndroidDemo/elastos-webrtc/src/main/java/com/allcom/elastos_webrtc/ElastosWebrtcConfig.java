@@ -3,11 +3,9 @@ package com.allcom.elastos_webrtc;
 import android.text.TextUtils;
 import android.util.Log;
 
-import org.json.JSONObject;
 import org.webrtc.PeerConnection;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import androidx.annotation.NonNull;
@@ -17,19 +15,99 @@ import androidx.annotation.NonNull;
  */
 public class ElastosWebrtcConfig {
 
+    public static final String VIDEO_TRACK_ID = "ARDAMSv0";
+    public static final String AUDIO_TRACK_ID = "ARDAMSa0";
+    public static final String VIDEO_TRACK_TYPE = "video";
+    public static final String VIDEO_CODEC_VP8 = "VP8";
+    public static final String VIDEO_CODEC_VP9 = "VP9";
+    public static final String VIDEO_CODEC_H264 = "H264";
+    public static final String VIDEO_CODEC_H264_BASELINE = "H264 Baseline";
+    public static final String VIDEO_CODEC_H264_HIGH = "H264 High";
+    public static final String AUDIO_CODEC_OPUS = "opus";
+    public static final String AUDIO_CODEC_ISAC = "ISAC";
+    public static final String VIDEO_CODEC_PARAM_START_BITRATE = "x-google-start-bitrate";
+    public static final String VIDEO_FLEXFEC_FIELDTRIAL =
+            "WebRTC-FlexFEC-03-Advertised/Enabled/WebRTC-FlexFEC-03/Enabled/";
+    public static final String VIDEO_VP8_INTEL_HW_ENCODER_FIELDTRIAL = "WebRTC-IntelVP8/Enabled/";
+    public static final String DISABLE_WEBRTC_AGC_FIELDTRIAL =
+            "WebRTC-Audio-MinimizeResamplingOnMobile/Enabled/";
+    public static final String AUDIO_CODEC_PARAM_BITRATE = "maxaveragebitrate";
+    public static final String AUDIO_ECHO_CANCELLATION_CONSTRAINT = "googEchoCancellation";
+    public static final String AUDIO_AUTO_GAIN_CONTROL_CONSTRAINT = "googAutoGainControl";
+    public static final String AUDIO_HIGH_PASS_FILTER_CONSTRAINT = "googHighpassFilter";
+    public static final String AUDIO_NOISE_SUPPRESSION_CONSTRAINT = "googNoiseSuppression";
+
     private static final String TAG = "ElastosWebrtcConfig";
-
-    private Resolution resolution = new Resolution();
-
-//    private List<Ice> ices = Arrays.asList(new Ice[]{new Ice("stun:gfax.net:3478"), new Ice("turn:gfax.net:3478", "allcom", "allcompass")});
-    private List<Ice> ices = new ArrayList<>();
-
+    private Resolution resolution;
+    private List<Ice> ices;
     private List<PeerConnection.IceServer> iceServers = new ArrayList<>();
-
     private boolean defaultUi = true;
+    private boolean videoCallEnabled;
+    private boolean tracing;
+    private int videoMaxBitrate;
+    private String videoCodec;
+    private boolean videoCodecHwAcceleration;
+    private boolean videoFlexfecEnabled;
+    private int audioStartBitrate;
+    private String audioCodec;
+    private boolean noAudioProcessing;
+    private boolean aecDump;
+    private boolean saveInputAudioToFile;
+    private boolean useOpenSLES;
+    private boolean disableBuiltInAEC;
+    private boolean disableBuiltInAGC;
+    private boolean disableBuiltInNS;
+    private boolean disableWebRtcAGCAndHPF;
+    private boolean enableRtcEventLog;
 
     private ElastosWebrtcConfig() {
+        this.resolution = new Resolution();
+        this.ices = new ArrayList<>();
+        this.defaultUi = true;
+        this.videoCallEnabled = true;
+        this.tracing = false;
+        this.videoMaxBitrate = 1700;
+        this.videoCodec = VIDEO_CODEC_VP8;
+        this.videoCodecHwAcceleration = true;
+        this.videoFlexfecEnabled = false;
+        this.audioStartBitrate = 32;
+        this.audioCodec = AUDIO_CODEC_OPUS;
+        this.noAudioProcessing = false;
+        this.aecDump = false;
+        this.saveInputAudioToFile = false;
+        this.useOpenSLES = false;
+        this.disableBuiltInAEC = false;
+        this.disableBuiltInAGC = false;
+        this.disableBuiltInNS = false;
+        this.disableWebRtcAGCAndHPF = false;
+        this.enableRtcEventLog = false;
+    }
 
+    private ElastosWebrtcConfig(Resolution resolution, List<Ice> ices, boolean defaultUi, boolean videoCallEnabled, boolean tracing,
+                               int videoMaxBitrate, String videoCodec, boolean videoCodecHwAcceleration, boolean videoFlexfecEnabled,
+                               int audioStartBitrate, String audioCodec, boolean noAudioProcessing, boolean aecDump,
+                               boolean saveInputAudioToFile, boolean useOpenSLES, boolean disableBuiltInAEC, boolean disableBuiltInAGC,
+                               boolean disableBuiltInNS, boolean disableWebRtcAGCAndHPF, boolean enableRtcEventLog) {
+        this.resolution = resolution;
+        this.ices = ices;
+        this.defaultUi = defaultUi;
+        this.videoCallEnabled = videoCallEnabled;
+        this.tracing = tracing;
+        this.videoMaxBitrate = videoMaxBitrate;
+        this.videoCodec = videoCodec;
+        this.videoCodecHwAcceleration = videoCodecHwAcceleration;
+        this.videoFlexfecEnabled = videoFlexfecEnabled;
+        this.audioStartBitrate = audioStartBitrate;
+        this.audioCodec = audioCodec;
+        this.noAudioProcessing = noAudioProcessing;
+        this.aecDump = aecDump;
+        this.saveInputAudioToFile = saveInputAudioToFile;
+        this.useOpenSLES = useOpenSLES;
+        this.disableBuiltInAEC = disableBuiltInAEC;
+        this.disableBuiltInAGC = disableBuiltInAGC;
+        this.disableBuiltInNS = disableBuiltInNS;
+        this.disableWebRtcAGCAndHPF = disableWebRtcAGCAndHPF;
+        this.enableRtcEventLog = enableRtcEventLog;
     }
 
     /**
@@ -39,6 +117,18 @@ public class ElastosWebrtcConfig {
      */
     public static ElastosWebrtcConfig builder() {
         return new ElastosWebrtcConfig();
+    }
+
+    public static ElastosWebrtcConfig builder(Resolution resolution, List<Ice> ices, boolean defaultUi, boolean videoCallEnabled, boolean tracing,
+                                              int videoMaxBitrate, String videoCodec, boolean videoCodecHwAcceleration, boolean videoFlexfecEnabled,
+                                              int audioStartBitrate, String audioCodec, boolean noAudioProcessing, boolean aecDump,
+                                              boolean saveInputAudioToFile, boolean useOpenSLES, boolean disableBuiltInAEC, boolean disableBuiltInAGC,
+                                              boolean disableBuiltInNS, boolean disableWebRtcAGCAndHPF, boolean enableRtcEventLog) {
+        return new ElastosWebrtcConfig(resolution, ices, defaultUi, videoCallEnabled, tracing,
+                videoMaxBitrate, videoCodec, videoCodecHwAcceleration, videoFlexfecEnabled,
+                audioStartBitrate, audioCodec, noAudioProcessing, aecDump,
+                saveInputAudioToFile, useOpenSLES, disableBuiltInAEC, disableBuiltInAGC,
+                disableBuiltInNS, disableWebRtcAGCAndHPF, enableRtcEventLog);
     }
 
     /**
@@ -116,6 +206,91 @@ public class ElastosWebrtcConfig {
         return this;
     }
 
+    public ElastosWebrtcConfig videoCallEnabled(boolean videoCallEnabled) {
+        this.videoCallEnabled = videoCallEnabled;
+        return this;
+    }
+
+    public ElastosWebrtcConfig tracing(boolean tracing) {
+        this.tracing = tracing;
+        return this;
+    }
+
+    public ElastosWebrtcConfig videoMaxBitrate(int videoMaxBitrate) {
+        this.videoMaxBitrate = videoMaxBitrate;
+        return this;
+    }
+
+    public ElastosWebrtcConfig videoCodec(String videoCodec) {
+        this.videoCodec = videoCodec;
+        return this;
+    }
+
+    public ElastosWebrtcConfig videoCodecHwAcceleration(boolean videoCodecHwAcceleration) {
+        this.videoCodecHwAcceleration = videoCodecHwAcceleration;
+        return this;
+    }
+
+    public ElastosWebrtcConfig videoFlexfecEnabled(boolean videoFlexfecEnabled) {
+        this.videoFlexfecEnabled = videoFlexfecEnabled;
+        return this;
+    }
+
+    public ElastosWebrtcConfig audioStartBitrate(int audioStartBitrate) {
+        this.audioStartBitrate = audioStartBitrate;
+        return this;
+    }
+
+    public ElastosWebrtcConfig audioCodec(String audioCodec) {
+        this.audioCodec = audioCodec;
+        return this;
+    }
+
+    public ElastosWebrtcConfig noAudioProcessing(boolean noAudioProcessing) {
+        this.noAudioProcessing = noAudioProcessing;
+        return this;
+    }
+
+    public ElastosWebrtcConfig aecDump(boolean aecDump) {
+        this.aecDump = aecDump;
+        return this;
+    }
+
+    public ElastosWebrtcConfig saveInputAudioToFile(boolean saveInputAudioToFile) {
+        this.saveInputAudioToFile = saveInputAudioToFile;
+        return this;
+    }
+
+    public ElastosWebrtcConfig useOpenSLES(boolean useOpenSLES) {
+        this.useOpenSLES = useOpenSLES;
+        return this;
+    }
+
+    public ElastosWebrtcConfig disableBuiltInAEC(boolean disableBuiltInAEC) {
+        this.disableBuiltInAEC = disableBuiltInAEC;
+        return this;
+    }
+
+    public ElastosWebrtcConfig disableBuiltInAGC(boolean disableBuiltInAGC) {
+        this.disableBuiltInAGC = disableBuiltInAGC;
+        return this;
+    }
+
+    public ElastosWebrtcConfig disableBuiltInNS(boolean disableBuiltInNS) {
+        this.disableBuiltInNS = disableBuiltInNS;
+        return this;
+    }
+
+    public ElastosWebrtcConfig disableWebRtcAGCAndHPF(boolean disableWebRtcAGCAndHPF) {
+        this.disableWebRtcAGCAndHPF = disableWebRtcAGCAndHPF;
+        return this;
+    }
+
+    public ElastosWebrtcConfig enableRtcEventLog(boolean enableRtcEventLog) {
+        this.enableRtcEventLog = enableRtcEventLog;
+        return this;
+    }
+
     /**
      * <p> get {@link PeerConnection.IceServer} lists from stun or turn servers.
      *
@@ -157,6 +332,74 @@ public class ElastosWebrtcConfig {
      */
     public boolean useDefaultUi() {
         return this.defaultUi;
+    }
+
+    public boolean isVideoCallEnabled() {
+        return videoCallEnabled;
+    }
+
+    public boolean isTracing() {
+        return tracing;
+    }
+
+    public int getVideoMaxBitrate() {
+        return videoMaxBitrate;
+    }
+
+    public String getVideoCodec() {
+        return videoCodec;
+    }
+
+    public boolean isVideoCodecHwAcceleration() {
+        return videoCodecHwAcceleration;
+    }
+
+    public boolean isVideoFlexfecEnabled() {
+        return videoFlexfecEnabled;
+    }
+
+    public int getAudioStartBitrate() {
+        return audioStartBitrate;
+    }
+
+    public String getAudioCodec() {
+        return audioCodec;
+    }
+
+    public boolean isNoAudioProcessing() {
+        return noAudioProcessing;
+    }
+
+    public boolean isAecDump() {
+        return aecDump;
+    }
+
+    public boolean isSaveInputAudioToFile() {
+        return saveInputAudioToFile;
+    }
+
+    public boolean isUseOpenSLES() {
+        return useOpenSLES;
+    }
+
+    public boolean isDisableBuiltInAEC() {
+        return disableBuiltInAEC;
+    }
+
+    public boolean isDisableBuiltInAGC() {
+        return disableBuiltInAGC;
+    }
+
+    public boolean isDisableBuiltInNS() {
+        return disableBuiltInNS;
+    }
+
+    public boolean isDisableWebRtcAGCAndHPF() {
+        return disableWebRtcAGCAndHPF;
+    }
+
+    public boolean isEnableRtcEventLog() {
+        return enableRtcEventLog;
     }
 
     /**

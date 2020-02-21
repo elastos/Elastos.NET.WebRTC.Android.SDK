@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
 import android.os.Build;
+import android.os.Environment;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
@@ -18,6 +19,7 @@ import com.allcom.elastos_webrtc.support.FailReason;
 import com.allcom.elastos_webrtc.support.RejectReason;
 import com.allcom.elastos_webrtc.ui.CallActivity;
 import com.allcom.elastos_webrtc.util.CandidateKey;
+import com.allcom.elastos_webrtc.util.RecordedAudioToFileController;
 import com.allcom.elastos_webrtc.util.SignalMessageHeader;
 import com.allcom.elastos_webrtc.util.SignalMessageType;
 
@@ -44,14 +46,19 @@ import org.webrtc.RendererCommon;
 import org.webrtc.RtpTransceiver;
 import org.webrtc.SdpObserver;
 import org.webrtc.SessionDescription;
+import org.webrtc.SoftwareVideoDecoderFactory;
+import org.webrtc.SoftwareVideoEncoderFactory;
 import org.webrtc.SurfaceTextureHelper;
 import org.webrtc.SurfaceViewRenderer;
 import org.webrtc.VideoCapturer;
+import org.webrtc.VideoDecoderFactory;
+import org.webrtc.VideoEncoderFactory;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
 import org.webrtc.audio.AudioDeviceModule;
 import org.webrtc.audio.JavaAudioDeviceModule;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -59,6 +66,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 /**
  * <p> this is the main class for video call
@@ -92,7 +100,13 @@ public class ElastosWebrtc {
     private boolean micEnabled = true;
     private AudioManager audioManager;
     private CallHandler callHandler;
-
+    private boolean preferIsac = false;
+    @Nullable
+    private RecordedAudioToFileController saveRecordedAudioToFile;
+    @Nullable
+    private List<IceCandidate> queuedRemoteCandidates;
+    private boolean isCaller = true;
+    private boolean videoCapturerStopped = false;
 
     private ElastosWebrtc() {
     }
@@ -159,6 +173,8 @@ public class ElastosWebrtc {
      * <p> to accept someone's video call invite
      */
     public void acceptInvite() {
+        // 接受邀请的一方是被叫
+        isCaller = false;
         sendMessage(talkTo, SignalMessageType.ACCEPT_INVITE, null, null, new FriendInviteResponseHandler() {
             @Override
             public void onReceived(String from, int status, String reason, String data) {
@@ -322,6 +338,7 @@ public class ElastosWebrtc {
         }
         Log.d(TAG, "switchResolution: " + resolution.getDescription());
         if (videoSource != null) {
+            config.resolution(resolution);
             videoSource.adaptOutputFormat(resolution.getWidth(), resolution.getHeight(), resolution.getFps());
         }
     }
@@ -366,11 +383,78 @@ public class ElastosWebrtc {
     }
 
     /**
+     * <p>set audio enabled</p>
+     * @param enabled true or false
+     */
+    public void setAudioEnabled(boolean enabled) {
+        executor.execute(() -> {
+            if (localAudioTrack != null) {
+                localAudioTrack.setEnabled(enabled);
+            }
+        });
+    }
+
+    /**
+     * <p>set video enabled</p>
+     * @param enabled true or false
+     */
+    public void setVideoEnabled(boolean enabled) {
+        executor.execute(() -> {
+            if (localVideoTrack != null) {
+                localVideoTrack.setEnabled(enabled);
+            }
+            if (remoteVideoTrack != null) {
+                remoteVideoTrack.setEnabled(enabled);
+            }
+        });
+    }
+
+    /**
+     * <p>stop local video capture</p>
+     */
+    public void stopVideoSource() {
+        executor.execute(() -> {
+            if (videoCapturer != null && !videoCapturerStopped) {
+                Log.d(TAG, "Stop video source.");
+                try {
+                    videoCapturer.stopCapture();
+                } catch (InterruptedException e) {
+                }
+                videoCapturerStopped = true;
+            }
+        });
+    }
+
+    /**
+     * <p>start local video capture</p>
+     */
+    public void startVideoCapture() {
+        executor.execute(() -> {
+            if (videoCapturer != null && videoCapturerStopped) {
+                Log.d(TAG, "Restart video source.");
+                videoCapturer.startCapture(
+                        config.getResolution().getWidth(),
+                        config.getResolution().getHeight(),
+                        config.getResolution().getFps()
+                );
+                videoCapturerStopped = false;
+            }
+        });
+    }
+
+    /**
+     * <p> hangup the call
+     */
+    public void hangup() {
+        disconnect(true);
+    }
+
+    /**
      * <p> disconnect video call
      *
      * @param send send disconnect message to remote user or not
      */
-    public void disconnect(boolean send) {
+    private void disconnect(boolean send) {
         Log.d(TAG, "disconnect: ");
         if (send) {
             sendMessage(talkTo, SignalMessageType.DISCONNECT, null, null, (String from, int status, String reason, String data) -> {
@@ -434,6 +518,11 @@ public class ElastosWebrtc {
                 }
                 videoCapturer.dispose();
                 videoCapturer = null;
+            }
+            if (saveRecordedAudioToFile != null) {
+                Log.d(TAG, "Closing audio file for recorded input audio.");
+                saveRecordedAudioToFile.stop();
+                saveRecordedAudioToFile = null;
             }
             if (surfaceTextureHelper != null) {
                 try {
@@ -675,12 +764,43 @@ public class ElastosWebrtc {
         if (eglBase == null) {
             createEglBase();
         }
+        if (config.isTracing()) {
+            PeerConnectionFactory.startInternalTracingCapture(
+                    Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator
+                            + "webrtc-trace.txt");
+        }
+        preferIsac = config.getAudioCodec() != null &&
+                config.getAudioCodec().equalsIgnoreCase(ElastosWebrtcConfig.AUDIO_CODEC_ISAC);
+        if (config.isSaveInputAudioToFile()) {
+            if (!config.isUseOpenSLES()) {
+                Log.d(TAG, "Enable recording of microphone input audio to file");
+                saveRecordedAudioToFile = new RecordedAudioToFileController(executor);
+            } else {
+                // TODO(henrika): ensure that the UI reflects that if OpenSL ES is selected,
+                // then the "Save inut audio to file" option shall be grayed out.
+                Log.e(TAG, "Recording of input audio is not supported for OpenSL ES");
+            }
+        }
+
         final AudioDeviceModule adm = createJavaAudioDevice();
+        final boolean enableH264HighProfile =
+                ElastosWebrtcConfig.VIDEO_CODEC_H264_HIGH.equals(config.getVideoCodec());
+        final VideoEncoderFactory encoderFactory;
+        final VideoDecoderFactory decoderFactory;
+        if (config.isVideoCodecHwAcceleration()) {
+            encoderFactory = new DefaultVideoEncoderFactory(
+                    eglBase.getEglBaseContext(), true /* enableIntelVp8Encoder */, enableH264HighProfile);
+            decoderFactory = new DefaultVideoDecoderFactory(eglBase.getEglBaseContext());
+        } else {
+            encoderFactory = new SoftwareVideoEncoderFactory();
+            decoderFactory = new SoftwareVideoDecoderFactory();
+        }
+
         PeerConnectionFactory.initialize(PeerConnectionFactory.InitializationOptions.builder(activity).createInitializationOptions());
         this.peerConnectionFactory = PeerConnectionFactory.builder()
                 .setAudioDeviceModule(adm)
-                .setVideoDecoderFactory(new DefaultVideoDecoderFactory(eglBase.getEglBaseContext()))
-                .setVideoEncoderFactory(new DefaultVideoEncoderFactory(eglBase.getEglBaseContext(), true, true))
+                .setVideoDecoderFactory(decoderFactory)
+                .setVideoEncoderFactory(encoderFactory)
                 .createPeerConnectionFactory();
         adm.release();
     }
@@ -692,6 +812,7 @@ public class ElastosWebrtc {
 
         List<PeerConnection.IceServer> iceServers = new ArrayList<>();
         try {
+            // add elastos turn server and stun server
             TurnServer turnServer = carrier.getTurnServer();
             Log.d(TAG, "createPeerConnection: get turn server -> " + turnServer);
             if (turnServer != null) {
@@ -699,6 +820,10 @@ public class ElastosWebrtc {
                 String stun = String.format("stun:%s:%d", turnServer.getServer(), turnServer.getPort());
                 iceServers.add(PeerConnection.IceServer.builder(turn).setUsername(turnServer.getUsername()).setPassword(turnServer.getPassword()).createIceServer());
                 iceServers.add(PeerConnection.IceServer.builder(stun).createIceServer());
+            }
+            // add customized ice servers.
+            if (config.getIceServers() != null && !config.getIceServers().isEmpty()) {
+                iceServers.addAll(config.getIceServers());
             }
         }  catch (Exception e) {
             Log.e(TAG, "createPeerConnection: get turn server -> ", e);
@@ -725,8 +850,6 @@ public class ElastosWebrtc {
         createCameraCapture();
         createVideoTrack();
         createAudioTrack();
-
-
     }
 
     private void createVideoTrack() {
@@ -863,9 +986,9 @@ public class ElastosWebrtc {
         };
 
         return JavaAudioDeviceModule.builder(activity)
-//                .setSamplesReadyCallback(saveRecordedAudioToFile)
-                .setUseHardwareAcousticEchoCanceler(true)
-                .setUseHardwareNoiseSuppressor(true)
+                .setSamplesReadyCallback(saveRecordedAudioToFile)
+                .setUseHardwareAcousticEchoCanceler(!config.isDisableBuiltInAEC())
+                .setUseHardwareNoiseSuppressor(!config.isDisableBuiltInNS())
                 .setAudioRecordErrorCallback(audioRecordErrorCallback)
                 .setAudioTrackErrorCallback(audioTrackErrorCallback)
                 .setAudioRecordStateCallback(audioRecordStateCallback)
