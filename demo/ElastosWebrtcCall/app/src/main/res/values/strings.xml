@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Elastos-Webrtc-Call</string>
+    <string name="title_activity_call">CallActivity</string>
+    <string name="title_home">Home</string>
+    <string name="title_dashboard">Friends</string>
+    <string name="title_notifications">QRCode</string>
+    <string name="disconnect_call">hangup</string>
+    <string name="switch_camera">switch camera</string>
+    <string name="toggle_mic">toggle mic</string>
+    <string name="add_friends_text">Add Friends</string>
+</resources>
