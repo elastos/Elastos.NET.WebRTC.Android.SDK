@@ -13,7 +13,7 @@ With WebRTC, you can add real-time communication capabilities to your applicatio
 Elastos WebRTC Android SDK combines Elastos Carrier and WebRTC, it use Elastos Carrier network as signaling services and STUN/TURN server.
 
 If you want to know how to build the sdk from source code, please refer to:
-[Elastos WebRTC Android SDK](https://github.com/elastos/Elastos.NET.WebRTC.Android.SDK/blob/master/README.md)
+[Elastos WebRTC Android SDK](./README.md)
 
 ## What can Elastos WebRTC Android SDK do for a real webrtc based project?
 
@@ -133,7 +133,7 @@ it well be fired with the SignalingParameters parameters.
 
 If you want to handle the sdp and ICE candidates messages by yourself, you can implement PeerConnectionEvents interface, otherwise you can just extend the BaseCallActivity.
 
-![](https://github.com/elastos/Elastos.NET.WebRTC.Android.SDK/blob/master/doc/images/peerConnection.png)
+![](./doc/images/peerConnection.png)
 
 ```
 /**
@@ -207,5 +207,5 @@ We welcome contributions to the Elastos WebRTC Android SDK Project.
 A sincere thank you to all teams and projects that we rely on directly or indirectly.
 
 ## License
-This project is licensed under the terms of the [GPLv3 license](https://github.com/elastos/Elastos.NET.WebRTC.Android.SDK/blob/master/LICENSE)
+This project is licensed under the terms of the [GPLv3 license](./LICENSE)
 
