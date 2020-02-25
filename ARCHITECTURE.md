@@ -133,7 +133,7 @@ it well be fired with the SignalingParameters parameters.
 
 If you want to handle the sdp and ICE candidates messages by yourself, you can implement PeerConnectionEvents interface, otherwise you can just extend the BaseCallActivity.
 
-![](./doc/images/peerConnection.png)
+![](../../raw/master/doc/images/peerConnection.jpg)
 
 ```
 /**
