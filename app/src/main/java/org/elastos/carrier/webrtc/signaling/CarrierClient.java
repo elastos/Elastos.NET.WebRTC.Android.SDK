@@ -32,11 +32,13 @@ import org.elastos.carrier.CarrierHandler;
 import org.elastos.carrier.ConnectionStatus;
 import org.elastos.carrier.FriendInfo;
 import org.elastos.carrier.FriendInviteResponseHandler;
+import org.elastos.carrier.PresenceStatus;
 import org.elastos.carrier.TurnServer;
 import org.elastos.carrier.UserInfo;
 import org.elastos.carrier.exceptions.CarrierException;
 
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Initialize Carrier instance and connect to the carrier network, you can also register your customer carrier handle by register addCarrierHandler()
@@ -192,7 +194,11 @@ public class CarrierClient {
 
 		@Override
 		public void onFriendAdded(Carrier carrier, FriendInfo info) {
-			super.onFriendAdded(carrier, info);
+			for (CarrierHandler carrierHandler : carrierHandlers) {
+				if(carrierHandler!=null) {
+					carrierHandler.onFriendAdded(carrier, info);
+				}
+			}
 		}
 
 		@Override
@@ -206,6 +212,78 @@ public class CarrierClient {
 					carrier.acceptFriend(userId);
 				} catch (CarrierException e) {
 					e.printStackTrace();
+				}
+			}
+		}
+
+		@Override
+		public void onIdle(Carrier carrier) {
+			for (CarrierHandler carrierHandler : carrierHandlers) {
+				if(carrierHandler!=null) {
+					carrierHandler.onIdle(carrier);
+				}
+			}
+		}
+
+		@Override
+		public void onSelfInfoChanged(Carrier carrier, UserInfo info) {
+			for (CarrierHandler carrierHandler : carrierHandlers) {
+				if(carrierHandler!=null) {
+					carrierHandler.onSelfInfoChanged(carrier, info);
+				}
+			}
+		}
+
+		@Override
+		public void onFriends(Carrier carrier, List<FriendInfo> friends) {
+			for (CarrierHandler carrierHandler : carrierHandlers) {
+				if(carrierHandler!=null) {
+					carrierHandler.onFriends(carrier, friends);
+				}
+			}
+		}
+
+		@Override
+		public void onFriendConnection(Carrier carrier, String friendId, ConnectionStatus status) {
+			for (CarrierHandler carrierHandler : carrierHandlers) {
+				if(carrierHandler!=null) {
+					carrierHandler.onFriendConnection(carrier, friendId, status);
+				}
+			}
+		}
+
+		@Override
+		public void onFriendInfoChanged(Carrier carrier, String friendId, FriendInfo info) {
+			for (CarrierHandler carrierHandler : carrierHandlers) {
+				if(carrierHandler!=null) {
+					carrierHandler.onFriendInfoChanged(carrier, friendId, info);
+				}
+			}
+		}
+
+		@Override
+		public void onFriendPresence(Carrier carrier, String friendId, PresenceStatus presence) {
+			for (CarrierHandler carrierHandler : carrierHandlers) {
+				if(carrierHandler!=null) {
+					carrierHandler.onFriendPresence(carrier, friendId, presence);
+				}
+			}
+		}
+
+		@Override
+		public void onFriendRemoved(Carrier carrier, String friendId) {
+			for (CarrierHandler carrierHandler : carrierHandlers) {
+				if(carrierHandler!=null) {
+					carrierHandler.onFriendRemoved(carrier, friendId);
+				}
+			}
+		}
+
+		@Override
+		public void onGroupInvite(Carrier carrier, String from, byte[] cookie) {
+			for (CarrierHandler carrierHandler : carrierHandlers) {
+				if(carrierHandler!=null) {
+					carrierHandler.onGroupInvite(carrier, from, cookie);
 				}
 			}
 		}
