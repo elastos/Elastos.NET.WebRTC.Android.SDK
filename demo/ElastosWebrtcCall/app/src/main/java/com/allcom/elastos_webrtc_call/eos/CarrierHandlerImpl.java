@@ -126,7 +126,7 @@ public class CarrierHandlerImpl implements CarrierHandler {
                 String callee = msg.optString("calleeAddress");
 
                 if ("invite".equalsIgnoreCase(type) && !TextUtils.isEmpty(callee)) {
-                    Log.d(TAG, "onFriendInviteRequest: ");
+                    Log.d(TAG, "onFriendInviteRequest: type = " + type + "; callee = " + callee);
                     DashboardFragment.INSTANCE.receiveCall(callee);
                 }
             } catch (JSONException e) {
