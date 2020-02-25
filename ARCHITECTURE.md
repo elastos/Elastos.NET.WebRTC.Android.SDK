@@ -133,7 +133,7 @@ it well be fired with the SignalingParameters parameters.
 
 If you want to handle the sdp and ICE candidates messages by yourself, you can implement PeerConnectionEvents interface, otherwise you can just extend the BaseCallActivity.
 
-![](/../../raw/master/doc/images/peerConnection.jpg)
+![](https://gitlab.com/elastos/Elastos.NET.WebRTC.Android.SDK/-/raw/master/doc/images/peerConnection.jpg)
 
 ```
 /**
