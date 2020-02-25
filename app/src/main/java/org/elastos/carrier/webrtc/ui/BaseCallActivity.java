@@ -38,6 +38,7 @@ import androidx.annotation.Nullable;
 import org.elastos.carrier.webrtc.CarrierPeerConnectionClient;
 import org.elastos.carrier.webrtc.CarrierPeerConnectionClient.PeerConnectionParameters;
 import org.elastos.carrier.webrtc.CarrierWebrtcClient;
+import org.elastos.carrier.webrtc.PeerConnectionEvents;
 import org.elastos.carrier.webrtc.WebrtcClient;
 import org.elastos.carrier.webrtc.model.SignalingParameters;
 import org.webrtc.Camera1Enumerator;
@@ -61,7 +62,7 @@ import java.util.List;
 
 
 public abstract class BaseCallActivity extends Activity implements WebrtcClient.SignalingEvents,
-        CarrierPeerConnectionClient.PeerConnectionEvents{
+        PeerConnectionEvents {
     private static final String TAG = "BaseCallActivity";
 
     public static final String EXTRA_VIDEO_FILE_AS_CAMERA = "org.elastos.apprtc.VIDEO_FILE_AS_CAMERA";

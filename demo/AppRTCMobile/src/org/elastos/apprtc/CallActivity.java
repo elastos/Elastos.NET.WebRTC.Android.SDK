@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Set;
 import org.elastos.apprtc.AppRTCAudioManager.AudioDevice;
 import org.elastos.apprtc.AppRTCAudioManager.AudioManagerEvents;
+import org.elastos.carrier.webrtc.PeerConnectionEvents;
 import org.elastos.carrier.webrtc.ui.BaseCallActivity;
 import org.elastos.carrier.webrtc.WebrtcClient;
 import org.elastos.carrier.webrtc.model.SignalingParameters;
@@ -68,7 +69,7 @@ import org.webrtc.VideoSink;
  * and register view.
  */
 public class CallActivity extends BaseCallActivity implements WebrtcClient.SignalingEvents,
-                                                      CarrierPeerConnectionClient.PeerConnectionEvents,
+        PeerConnectionEvents,
         CallFragment.OnCallEvents {
   private static final String TAG = "CallRTCClient";
 
@@ -561,7 +562,7 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
     }
     callStartedTimeMs = System.currentTimeMillis();
 
-    // Start room connection.
+    // Start call connection.
     logAndToast(getString(R.string.connecting_to, calleeAddress));
     webrtcClient.initialCall(callerAddress, calleeAddress);
     Log.d(TAG, "startCall: isCaller = " + isCaller + "; caller = " + callerAddress + "; callee = " + calleeAddress + "; remote = " + remoteAddress);

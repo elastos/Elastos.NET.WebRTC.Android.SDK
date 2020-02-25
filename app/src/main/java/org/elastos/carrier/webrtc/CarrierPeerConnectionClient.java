@@ -398,62 +398,27 @@ public class CarrierPeerConnectionClient {
     }
 
     /**
-     * Peer connection events.
+     * Create a PeerConnectionClient with the default parameters. PeerConnectionClient takes
+     * ownership of |eglBase|.
      */
-    public interface PeerConnectionEvents {
-        /**
-         * Callback fired once local SDP is created and set.
-         */
-        void onLocalDescription(final SessionDescription sdp);
+    public CarrierPeerConnectionClient(Context appContext,  PeerConnectionEvents events) {
+        this.rootEglBase = EglBase.create();
+        this.appContext = appContext;
+        this.events = events;
+        this.peerConnectionParameters = PeerConnectionParameters.getDefaultPeerConnectionParameters();
+        this.dataChannelEnabled = peerConnectionParameters.dataChannelParameters != null;
 
-        /**
-         * Callback fired once local Ice candidate is generated.
-         */
-        void onIceCandidate(final IceCandidate candidate);
+        Log.d(TAG, "Preferred video codec: " + getSdpVideoCodecName(peerConnectionParameters));
 
-        /**
-         * Callback fired once local ICE candidates are removed.
-         */
-        void onIceCandidatesRemoved(final IceCandidate[] candidates);
-
-        /**
-         * Callback fired once connection is established (IceConnectionState is
-         * CONNECTED).
-         */
-        void onIceConnected();
-
-        /**
-         * Callback fired once connection is disconnected (IceConnectionState is
-         * DISCONNECTED).
-         */
-        void onIceDisconnected();
-
-        /**
-         * Callback fired once DTLS connection is established (PeerConnectionState
-         * is CONNECTED).
-         */
-        void onConnected();
-
-        /**
-         * Callback fired once DTLS connection is disconnected (PeerConnectionState
-         * is DISCONNECTED).
-         */
-        void onDisconnected();
-
-        /**
-         * Callback fired once peer connection is closed.
-         */
-        void onPeerConnectionClosed();
-
-        /**
-         * Callback fired once peer connection statistics is ready.
-         */
-        void onPeerConnectionStatsReady(final StatsReport[] reports);
-
-        /**
-         * Callback fired once peer connection error happened.
-         */
-        void onPeerConnectionError(final String description);
+        final String fieldTrials = getFieldTrials(peerConnectionParameters);
+        executor.execute(() -> {
+            Log.d(TAG, "Initialize WebRTC. Field trials: " + fieldTrials);
+            PeerConnectionFactory.initialize(
+                    PeerConnectionFactory.InitializationOptions.builder(appContext)
+                            .setFieldTrials(fieldTrials)
+                            .setEnableInternalTracer(true)
+                            .createInitializationOptions());
+        });
     }
 
     /**
