@@ -2,8 +2,11 @@ package com.allcom.elastos_webrtc_call.eos;
 
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Gravity;
+import android.widget.Toast;
 
 import com.allcom.elastos_webrtc_call.MainActivity;
+import com.allcom.elastos_webrtc_call.ui.call.CallActivity;
 import com.allcom.elastos_webrtc_call.ui.dashboard.DashboardFragment;
 import com.allcom.elastos_webrtc_call.util.Utils;
 
@@ -127,7 +130,11 @@ public class CarrierHandlerImpl implements CarrierHandler {
 
                 if ("invite".equalsIgnoreCase(type) && !TextUtils.isEmpty(callee)) {
                     Log.d(TAG, "onFriendInviteRequest: type = " + type + "; callee = " + callee);
-                    DashboardFragment.INSTANCE.receiveCall(callee);
+                    if (CallActivity.INSTANCE == null) {
+                        DashboardFragment.INSTANCE.receiveCall(callee);
+                    } else {
+                        Log.e(TAG, "onFriendInviteRequest: " + callee);
+                    }
                 }
             } catch (JSONException e) {
                 e.printStackTrace();

@@ -11,6 +11,7 @@ import android.content.pm.PackageManager;
 import android.media.projection.MediaProjection;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
@@ -212,6 +213,12 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
         if (isCaller) {
             startCall();
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        INSTANCE = null;
     }
 
     @Override
@@ -465,6 +472,7 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
             logToast.cancel();
         }
         logToast = Toast.makeText(this, msg, Toast.LENGTH_SHORT);
+        logToast.setGravity(Gravity.TOP, 4, 4);
         logToast.show();
     }
 

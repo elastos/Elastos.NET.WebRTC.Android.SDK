@@ -25,6 +25,7 @@ package org.elastos.carrier.webrtc.signaling;
 import android.content.Context;
 import android.os.Handler;
 import android.util.Log;
+import android.view.Gravity;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -350,7 +351,9 @@ public class CarrierChannelClient {
       handler.post(new Runnable() {
         @Override
         public void run() {
-          Toast.makeText(context, "carrier friend invite onFriendInviteRequest from : " + from, Toast.LENGTH_LONG).show();
+          Toast toast = Toast.makeText(context, "carrier friend invite onFriendInviteRequest from : " + from, Toast.LENGTH_LONG);
+          toast.setGravity(Gravity.TOP, 4, 4);
+          toast.show();
           Log.e(TAG, "carrier friend invite  onFriendInviteRequest from: " + from);
 
           if (data != null && data.contains("msg")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
