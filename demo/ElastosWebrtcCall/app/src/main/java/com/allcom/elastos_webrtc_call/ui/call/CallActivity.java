@@ -280,6 +280,9 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
     public void toggleSpeaker(boolean speaker) {
         // ElastosWebrtc.getInstance().setSpeaker(speaker);
         // toggleSpeaker(speaker);
+        if (audioManager != null) {
+            audioManager.setSpeakerphoneOn(speaker);
+        }
     }
 
     @Override

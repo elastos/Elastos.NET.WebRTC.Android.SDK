@@ -410,7 +410,7 @@ public class AppRTCAudioManager {
   }
 
   /** Sets the speaker phone mode. */
-  private void setSpeakerphoneOn(boolean on) {
+  public void setSpeakerphoneOn(boolean on) {
     boolean wasOn = audioManager.isSpeakerphoneOn();
     if (wasOn == on) {
       return;
