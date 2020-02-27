@@ -11,6 +11,7 @@ import android.content.pm.PackageManager;
 import android.media.projection.MediaProjection;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
@@ -215,6 +216,12 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
     }
 
     @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        INSTANCE = null;
+    }
+
+    @Override
     protected void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
 
@@ -279,7 +286,10 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
     @Override
     public void toggleSpeaker(boolean speaker) {
         // ElastosWebrtc.getInstance().setSpeaker(speaker);
-        toggleSpeaker(speaker);
+        // toggleSpeaker(speaker);
+        if (audioManager != null) {
+            audioManager.setSpeakerphoneOn(speaker);
+        }
     }
 
     @Override
@@ -462,6 +472,7 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
             logToast.cancel();
         }
         logToast = Toast.makeText(this, msg, Toast.LENGTH_SHORT);
+        logToast.setGravity(Gravity.TOP, 4, 4);
         logToast.show();
     }
 

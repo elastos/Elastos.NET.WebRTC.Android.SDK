@@ -29,7 +29,9 @@ If you want to know the architecture and how to use the api in your real project
    |--demo
        |--AppRTCMobile
           |--A demo app using api in the ../app directory
-       |--ElastosWeb
+       |--ElastosWebrtcAndroidDemo
+          |--Another demo app using api in the ../app directory
+       |--ElastosWebrtcCall
           |--Another demo app using api in the ../app directory
 ```
 

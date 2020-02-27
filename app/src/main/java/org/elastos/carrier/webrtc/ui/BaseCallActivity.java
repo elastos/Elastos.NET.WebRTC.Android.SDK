@@ -31,6 +31,7 @@ import android.content.Intent;
 import android.media.projection.MediaProjection;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -332,6 +333,7 @@ public abstract class BaseCallActivity extends Activity implements WebrtcClient.
             logToast.cancel();
         }
         logToast = Toast.makeText(this, msg, Toast.LENGTH_SHORT);
+        logToast.setGravity(Gravity.TOP, 4, 4);
         logToast.show();
     }
 
