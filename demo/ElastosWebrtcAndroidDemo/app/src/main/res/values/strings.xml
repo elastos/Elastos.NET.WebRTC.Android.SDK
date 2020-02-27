@@ -1,7 +1,0 @@
-<resources>
-    <string name="app_name">Elastos-Webrtc-Android-Demo</string>
-    <string name="title_home">Home</string>
-    <string name="title_dashboard">Friends</string>
-    <string name="title_notifications">QRCode</string>
-    <string name="add_friends_text">Add Friends</string>
-</resources>

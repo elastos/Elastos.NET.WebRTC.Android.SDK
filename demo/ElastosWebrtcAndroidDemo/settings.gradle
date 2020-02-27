@@ -1,2 +1,0 @@
-include ':app', ':elastos-webrtc'
-rootProject.name='Elastos-Webrtc-Android-Demo'
