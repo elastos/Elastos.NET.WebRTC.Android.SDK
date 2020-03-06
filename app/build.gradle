@@ -45,6 +45,12 @@ android {
     lintOptions {
         abortOnError false
     }
+
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+        }
+    }
 }
 
 
@@ -54,7 +60,7 @@ dependencies {
 
     //implementation 'org.elastos:carrier:5.4.2'
     implementation project(':carrier')
-     implementation 'org.webrtc:google-webrtc:1.0.30039'
+    implementation 'org.webrtc:google-webrtc:1.0.30039'
 
 
     implementation 'org.awaitility:awaitility:3.0.0'
@@ -66,11 +72,16 @@ dependencies {
     implementation 'commons-codec:commons-codec:1.10'
 
     implementation 'org.osgi:org.osgi.framework:1.9.0'
-
+    implementation 'androidx.annotation:annotation:1.0.0'
 
     testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'junit:junit:4.12'
-    implementation 'androidx.annotation:annotation:1.0.0'
+    testImplementation 'org.assertj:assertj-core:3.11.1'
+    testImplementation 'org.mockito:mockito-core:1.9.5'
+
+    testImplementation 'androidx.test:core:1.2.0'
+
+    androidTestImplementation 'androidx.test.ext:junit:1.1.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
 
 }
 

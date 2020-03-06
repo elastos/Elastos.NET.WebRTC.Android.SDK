@@ -33,6 +33,16 @@ If you want to know the architecture and how to use the api in your real project
           |--Another demo app using api in the ../app directory
 ```
 
+To run and test the demo app directly, you can download the apk files from the URLs, and then run the following command to install.
+
+[Download AppRTCMobile.apk]()
+[Download ElastosWebrtcCall.apk]()
+
+```
+adb install -r ~/Download/AppRTCMobile.apk
+adb install -r ~/Download/ElastosWebrtcCall.apk
+```
+
 
 ### 1. (Optional) Carrier's Cross-compilation for Android Platform on Ubuntu / Debian / Linux or MacOS host
 

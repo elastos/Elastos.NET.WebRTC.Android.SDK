@@ -319,7 +319,7 @@ public class CarrierChannelClient {
       handler.post(new Runnable() {
         @Override
         public void run() {
-          Toast.makeText(context, "carrier ready!!!", Toast.LENGTH_LONG).show();
+          //Toast.makeText(context, "carrier ready!!!", Toast.LENGTH_LONG).show();
         }
       });
 
@@ -330,7 +330,7 @@ public class CarrierChannelClient {
       handler.post(new Runnable() {
         @Override
         public void run() {
-          Toast.makeText(context, "carrier onFriendRequest : " + userId, Toast.LENGTH_LONG).show();
+          //Toast.makeText(context, "carrier onFriendRequest : " + userId, Toast.LENGTH_LONG).show();
           Log.e(TAG, "carrier onFriendRequest : " + userId);
 
           if (message != null && message.contains("msg")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
@@ -351,9 +351,11 @@ public class CarrierChannelClient {
       handler.post(new Runnable() {
         @Override
         public void run() {
+/*
           Toast toast = Toast.makeText(context, "carrier friend invite onFriendInviteRequest from : " + from, Toast.LENGTH_LONG);
           toast.setGravity(Gravity.TOP, 4, 4);
           toast.show();
+*/
           Log.e(TAG, "carrier friend invite  onFriendInviteRequest from: " + from);
 
           if (data != null && data.contains("msg")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
@@ -385,7 +387,7 @@ public class CarrierChannelClient {
       handler.post(new Runnable() {
         @Override
         public void run() {
-          Toast.makeText(context, "carrier friend invite onReceived from : " + from, Toast.LENGTH_LONG).show();
+          //Toast.makeText(context, "carrier friend invite onReceived from : " + from, Toast.LENGTH_LONG).show();
           Log.e(TAG, "carrier friend invite  onReceived from: " + from);
         }
 

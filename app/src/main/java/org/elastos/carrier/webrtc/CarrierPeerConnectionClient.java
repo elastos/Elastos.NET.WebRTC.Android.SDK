@@ -402,23 +402,7 @@ public class CarrierPeerConnectionClient {
      * ownership of |eglBase|.
      */
     public CarrierPeerConnectionClient(Context appContext,  PeerConnectionEvents events) {
-        this.rootEglBase = EglBase.create();
-        this.appContext = appContext;
-        this.events = events;
-        this.peerConnectionParameters = PeerConnectionParameters.getDefaultPeerConnectionParameters();
-        this.dataChannelEnabled = peerConnectionParameters.dataChannelParameters != null;
-
-        Log.d(TAG, "Preferred video codec: " + getSdpVideoCodecName(peerConnectionParameters));
-
-        final String fieldTrials = getFieldTrials(peerConnectionParameters);
-        executor.execute(() -> {
-            Log.d(TAG, "Initialize WebRTC. Field trials: " + fieldTrials);
-            PeerConnectionFactory.initialize(
-                    PeerConnectionFactory.InitializationOptions.builder(appContext)
-                            .setFieldTrials(fieldTrials)
-                            .setEnableInternalTracer(true)
-                            .createInitializationOptions());
-        });
+        this(appContext, EglBase.create(), PeerConnectionParameters.getDefaultPeerConnectionParameters(), events);
     }
 
     /**

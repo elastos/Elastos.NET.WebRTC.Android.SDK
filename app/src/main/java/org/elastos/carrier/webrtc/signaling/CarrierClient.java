@@ -48,7 +48,6 @@ public class CarrierClient {
 	private static final String TAG = "CarrierClient";
 	private static CarrierClient carrierClient;
 	private static Carrier carrier;
-	private Handler androidHandler;
 	private static String basePath;
 	private WrapHandler carrierHandler;
 
@@ -88,10 +87,6 @@ public class CarrierClient {
 
 	public void setFriendInviteResponseHandler(FriendInviteResponseHandler friendInviteResponseHandler) {
 		this.friendInviteResponseHandler = friendInviteResponseHandler;
-	}
-
-	public void setAndroidHandler(Handler androidHandler) {
-		this.androidHandler = androidHandler;
 	}
 
 	public String getMyAddress() {
@@ -183,7 +178,7 @@ public class CarrierClient {
 				}
 			}
 		}
-{}
+
 		@Override
 		public void onReady(Carrier carrier) {
 			for (CarrierHandler carrierHandler : carrierHandlers) {
