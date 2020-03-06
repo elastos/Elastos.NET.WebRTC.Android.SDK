@@ -28,7 +28,6 @@ import android.os.HandlerThread;
 import android.util.Log;
 
 import org.elastos.carrier.TurnServer;
-import org.elastos.carrier.webrtc.model.SignalingParameters;
 import org.elastos.carrier.webrtc.signaling.CarrierClient;
 import org.webrtc.PeerConnection;
 
@@ -57,7 +56,7 @@ public class CarrierTurnServerFetcher {
      * Callback fired once the signaling parameters
      * SignalingParameters are extracted.
      */
-    void onSignalingParametersReady(final SignalingParameters params);
+    void onSignalingParametersReady(final CarrierWebrtcClient.SignalingParameters params);
 
     /**
      * Callback for turn server initialization error.
@@ -93,7 +92,7 @@ public class CarrierTurnServerFetcher {
         iceServers.add(PeerConnection.IceServer.builder("stun:" + turnServer.getServer()).setUsername(turnServer.getUsername()).setPassword(turnServer.getPassword()).createIceServer());
         iceServers.add(PeerConnection.IceServer.builder("turn:" + turnServer.getServer()).setUsername(turnServer.getUsername()).setPassword(turnServer.getPassword()).createIceServer());
 
-        SignalingParameters params = new SignalingParameters(
+        CarrierWebrtcClient.SignalingParameters params = new CarrierWebrtcClient.SignalingParameters(
                 iceServers, initiator, calleeAddress, callerAddress, null, null);
         events.onSignalingParametersReady(params);
 

@@ -30,7 +30,6 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
-import org.elastos.carrier.webrtc.model.SignalingParameters;
 import org.elastos.carrier.webrtc.signaling.CarrierChannelClient;
 import org.elastos.carrier.webrtc.signaling.CarrierChannelEvents;
 import org.elastos.carrier.webrtc.signaling.CarrierConnectionState;
@@ -38,7 +37,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.webrtc.IceCandidate;
+import org.webrtc.PeerConnection;
 import org.webrtc.SessionDescription;
+
+import java.util.List;
 
 /**
  * User: cpedia@gmail.com
@@ -401,5 +403,30 @@ public class CarrierWebrtcClient implements WebrtcClient, CarrierChannelEvents {
   IceCandidate toJavaCandidate(JSONObject json) throws JSONException {
     return new IceCandidate(
         json.getString("id"), json.getInt("label"), json.getString("candidate"));
+  }
+
+
+  /**
+   * Struct holding the signaling parameters of an webrtc communication.
+   */
+  public static class SignalingParameters {
+    public final List<PeerConnection.IceServer> iceServers;
+    public final boolean initiator;
+
+    public final String calleeAddress;
+    public final String callerAddress;
+    public final SessionDescription offerSdp;
+    public final List<IceCandidate> iceCandidates;
+
+    public SignalingParameters(List<PeerConnection.IceServer> iceServers, boolean initiator,
+                               String calleeAddress, String callerAddress, SessionDescription offerSdp,
+                               List<IceCandidate> iceCandidates) {
+      this.iceServers = iceServers;
+      this.initiator = initiator;
+      this.calleeAddress = calleeAddress;
+      this.callerAddress = callerAddress;
+      this.offerSdp = offerSdp;
+      this.iceCandidates = iceCandidates;
+    }
   }
 }

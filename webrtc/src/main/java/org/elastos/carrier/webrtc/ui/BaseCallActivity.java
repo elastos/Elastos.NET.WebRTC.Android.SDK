@@ -41,7 +41,6 @@ import org.elastos.carrier.webrtc.CarrierPeerConnectionClient.PeerConnectionPara
 import org.elastos.carrier.webrtc.CarrierWebrtcClient;
 import org.elastos.carrier.webrtc.PeerConnectionEvents;
 import org.elastos.carrier.webrtc.WebrtcClient;
-import org.elastos.carrier.webrtc.model.SignalingParameters;
 import org.webrtc.Camera1Enumerator;
 import org.webrtc.Camera2Enumerator;
 import org.webrtc.CameraEnumerator;
@@ -82,7 +81,7 @@ public abstract class BaseCallActivity extends Activity implements WebrtcClient.
     private static final int STAT_CALLBACK_PERIOD = 1000;
 
     @Nullable
-    private SignalingParameters signalingParameters;
+    private CarrierWebrtcClient.SignalingParameters signalingParameters;
 
     //you can override the peer connection parameters in their activity.
     @Nullable
@@ -167,7 +166,7 @@ public abstract class BaseCallActivity extends Activity implements WebrtcClient.
     // -----Implementation of WebrtcClient.AppRTCSignalingEvents ---------------
     // All callbacks are invoked from websocket signaling looper thread and
     // are routed to UI thread.
-    private void onConnectedToCallInternal(final SignalingParameters params) {
+    private void onConnectedToCallInternal(final CarrierWebrtcClient.SignalingParameters params) {
         final long delta = System.currentTimeMillis() - callStartedTimeMs;
 
         signalingParameters = params;
@@ -202,7 +201,7 @@ public abstract class BaseCallActivity extends Activity implements WebrtcClient.
     }
 
     @Override
-    public void onCallInitialized(final SignalingParameters params) {
+    public void onCallInitialized(final CarrierWebrtcClient.SignalingParameters params) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {

@@ -17,12 +17,12 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.Toast;
 
+import org.elastos.carrier.webrtc.CarrierWebrtcClient;
 import org.elastos.carrier.webrtc.demo.rtccall.R;
 import org.elastos.carrier.webrtc.demo.rtccall.util.AppRTCAudioManager;
 
 import org.elastos.carrier.Carrier;
 import org.elastos.carrier.webrtc.CarrierPeerConnectionClient;
-import org.elastos.carrier.webrtc.model.SignalingParameters;
 import org.elastos.carrier.webrtc.signaling.CarrierClient;
 import org.elastos.carrier.webrtc.ui.BaseCallActivity;
 import org.webrtc.Camera1Enumerator;
@@ -76,7 +76,7 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
     private static final int STAT_CALLBACK_PERIOD = 1000;
 
     @Nullable
-    private SignalingParameters signalingParameters;
+    private CarrierWebrtcClient.SignalingParameters signalingParameters;
     @Nullable private AppRTCAudioManager audioManager;
     @Nullable
     private VideoFileRenderer videoFileRenderer;
@@ -584,7 +584,7 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
         pipRenderer.setMirror(!isSwappedFeeds);
     }
 
-    private void onConnectedToCallInternal(final SignalingParameters params) {
+    private void onConnectedToCallInternal(final CarrierWebrtcClient.SignalingParameters params) {
         final long delta = System.currentTimeMillis() - callStartedTimeMs;
 
         signalingParameters = params;
@@ -626,7 +626,7 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
     // All callbacks are invoked from websocket signaling looper thread and
     // are routed to UI thread.
     @Override
-    public void onCallInitialized(final SignalingParameters params) {
+    public void onCallInitialized(final CarrierWebrtcClient.SignalingParameters params) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {

@@ -37,12 +37,13 @@ import java.lang.RuntimeException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
+import org.elastos.carrier.webrtc.CarrierWebrtcClient;
 import org.elastos.carrier.webrtc.demo.apprtc.AppRTCAudioManager.AudioDevice;
 import org.elastos.carrier.webrtc.demo.apprtc.AppRTCAudioManager.AudioManagerEvents;
 import org.elastos.carrier.webrtc.PeerConnectionEvents;
 import org.elastos.carrier.webrtc.ui.BaseCallActivity;
 import org.elastos.carrier.webrtc.WebrtcClient;
-import org.elastos.carrier.webrtc.model.SignalingParameters;
 import org.elastos.carrier.webrtc.CarrierPeerConnectionClient;
 import org.elastos.carrier.webrtc.CarrierPeerConnectionClient.PeerConnectionParameters;
 import org.elastos.carrier.webrtc.CarrierPeerConnectionClient.DataChannelParameters;
@@ -134,7 +135,7 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
   private static final int STAT_CALLBACK_PERIOD = 1000;
 
   @Nullable
-  private SignalingParameters signalingParameters;
+  private CarrierWebrtcClient.SignalingParameters signalingParameters;
   @Nullable private AppRTCAudioManager audioManager;
   @Nullable
   private SurfaceViewRenderer pipRenderer;
@@ -736,7 +737,7 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
     pipRenderer.setMirror(!isSwappedFeeds);
   }
 
-  private void onConnectedToCallInternal(final SignalingParameters params) {
+  private void onConnectedToCallInternal(final CarrierWebrtcClient.SignalingParameters params) {
     final long delta = System.currentTimeMillis() - callStartedTimeMs;
 
     signalingParameters = params;
@@ -775,7 +776,7 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
   // All callbacks are invoked from websocket signaling looper thread and
   // are routed to UI thread.
   @Override
-  public void onCallInitialized(final SignalingParameters params) {
+  public void onCallInitialized(final CarrierWebrtcClient.SignalingParameters params) {
     runOnUiThread(new Runnable() {
       @Override
       public void run() {

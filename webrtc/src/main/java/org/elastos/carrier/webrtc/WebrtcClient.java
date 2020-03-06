@@ -22,7 +22,6 @@
 
 package org.elastos.carrier.webrtc;
 
-import org.elastos.carrier.webrtc.model.SignalingParameters;
 import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
 
@@ -78,7 +77,7 @@ public interface WebrtcClient {
      * Callback fired once webrtc call started and the webrtc connection's
      * SignalingParameters are extracted.
      */
-    void onCallInitialized(final SignalingParameters params);
+    void onCallInitialized(final CarrierWebrtcClient.SignalingParameters params);
 
     /**
      * Callback fired once remote SDP is received.
