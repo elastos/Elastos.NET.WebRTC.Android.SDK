@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-package org.elastos.apprtc;
+package org.elastos.carrier.webrtc.demo.apprtc;
 
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
@@ -28,7 +28,7 @@ import androidx.annotation.Nullable;
 import android.util.Log;
 import java.util.List;
 import java.util.Set;
-import org.elastos.apprtc.util.AppRTCUtils;
+import org.elastos.carrier.webrtc.demo.apprtc.util.AppRTCUtils;
 import org.webrtc.ThreadUtils;
 
 /**

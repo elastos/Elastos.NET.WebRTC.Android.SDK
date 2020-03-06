@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-package org.elastos.apprtc;
+package org.elastos.carrier.webrtc.demo.apprtc;
 
 import android.Manifest;
 import android.annotation.TargetApi;
@@ -50,7 +50,7 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 
-import org.elastos.apprtc.util.QRCodeUtils;
+import org.elastos.carrier.webrtc.demo.apprtc.util.QRCodeUtils;
 import org.elastos.carrier.AbstractCarrierHandler;
 import org.elastos.carrier.Carrier;
 import org.elastos.carrier.TurnServer;

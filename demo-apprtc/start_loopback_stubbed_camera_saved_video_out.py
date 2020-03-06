@@ -80,28 +80,28 @@ def main():
   device = MonkeyRunner.waitForConnection(2, devname)
 
   extras = {
-      'org.elastos.apprtc.USE_VALUES_FROM_INTENT': True,
-      'org.elastos.apprtc.AUDIOCODEC': 'OPUS',
-      'org.elastos.apprtc.LOOPBACK': True,
-      'org.elastos.apprtc.VIDEOCODEC': 'VP8',
-      'org.elastos.apprtc.CAPTURETOTEXTURE': False,
-      'org.elastos.apprtc.CAMERA2': False,
-      'org.elastos.apprtc.ROOMID': room}
+      'org.elastos.carrier.webrtc.demo.apprtc.USE_VALUES_FROM_INTENT': True,
+      'org.elastos.carrier.webrtc.demo.apprtc.AUDIOCODEC': 'OPUS',
+      'org.elastos.carrier.webrtc.demo.apprtc.LOOPBACK': True,
+      'org.elastos.carrier.webrtc.demo.apprtc.VIDEOCODEC': 'VP8',
+      'org.elastos.carrier.webrtc.demo.apprtc.CAPTURETOTEXTURE': False,
+      'org.elastos.carrier.webrtc.demo.apprtc.CAMERA2': False,
+      'org.elastos.carrier.webrtc.demo.apprtc.ROOMID': room}
 
   if videoin:
-    extras.update({'org.elastos.apprtc.VIDEO_FILE_AS_CAMERA': videoin})
+    extras.update({'org.elastos.carrier.webrtc.demo.apprtc.VIDEO_FILE_AS_CAMERA': videoin})
 
   if videoout:
     extras.update({
-        'org.elastos.apprtc.SAVE_REMOTE_VIDEO_TO_FILE': videoout,
-        'org.elastos.apprtc.SAVE_REMOTE_VIDEO_TO_FILE_WIDTH': videoout_width,
-        'org.elastos.apprtc.SAVE_REMOTE_VIDEO_TO_FILE_HEIGHT': videoout_height})
+        'org.elastos.carrier.webrtc.demo.apprtc.SAVE_REMOTE_VIDEO_TO_FILE': videoout,
+        'org.elastos.carrier.webrtc.demo.apprtc.SAVE_REMOTE_VIDEO_TO_FILE_WIDTH': videoout_width,
+        'org.elastos.carrier.webrtc.demo.apprtc.SAVE_REMOTE_VIDEO_TO_FILE_HEIGHT': videoout_height})
 
   print extras
 
   device.startActivity(data='https://appr.tc',
       action='android.intent.action.VIEW',
-      component='org.elastos.apprtc/.ConnectActivity', extras=extras)
+      component='org.elastos.carrier.webrtc.demo.apprtc/.ConnectActivity', extras=extras)
 
   print 'Running a call for %d seconds' % call_length
   for _ in xrange(call_length):

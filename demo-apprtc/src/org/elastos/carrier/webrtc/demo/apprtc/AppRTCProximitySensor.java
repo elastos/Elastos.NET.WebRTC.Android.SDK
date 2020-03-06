@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-package org.elastos.apprtc;
+package org.elastos.carrier.webrtc.demo.apprtc;
 
 import android.content.Context;
 import android.hardware.Sensor;
@@ -18,7 +18,7 @@ import android.hardware.SensorManager;
 import android.os.Build;
 import androidx.annotation.Nullable;
 import android.util.Log;
-import org.elastos.apprtc.util.AppRTCUtils;
+import org.elastos.carrier.webrtc.demo.apprtc.util.AppRTCUtils;
 import org.webrtc.ThreadUtils;
 
 /**
