@@ -39,5 +39,5 @@ dependencies {
     implementation 'pub.devrel:easypermissions:3.0.0'
     implementation 'org.webrtc:google-webrtc:1.0.30039'
     implementation project(':carrier')
-    implementation project(':app')
+    implementation project(':webrtc')
 }

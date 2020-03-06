@@ -1,3 +1,3 @@
-include ':app', ':carrier', ':AppRTCMobile', ':Elastos-Webrtc-Call'
+include ':webrtc', ':carrier', ':AppRTCMobile', ':Elastos-Webrtc-Call'
 project(":AppRTCMobile").projectDir = file("demo/AppRTCMobile")
 project(':Elastos-Webrtc-Call').projectDir = new File('demo/ElastosWebrtcCall/app')
