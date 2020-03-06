@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.allcom.elastos_webrtc_call">
+    package="org.elastos.carrier.webrtc.demo.rtccall">
 
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -26,7 +26,7 @@
         tools:replace="android:allowBackup,android:supportsRtl,android:appComponentFactory"
         android:appComponentFactory="android.support.v4.app.CoreComponentFactory">
         <activity
-            android:name="com.allcom.elastos_webrtc_call.MainActivity"
+            android:name="org.elastos.carrier.webrtc.demo.rtccall.MainActivity"
             android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -36,12 +36,12 @@
         </activity>
 
         <activity
-            android:name="com.allcom.elastos_webrtc_call.ScanActivity"
+            android:name="org.elastos.carrier.webrtc.demo.rtccall.ScanActivity"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
 
         <activity
-            android:name=".ui.call.CallActivity"
+            android:name="org.elastos.carrier.webrtc.demo.rtccall.ui.call.CallActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_call"
             android:theme="@style/FullscreenTheme"></activity>
