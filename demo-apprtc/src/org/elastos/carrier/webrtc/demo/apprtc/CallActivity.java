@@ -42,7 +42,6 @@ import org.elastos.carrier.webrtc.CarrierWebrtcClient;
 import org.elastos.carrier.webrtc.demo.apprtc.AppRTCAudioManager.AudioDevice;
 import org.elastos.carrier.webrtc.demo.apprtc.AppRTCAudioManager.AudioManagerEvents;
 import org.elastos.carrier.webrtc.PeerConnectionEvents;
-import org.elastos.carrier.webrtc.ui.BaseCallActivity;
 import org.elastos.carrier.webrtc.WebrtcClient;
 import org.elastos.carrier.webrtc.CarrierPeerConnectionClient;
 import org.elastos.carrier.webrtc.CarrierPeerConnectionClient.PeerConnectionParameters;

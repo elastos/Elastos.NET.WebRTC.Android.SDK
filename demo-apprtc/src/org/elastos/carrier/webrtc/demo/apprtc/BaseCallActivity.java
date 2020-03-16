@@ -21,7 +21,7 @@
  */
 
 
-package org.elastos.carrier.webrtc.ui;
+package org.elastos.carrier.webrtc.demo.apprtc;
 
 import android.annotation.TargetApi;
 import android.app.Activity;

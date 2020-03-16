@@ -24,7 +24,6 @@ import org.elastos.carrier.webrtc.demo.rtccall.util.AppRTCAudioManager;
 import org.elastos.carrier.Carrier;
 import org.elastos.carrier.webrtc.CarrierPeerConnectionClient;
 import org.elastos.carrier.webrtc.signaling.CarrierClient;
-import org.elastos.carrier.webrtc.ui.BaseCallActivity;
 import org.webrtc.Camera1Enumerator;
 import org.webrtc.Camera2Enumerator;
 import org.webrtc.CameraEnumerator;
