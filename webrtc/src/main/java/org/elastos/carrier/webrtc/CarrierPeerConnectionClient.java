@@ -432,6 +432,14 @@ public class CarrierPeerConnectionClient {
 
     /**
      * This function should only be called once.
+     * Create peerConnection factory with default options.
+     */
+    public void createPeerConnectionFactory() {
+        createPeerConnectionFactory(new PeerConnectionFactory.Options());
+    }
+
+    /**
+     * This function should only be called once.
      */
     public void createPeerConnectionFactory(PeerConnectionFactory.Options options) {
         if (factory != null) {
