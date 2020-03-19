@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-package org.elastos.carrier.webrtc.signaling;
+package org.elastos.carrier.webrtc.demo.apprtc;
 
 
 import org.elastos.carrier.Carrier;

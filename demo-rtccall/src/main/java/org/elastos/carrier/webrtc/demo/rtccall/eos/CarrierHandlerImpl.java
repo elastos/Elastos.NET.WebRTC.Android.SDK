@@ -114,7 +114,7 @@ public class CarrierHandlerImpl implements CarrierHandler {
     @Override
     public void onFriendInviteRequest(Carrier carrier, String from, String data) {
         // .send friend invite messages
-        if (data != null && data.contains("invite") && data.contains("calleeAddress")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
+        if (data != null && data.contains("invite") && data.contains("calleeUserId")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
 
             //启动进去CallActivity
             JSONObject json = null;
@@ -124,7 +124,7 @@ public class CarrierHandlerImpl implements CarrierHandler {
                 String message = json.optString("msg");
                 msg = new JSONObject(message);
                 String type = msg.optString("type");
-                String callee = msg.optString("calleeAddress");
+                String callee = msg.optString("calleeUserId");
 
                 if ("invite".equalsIgnoreCase(type) && !TextUtils.isEmpty(callee)) {
                     Log.d(TAG, "onFriendInviteRequest: type = " + type + "; callee = " + callee);

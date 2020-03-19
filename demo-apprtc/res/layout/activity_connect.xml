@@ -85,7 +85,7 @@
         android:layout_gravity="center_horizontal"/>
     <TextView
         android:id="@+id/myaddress"
-        android:text="myaddress:"
+        android:text="myUserId:"
         android:textSize="12sp"
         android:gravity="center"
         android:layout_width="match_parent"

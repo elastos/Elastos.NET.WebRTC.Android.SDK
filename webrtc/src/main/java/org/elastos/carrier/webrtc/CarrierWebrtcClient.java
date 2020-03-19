@@ -30,9 +30,10 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
-import org.elastos.carrier.webrtc.signaling.CarrierChannelClient;
-import org.elastos.carrier.webrtc.signaling.CarrierChannelEvents;
-import org.elastos.carrier.webrtc.signaling.CarrierConnectionState;
+import org.elastos.carrier.Carrier;
+import org.elastos.carrier.CarrierExtension;
+import org.elastos.carrier.FriendInviteResponseHandler;
+import org.elastos.carrier.exceptions.CarrierException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -40,10 +41,10 @@ import org.webrtc.IceCandidate;
 import org.webrtc.PeerConnection;
 import org.webrtc.SessionDescription;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * User: cpedia@gmail.com
  *
  * Initial the Carrier Webrtc Client instance for webrtc call using carrier network.
  * <p>To use: create an instance of this object (registering a message handler) and
@@ -52,27 +53,35 @@ import java.util.List;
  * Messages to other party (with local Ice candidates and answer SDP) can
  * be sent after Carrier connection is established.
  */
-public class CarrierWebrtcClient implements WebrtcClient, CarrierChannelEvents {
+public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClient {
   private static final String TAG = "CarrierWebrtcClient";
+  private static final int CLOSE_TIMEOUT = 1000;
 
   private enum ConnectionState { NEW, CONNECTED, CLOSED, ERROR }
 
   private final Handler handler;
   private boolean initiator;
   private SignalingEvents events;
-  private CarrierChannelClient carrierChannelClient;
   private ConnectionState connectionState;
 
-  private String calleeAddress; //callee's carrier address
-  private String callerAddress; //caller's carrier address
   private String calleeUserId; //callee's carrier user id
+  private String callerUserId; //caller's carrier user id
 
-  private Context context;
+  private final Object closeEventLock = new Object();
+  private boolean closeEvent;
 
-  public CarrierWebrtcClient(SignalingEvents events, Context context) {
+  private Carrier carrier;
+
+  private FriendInviteResponseHandler friendInviteResponseHandler;
+
+  public CarrierWebrtcClient(Carrier carrier, SignalingEvents events) {
+    super(carrier);
+    this.carrier = carrier;
     this.events = events;
     connectionState = ConnectionState.NEW;
-    this.context = context;
+
+    friendInviteResponseHandler = new CarrierMessageObserver();
+
     final HandlerThread handlerThread = new HandlerThread(TAG);
     handlerThread.start();
     handler = new Handler(handlerThread.getLooper());
@@ -83,28 +92,38 @@ public class CarrierWebrtcClient implements WebrtcClient, CarrierChannelEvents {
   // Asynchronously initial a webrtc call. Once connection is established onCallInitialized()
   // callback is invoked with webrtc parameters.
   @Override
-  public void initialCall(String callerAddress, String calleeAddress) {
-    this.callerAddress = callerAddress;
-    this.calleeAddress = calleeAddress;
-    handler.post(new Runnable() {
-      @Override
-      public void run() {
-        initialCallInternal();
-      }
-    });
+  public void initialCall(String calleeUserId) {
+    try {
+      this.callerUserId = carrier.getUserId();
+      this.calleeUserId = calleeUserId;
+      handler.post(new Runnable() {
+        @Override
+        public void run() {
+          initialCallInternal();
+        }
+      });
+    } catch (CarrierException e) {
+      Log.e(TAG, "Get user id from carrier network error.");
+    }
   }
 
+  /**
+   * send invite message to callee.
+   */
   @Override
-  public void sendInvite(String calleeId) {
-    Log.d(TAG, "sendInvite: " + calleeId);
+  public void sendInvite() {
+    Log.d(TAG, "sendInvite to : " + calleeUserId);
+    if(calleeUserId == null){
+      throw new IllegalStateException("WebrtcClient has not been initialized, please call WebrtcClient.initialCall(String calleeUserId) firstly.");
+    }
     handler.post(new Runnable() {
       @Override
       public void run() {
         JSONObject json = new JSONObject();
         jsonPut(json, "type", "invite");
-        // 将当前 address 设为别叫，让对方呼自己
-        jsonPut(json, "calleeAddress", callerAddress);
-        carrierChannelClient.send(calleeId, json.toString());
+        // let the counter party call me.
+        jsonPut(json, "calleeUserId", callerUserId);
+        send(json.toString());
       }
     });
   }
@@ -120,43 +139,43 @@ public class CarrierWebrtcClient implements WebrtcClient, CarrierChannelEvents {
     });
   }
 
-  @Override
-  public void onSdpReceived(String calleeUserId){
-    this.calleeUserId = calleeUserId;
-  }
 
   // Connects to webrtc call - function runs on a local looper thread.
   private void initialCallInternal() {
-    carrierChannelClient = new CarrierChannelClient(handler, this, context);
 
-    if(calleeAddress.equals(callerAddress)){ //如果是被呼叫者进来，则等待呼叫者的offer.
-      Log.d(TAG, "Waiting for connection to carrier address: " + calleeAddress);
+    if(calleeUserId.equals(callerUserId)){ //wait for the connection from callee.
+      Log.d(TAG, "Waiting for connection to carrier user: " + calleeUserId);
     }
 
-    // String connectionUrl = getConnectionUrl(connectionParameters);
-    Log.d(TAG, "Connect to carrier address: " + calleeAddress + ", from: " + callerAddress);
+    Log.d(TAG, "Connect to carrier user: " + calleeUserId + ", from: " + callerUserId);
     connectionState = ConnectionState.NEW;
 
-    CarrierTurnServerFetcher.CarrierTurnServerFetcherEvents callbacks = new CarrierTurnServerFetcher.CarrierTurnServerFetcherEvents() {
-      @Override
-      public void onSignalingParametersReady(final SignalingParameters params) {
-        CarrierWebrtcClient.this.handler.post(new Runnable() {
-          @Override
-          public void run() {
-            CarrierWebrtcClient.this.signalingParametersReady(params);
-          }
-        });
-      }
+    boolean initiator = isInitiator(calleeUserId);
 
+    CarrierWebrtcClient.this.handler.post(new Runnable() {
       @Override
-      public void onSignalingParametersError(String description) {
-        CarrierWebrtcClient.this.reportError(description);
-      }
-    };
+      public void run() {
+        CarrierExtension.TurnServerInfo turnServerInfo = null;
+        try {
+          turnServerInfo = getTurnServerInfo();
+        } catch (CarrierException e) {
+          Log.e(TAG, "Get Turn server from carrier network error.");
+        }
 
-    boolean initiator = carrierChannelClient.isInitiator(calleeAddress);
-    new CarrierTurnServerFetcher(context, calleeAddress, initiator, callerAddress, callbacks).initializeTurnServer();
+        List<PeerConnection.IceServer> iceServers = new ArrayList<>();
+        if (turnServerInfo !=null) {
+          iceServers.add(PeerConnection.IceServer.builder("stun:" + turnServerInfo.getServer() + ":" + turnServerInfo.getPort()).setUsername(turnServerInfo.getUsername()).setPassword(turnServerInfo.getPassword()).createIceServer());
+          iceServers.add(PeerConnection.IceServer.builder("turn:" + turnServerInfo.getServer() + ":" + turnServerInfo.getPort()).setUsername(turnServerInfo.getUsername()).setPassword(turnServerInfo.getPassword()).createIceServer());
+        }
+
+        SignalingParameters params = new SignalingParameters(
+                iceServers, initiator, calleeUserId, callerUserId, null, null);
+
+        CarrierWebrtcClient.this.signalingParametersReady(params);
+      }
+    });
   }
+
 
   // Disconnect from call and send bye messages - runs on a local looper thread.
   private void disconnectFromCallInternal() {
@@ -165,16 +184,14 @@ public class CarrierWebrtcClient implements WebrtcClient, CarrierChannelEvents {
       Log.d(TAG, "Closing call.");
     }
     connectionState = ConnectionState.CLOSED;
-    if (carrierChannelClient != null) {
-      carrierChannelClient.disconnect(true);
-    }
+    disconnect(true);
   }
 
 
   // Callback issued when webrtc call parameters are extracted. Runs on local
   // looper thread.
   private void signalingParametersReady(final SignalingParameters signalingParameters) {
-    Log.d(TAG, "Carrier address connection completed.");
+    Log.d(TAG, "Carrier WebrtcClient call initialized completed.");
 
     if (!signalingParameters.initiator
         && signalingParameters.offerSdp == null) {
@@ -186,10 +203,6 @@ public class CarrierWebrtcClient implements WebrtcClient, CarrierChannelEvents {
 
     // Fire connection and signaling parameters events.
     events.onCallInitialized(signalingParameters);
-
-    // Connect and register Carrier client.
-    carrierChannelClient.connect(signalingParameters.calleeAddress, signalingParameters.callerAddress);
-    carrierChannelClient.register(signalingParameters.calleeAddress, signalingParameters.callerAddress);
   }
 
 
@@ -221,7 +234,7 @@ public class CarrierWebrtcClient implements WebrtcClient, CarrierChannelEvents {
         jsonPut(json, "sdp", sdp.description);
         jsonPut(json, "type", "answer");
         //carrierChannelClient.sendJsonMessage(calleeUserId, callerUserId, json,false);
-        carrierChannelClient.send(json.toString());
+        send(json.toString());
       }
     });
   }
@@ -280,16 +293,37 @@ public class CarrierWebrtcClient implements WebrtcClient, CarrierChannelEvents {
     });
   }
 
+  @Override
+  protected void onFriendInvite(Carrier carrier, String from, String data) {
+    handler.post(new Runnable() {
+      @Override
+      public void run() {
+        Log.e(TAG, "carrier friend invite  onFriendInviteRequest from: " + from);
+
+        if (data != null && data.contains("msg")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
+
+          //更新calleeUserId,
+          calleeUserId = from; //更新为消息回执者
+
+          if(data.contains("offer")){
+            calleeUserId = from ;
+          }
+
+          onCarrierMessage(data);
+          Log.d(TAG, "Get the carrier message: " + data);
+        }
+      }
+    });
+
+  }
+
+
   // --------------------------------------------------------------------
   // CarrierChannelEvents interface implementation.
   // All events are called by CarrierChannelClient on a local looper thread
   // (passed to Carrier client constructor).
-  @Override
   public void onCarrierMessage(final String msg) {
-    if (carrierChannelClient.getState() != CarrierConnectionState.REGISTERED) {
-      Log.e(TAG, "Got Carrier message in non registered state.");
-      return;
-    }
+
     try {
       JSONObject json = new JSONObject(msg);
       String msgText = json.optString("msg", "");
@@ -343,15 +377,6 @@ public class CarrierWebrtcClient implements WebrtcClient, CarrierChannelEvents {
     }
   }
 
-  @Override
-  public void onCarrierClose() {
-    events.onChannelClose();
-  }
-
-  @Override
-  public void onCarrierError(String description) {
-    reportError("Carrier error: " + description);
-  }
 
   // --------------------------------------------------------------------
   // Helper functions.
@@ -386,7 +411,7 @@ public class CarrierWebrtcClient implements WebrtcClient, CarrierChannelEvents {
     Log.d(TAG, "C->GAE: " + logInfo);
 
     if (message != null) {
-      carrierChannelClient.send(message.toString());
+      send(message.toString());
     }
   }
 
@@ -413,20 +438,113 @@ public class CarrierWebrtcClient implements WebrtcClient, CarrierChannelEvents {
     public final List<PeerConnection.IceServer> iceServers;
     public final boolean initiator;
 
-    public final String calleeAddress;
-    public final String callerAddress;
+    public final String calleeUserId;
+    public final String callerUserId;
     public final SessionDescription offerSdp;
     public final List<IceCandidate> iceCandidates;
 
     public SignalingParameters(List<PeerConnection.IceServer> iceServers, boolean initiator,
-                               String calleeAddress, String callerAddress, SessionDescription offerSdp,
+                               String calleeUserId, String callerUserId, SessionDescription offerSdp,
                                List<IceCandidate> iceCandidates) {
       this.iceServers = iceServers;
       this.initiator = initiator;
-      this.calleeAddress = calleeAddress;
-      this.callerAddress = callerAddress;
+      this.calleeUserId = calleeUserId;
+      this.callerUserId = callerUserId;
       this.offerSdp = offerSdp;
       this.iceCandidates = iceCandidates;
     }
   }
+
+  // Helper method for debugging purposes. Ensures that Carrier method is
+  // called on a looper thread.
+  private void checkIfCalledOnValidThread() {
+    if (Thread.currentThread() != handler.getLooper().getThread()) {
+      throw new IllegalStateException("Carrier method is not called on valid thread");
+    }
+  }
+
+  public boolean isInitiator(String userId) {
+    String myUserId = "";
+    try {
+      myUserId = carrier.getUserId();
+    } catch (CarrierException e) {
+      Log.e(TAG, "Get user id from carrier error.");
+    }
+    return userId!=null && !userId.equals(myUserId);
+  }
+
+
+  //send message
+  private void send(String message) {
+    checkIfCalledOnValidThread();
+
+    JSONObject json = new JSONObject();
+    try {
+      json.put("cmd", "send");
+      json.put("msg", message);
+      json.put("calleeUserId", calleeUserId);
+      message = json.toString();
+
+      Log.d(TAG, "C->Call: " + message);
+
+      if (calleeUserId.equals(callerUserId)) {
+        return; //can not send message to self through carrier network.
+      }
+      sendMessageByInvite(calleeUserId, message);
+
+    } catch (JSONException e) {
+      reportError("Carrier send JSON error: " + e.getMessage());
+    } catch (CarrierException e) {
+      e.printStackTrace();
+      reportError("carrier send message error: " + e.getMessage());
+    }
+
+  }
+
+  private void sendMessageByInvite(String fid, String message) throws CarrierException {
+    if(fid!=null && !fid.equals(carrier.getUserId())){
+      carrier.inviteFriend(fid, message, friendInviteResponseHandler);
+    }
+  }
+
+  public void disconnect(boolean waitForComplete) {
+    checkIfCalledOnValidThread();
+    Log.d(TAG, "Disconnect Carrier WebrtcClient.");
+    // Close Carrier in CONNECTED or ERROR states only.
+
+    // Wait for Carrier close event to prevent Carrier from
+    // sending any pending messages to deleted looper thread.
+    if (waitForComplete) {
+      synchronized (closeEventLock) {
+        while (!closeEvent) {
+          try {
+            closeEventLock.wait(CLOSE_TIMEOUT);
+            break;
+          } catch (InterruptedException e) {
+            Log.e(TAG, "Wait error: " + e.toString());
+          }
+        }
+      }
+    }
+    Log.d(TAG, "Disconnecting Carrier WebrtcClient done.");
+  }
+
+
+  private class CarrierMessageObserver implements FriendInviteResponseHandler {
+
+    @Override
+    public void onReceived(String from, int status, String reason, String data) {
+      handler.post(new Runnable() {
+        @Override
+        public void run() {
+          //Toast.makeText(context, "carrier friend invite onReceived from : " + from, Toast.LENGTH_LONG).show();
+          Log.e(TAG, "carrier friend invite  onReceived from: " + from);
+        }
+
+      });
+
+    }
+  }
+
+
 }

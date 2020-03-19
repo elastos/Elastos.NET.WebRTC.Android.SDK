@@ -48,8 +48,9 @@ import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.elastos.carrier.TurnServer;
-import org.elastos.carrier.webrtc.signaling.CarrierClient;
+import org.elastos.carrier.Carrier;
+import org.elastos.carrier.CarrierExtension;
+import org.elastos.carrier.exceptions.CarrierException;
 import org.webrtc.AudioSource;
 import org.webrtc.AudioTrack;
 import org.webrtc.CameraVideoCapturer;
@@ -98,7 +99,7 @@ import org.webrtc.audio.JavaAudioDeviceModule.AudioTrackStateCallback;
  * All PeerConnectionEvents callbacks are invoked from the same looper thread.
  * This class is a singleton.
  */
-public class CarrierPeerConnectionClient {
+public class CarrierPeerConnectionClient extends CarrierExtension{
     public static final String VIDEO_TRACK_ID = "ARDAMSv0";
     public static final String AUDIO_TRACK_ID = "ARDAMSa0";
     public static final String VIDEO_TRACK_TYPE = "video";
@@ -190,6 +191,10 @@ public class CarrierPeerConnectionClient {
     // Implements the WebRtcAudioRecordSamplesReadyCallback interface and writes
     // recorded audio samples to an output file.
     @Nullable private RecordedAudioToFileController saveRecordedAudioToFile;
+
+    @Override
+    protected void onFriendInvite(Carrier carrier, String s, String s1) {
+    }
 
     /**
      * Peer connection parameters.
@@ -401,16 +406,17 @@ public class CarrierPeerConnectionClient {
      * Create a PeerConnectionClient with the default parameters. PeerConnectionClient takes
      * ownership of |eglBase|.
      */
-    public CarrierPeerConnectionClient(Context appContext,  PeerConnectionEvents events) {
-        this(appContext, EglBase.create(), PeerConnectionParameters.getDefaultPeerConnectionParameters(), events);
+    public CarrierPeerConnectionClient(Carrier carrier, Context appContext,  PeerConnectionEvents events) {
+        this(carrier, appContext, EglBase.create(), PeerConnectionParameters.getDefaultPeerConnectionParameters(), events);
     }
 
     /**
      * Create a PeerConnectionClient with the specified parameters. PeerConnectionClient takes
      * ownership of |eglBase|.
      */
-    public CarrierPeerConnectionClient(Context appContext, EglBase eglBase,
+    public CarrierPeerConnectionClient(Carrier carrier, Context appContext, EglBase eglBase,
                                        PeerConnectionParameters peerConnectionParameters, PeerConnectionEvents events) {
+        super(carrier);
         this.rootEglBase = eglBase;
         this.appContext = appContext;
         this.events = events;
@@ -469,7 +475,7 @@ public class CarrierPeerConnectionClient {
         executor.execute(() -> {
             try {
                 createMediaConstraintsInternal();
-                createPeerConnectionInternal(context);
+                createPeerConnectionInternal();
                 maybeCreateAndStartRtcEventLog();
             } catch (Exception e) {
                 reportError("Failed to create peer connection: " + e.getMessage());
@@ -674,7 +680,7 @@ public class CarrierPeerConnectionClient {
                 "OfferToReceiveVideo", Boolean.toString(isVideoCallEnabled())));
     }
 
-    private void createPeerConnectionInternal(Context context) {
+    private void createPeerConnectionInternal() {
         if (factory == null || isError) {
             Log.e(TAG, "Peerconnection factory is not created");
             return;
@@ -685,14 +691,14 @@ public class CarrierPeerConnectionClient {
 
         //todo: get iceServers from carrier network.
         List<PeerConnection.IceServer> iceServers = new ArrayList<>();
-/*
-        iceServers.add(PeerConnection.IceServer.builder("stun:gfax.net:3478").createIceServer());
-        iceServers.add(PeerConnection.IceServer.builder("turn:gfax.net:3478").setUsername("allcom").setPassword("allcompass").createIceServer());
-*/
 
-        TurnServer turnServer = CarrierClient.getInstance(context).getTurnServer();
-        iceServers.add(PeerConnection.IceServer.builder("stun:" + turnServer.getServer()).setUsername(turnServer.getUsername()).setPassword(turnServer.getPassword()).createIceServer());
-        iceServers.add(PeerConnection.IceServer.builder("turn:" + turnServer.getServer()).setUsername(turnServer.getUsername()).setPassword(turnServer.getPassword()).createIceServer());
+        try {
+            TurnServerInfo turnServer = getTurnServerInfo();
+            iceServers.add(PeerConnection.IceServer.builder("stun:" + turnServer.getServer()).setUsername(turnServer.getUsername()).setPassword(turnServer.getPassword()).createIceServer());
+            iceServers.add(PeerConnection.IceServer.builder("turn:" + turnServer.getServer()).setUsername(turnServer.getUsername()).setPassword(turnServer.getPassword()).createIceServer());
+        } catch (CarrierException e) {
+            Log.e(TAG, "Get Turn server from carrier network error.");
+        }
 
         PeerConnection.RTCConfiguration rtcConfig =
                 new PeerConnection.RTCConfiguration(iceServers);

@@ -52,7 +52,7 @@ public class NotificationsFragment extends Fragment {
             }
         });
         try {
-            notificationsViewModel.resetQrText(Carrier.getInstance().getAddress(), 320, 320);
+            notificationsViewModel.resetQrText(Carrier.getInstance().getUserId(), 320, 320);
             notificationsViewModel.setCarrierId(Carrier.getInstance().getUserId());
         } catch (Exception e) {
             Log.e(TAG, "onCreateView: ", e);
@@ -63,7 +63,7 @@ public class NotificationsFragment extends Fragment {
     @Override
     public void onResume() {
         try {
-            notificationsViewModel.resetQrText(Carrier.getInstance().getAddress(), 320, 320);
+            notificationsViewModel.resetQrText(Carrier.getInstance().getUserId(), 320, 320);
             notificationsViewModel.setCarrierId(Carrier.getInstance().getUserId());
         } catch (Exception e) {
             Log.e(TAG, "onResume: ", e);

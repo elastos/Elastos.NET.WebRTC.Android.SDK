@@ -11,7 +11,6 @@ import org.elastos.carrier.webrtc.demo.rtccall.ui.dashboard.DashboardFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import org.elastos.carrier.Carrier;
-import org.elastos.carrier.webrtc.signaling.CarrierClient;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;

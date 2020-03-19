@@ -20,10 +20,9 @@
  * SOFTWARE.
  */
 
-package org.elastos.carrier.webrtc.signaling;
+package org.elastos.carrier.webrtc.demo.apprtc;
 
 import android.content.Context;
-import android.os.Handler;
 import android.util.Log;
 
 import org.elastos.carrier.AbstractCarrierHandler;
@@ -33,7 +32,6 @@ import org.elastos.carrier.ConnectionStatus;
 import org.elastos.carrier.FriendInfo;
 import org.elastos.carrier.FriendInviteResponseHandler;
 import org.elastos.carrier.PresenceStatus;
-import org.elastos.carrier.TurnServer;
 import org.elastos.carrier.UserInfo;
 import org.elastos.carrier.exceptions.CarrierException;
 
@@ -62,10 +60,9 @@ public class CarrierClient {
 		return carrierClient;
 	}
 
-	public void addFriend(String address) throws CarrierException {
-		String uid = Carrier.getIdFromAddress(address);
-		if (!carrier.isFriend(uid)) {
-			carrier.addFriend(address, "hello");
+	public void addFriend(String userId) throws CarrierException {
+		if (!carrier.isFriend(userId)) {
+			carrier.addFriend(userId, "hello");
 		}
 	}
 
@@ -89,29 +86,6 @@ public class CarrierClient {
 		this.friendInviteResponseHandler = friendInviteResponseHandler;
 	}
 
-	public String getMyAddress() {
-		try {
-			return carrier.getAddress();
-		}
-		catch (CarrierException e) {
-			e.printStackTrace();
-		}
-		return "";
-	}
-
-	public TurnServer getTurnServer() {
-		try {
-			return carrier.getTurnServer();
-		}
-		catch (CarrierException e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
-
-	public String getUserIdFromAddress(String address) {
-		return Carrier.getIdFromAddress(address);
-	}
 
 	public Carrier getCarrier() {
 		return carrier;
