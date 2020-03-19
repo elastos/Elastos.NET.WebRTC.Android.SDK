@@ -38,6 +38,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.elastos.carrier.Carrier;
+import org.elastos.carrier.exceptions.CarrierException;
 import org.elastos.carrier.webrtc.CarrierWebrtcClient;
 import org.elastos.carrier.webrtc.demo.apprtc.AppRTCAudioManager.AudioDevice;
 import org.elastos.carrier.webrtc.demo.apprtc.AppRTCAudioManager.AudioManagerEvents;
@@ -46,7 +48,6 @@ import org.elastos.carrier.webrtc.WebrtcClient;
 import org.elastos.carrier.webrtc.CarrierPeerConnectionClient;
 import org.elastos.carrier.webrtc.CarrierPeerConnectionClient.PeerConnectionParameters;
 import org.elastos.carrier.webrtc.CarrierPeerConnectionClient.DataChannelParameters;
-import org.elastos.carrier.webrtc.signaling.CarrierClient;
 import org.webrtc.Camera1Enumerator;
 import org.webrtc.Camera2Enumerator;
 import org.webrtc.CameraEnumerator;
@@ -148,9 +149,9 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
   private boolean activityRunning;
 
   private boolean isCaller;
-  private String calleeAddress; //callee's carrier address
-  private String callerAddress; //caller's carrier address
-  private String remoteAddress; //remote's carrier address
+  private String calleeUserId; //callee's carrier user id
+  private String callerUserId; //caller's carrier user id
+  private String remoteUserId; //remote's carrier user id
 
   @Nullable
   private PeerConnectionParameters peerConnectionParameters;
@@ -170,12 +171,16 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
   private HudFragment hudFragment;
   private CpuMonitor cpuMonitor;
 
+  private Carrier carrier;
+
   @Override
   // TODO(bugs.webrtc.org/8580): LayoutParams.FLAG_TURN_SCREEN_ON and
   // LayoutParams.FLAG_SHOW_WHEN_LOCKED are deprecated.
   @SuppressWarnings("deprecation")
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+
+    carrier = CarrierClient.getInstance(getApplicationContext()).getCarrier();
 
     Thread.setDefaultUncaughtExceptionHandler(new UnhandledExceptionHandler(this));
 
@@ -267,17 +272,21 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
     isCaller = intent.getBooleanExtra(EXTRA_IS_CALLER, false);
     // Get Intent parameters.
     if (isCaller) {
-      remoteAddress = intent.getStringExtra(EXTRA_ROOMID);
-      calleeAddress = CarrierClient.getInstance(this).getMyAddress();
+      remoteUserId = intent.getStringExtra(EXTRA_ROOMID);
+      try {
+        calleeUserId = CarrierClient.getInstance(this).getCarrier().getUserId();
+      } catch (CarrierException e) {
+        e.printStackTrace();
+      }
     } else {
-      calleeAddress = intent.getStringExtra(EXTRA_ROOMID); //calleeAddress
-      remoteAddress = calleeAddress;
+      calleeUserId = intent.getStringExtra(EXTRA_ROOMID); //calleeUserId
+      remoteUserId = calleeUserId;
     }
 
-    Log.d(TAG, "Callee Address: " + calleeAddress);
-    if ((calleeAddress == null || calleeAddress.length() == 0)){
+    Log.d(TAG, "Callee User Id: " + calleeUserId);
+    if ((calleeUserId == null || calleeUserId.length() == 0)){
       logAndToast(getString(R.string.missing_url));
-      Log.e(TAG, "Incorrect Callee Address in intent!");
+      Log.e(TAG, "Incorrect Callee User Id in intent!");
       setResult(RESULT_CANCELED);
       finish();
       return;
@@ -311,7 +320,11 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
 
     Log.d(TAG, "VIDEO_FILE: '" + intent.getStringExtra(EXTRA_VIDEO_FILE_AS_CAMERA) + "'");
 
-    callerAddress = CarrierClient.getInstance(this).getMyAddress();
+    try {
+      callerUserId = carrier.getUserId();
+    } catch (CarrierException e) {
+      e.printStackTrace();
+    }
 
     // Create CPU monitor
     if (CpuMonitor.isSupported()) {
@@ -338,8 +351,9 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
       }, runTimeMs);
     }
 
+
     // Create peer connection client.
-    carrierPeerConnectionClient = new CarrierPeerConnectionClient(
+    carrierPeerConnectionClient = new CarrierPeerConnectionClient(carrier,
         getApplicationContext(), eglBase, peerConnectionParameters, CallActivity.this);
     PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
 
@@ -563,17 +577,16 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
     callStartedTimeMs = System.currentTimeMillis();
 
     // Start call connection.
-    logAndToast(getString(R.string.connecting_to, calleeAddress));
-    webrtcClient.initialCall(callerAddress, calleeAddress);
-    Log.d(TAG, "startCall: isCaller = " + isCaller + "; caller = " + callerAddress + "; callee = " + calleeAddress + "; remote = " + remoteAddress);
+    logAndToast(getString(R.string.connecting_to, calleeUserId));
+    webrtcClient.initialCall(calleeUserId);
+    Log.d(TAG, "startCall: isCaller = " + isCaller + "; caller = " + callerUserId + "; callee = " + calleeUserId + "; remote = " + remoteUserId);
     if (isCaller) {
       try {
         Thread.sleep(500);
       } catch (Exception e) {
         Log.e(TAG, "startCall: ", e);
       }
-      String remoteId = CarrierClient.getInstance(this).getUserIdFromAddress(remoteAddress);
-      webrtcClient.sendInvite(remoteId);
+      webrtcClient.sendInvite();
     }
 
     // Create and audio manager that will take care of audio routing,

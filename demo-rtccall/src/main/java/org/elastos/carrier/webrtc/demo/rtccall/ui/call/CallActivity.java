@@ -17,13 +17,14 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.Toast;
 
+import org.elastos.carrier.exceptions.CarrierException;
 import org.elastos.carrier.webrtc.CarrierWebrtcClient;
+import org.elastos.carrier.webrtc.demo.rtccall.CarrierClient;
 import org.elastos.carrier.webrtc.demo.rtccall.R;
 import org.elastos.carrier.webrtc.demo.rtccall.util.AppRTCAudioManager;
 
 import org.elastos.carrier.Carrier;
 import org.elastos.carrier.webrtc.CarrierPeerConnectionClient;
-import org.elastos.carrier.webrtc.signaling.CarrierClient;
 import org.webrtc.Camera1Enumerator;
 import org.webrtc.Camera2Enumerator;
 import org.webrtc.CameraEnumerator;
@@ -96,15 +97,17 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
     private boolean isSwappedFeeds = false;
 
     private boolean isCaller;
-    private String callerAddress;
-    private String calleeAddress;
-    private String remoteAddress;
+    private String callerUserId;
+    private String calleeUserId;
+    private String remoteUserId;
 
+    private Carrier carrier;
 
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        carrier = CarrierClient.getInstance(getApplicationContext()).getCarrier();
         INSTANCE = this;
 
         // Check for mandatory permissions.
@@ -148,17 +151,21 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
         ft.commit();
 
         // Get Intent parameters.
-        callerAddress = CarrierClient.getInstance(this).getMyAddress();
+        try {
+            callerUserId = CarrierClient.getInstance(this).getCarrier().getUserId();
+        } catch (CarrierException e) {
+            e.printStackTrace();
+        }
         if (isCaller) {
-            remoteAddress = intent.getStringExtra(EXTRA_ROOMID);
+            remoteUserId = intent.getStringExtra(EXTRA_ROOMID);
             try {
-                calleeAddress = Carrier.getInstance().getAddress();
+                calleeUserId = Carrier.getInstance().getUserId();
             } catch (Exception e) {
                 Log.e(TAG, "onCreate: ", e);
             }
         } else {
-            calleeAddress = intent.getStringExtra(EXTRA_ROOMID); //calleeAddress
-            remoteAddress = calleeAddress;
+            calleeUserId = intent.getStringExtra(EXTRA_ROOMID); //calleeAddress
+            remoteUserId = calleeUserId;
         }
 
         remoteSinks.add(remoteProxyRenderer);
@@ -174,10 +181,10 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
         fullscreenRenderer.setEnableHardwareScaler(false /* enabled */);
         // Start with local feed in fullscreen and swap it to the pip when the register is connected.
         setSwappedFeeds(true /* isSwappedFeeds */);
-        Log.d(TAG, "Callee Address: " + calleeAddress);
-        if ((calleeAddress == null || calleeAddress.length() == 0)){
-            logAndToast("miss callee address");
-            Log.e(TAG, "Incorrect Callee Address in intent!");
+        Log.d(TAG, "Callee user id: " + calleeUserId);
+        if ((calleeUserId == null || calleeUserId.length() == 0)){
+            logAndToast("miss callee user id");
+            Log.e(TAG, "Incorrect Callee user id in intent!");
             setResult(RESULT_CANCELED);
             finish();
             return;
@@ -201,7 +208,7 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
                         false,
                         false, null);
         // Create peer connection client.
-        carrierPeerConnectionClient = new CarrierPeerConnectionClient(
+        carrierPeerConnectionClient = new CarrierPeerConnectionClient(carrier,
                 getApplicationContext(), eglBase, peerConnectionParameters, CallActivity.this);
         PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
 
@@ -352,17 +359,16 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
         callStartedTimeMs = System.currentTimeMillis();
 
         // Start room connection.
-        logAndToast("connect to: " + calleeAddress);
-        webrtcClient.initialCall(callerAddress, calleeAddress);
-        Log.d(TAG, "startCall: isCaller = " + isCaller + "; caller = " + callerAddress + "; callee = " + calleeAddress + "; remote = " + remoteAddress);
+        logAndToast("connect to: " + calleeUserId);
+        webrtcClient.initialCall(calleeUserId);
+        Log.d(TAG, "startCall: isCaller = " + isCaller + "; caller = " + callerUserId + "; callee = " + calleeUserId + "; remote = " + remoteUserId);
         if (isCaller) {
             try {
                 Thread.sleep(500);
             } catch (Exception e) {
                 Log.e(TAG, "startCall: ", e);
             }
-            String remoteId = CarrierClient.getInstance(this).getUserIdFromAddress(remoteAddress);
-            webrtcClient.sendInvite(remoteId);
+            webrtcClient.sendInvite();
         }
 
         // Create and audio manager that will take care of audio routing,

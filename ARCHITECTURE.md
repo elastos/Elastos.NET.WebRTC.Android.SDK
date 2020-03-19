@@ -70,11 +70,11 @@ The sdk also supply a peer connection help class CarrierPeerConnectionClient (or
 ```
 
     //Initial a call connection. The callerAddress and calleeAddress represent the carrier address for the calleer and callee.
-    webrtcClient.initialCall(callerAddress, calleeAddress);
+    webrtcClient.initialCall(calleeAddress);
 
     //Send a call invite to a carrier User. We need carrier userId instead of carrier address for the call invitation. 
     String carrierUserId = CarrierClient.getInstance(this).getUserIdFromAddress(remoteAddress);
-    webrtcClient.sendInvite(carrierUserId);
+    webrtcClient.sendInvite();
 
 ```
 

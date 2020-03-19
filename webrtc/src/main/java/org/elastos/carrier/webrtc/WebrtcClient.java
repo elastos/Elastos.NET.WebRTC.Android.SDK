@@ -22,6 +22,7 @@
 
 package org.elastos.carrier.webrtc;
 
+import org.elastos.carrier.exceptions.CarrierException;
 import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
 
@@ -34,13 +35,12 @@ public interface WebrtcClient {
    * Asynchronously initial a webrtc call. Once connection is established onCallInitialized()
    * callback is invoked.
    */
-  void initialCall(String callerAddress, String calleeAddress);
+  void initialCall(String calleeUserId) ;
 
   /**
    * send invite message to callee.
-   * @param calleeAddress callee address
    */
-  void sendInvite(String calleeAddress);
+  void sendInvite();
 
   /**
    * Send offer SDP to the other participant.

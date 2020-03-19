@@ -50,13 +50,12 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 
+import org.elastos.carrier.CarrierExtension;
 import org.elastos.carrier.webrtc.demo.apprtc.util.QRCodeUtils;
 import org.elastos.carrier.AbstractCarrierHandler;
 import org.elastos.carrier.Carrier;
-import org.elastos.carrier.TurnServer;
 import org.elastos.carrier.exceptions.CarrierException;
 import org.elastos.carrier.webrtc.WebrtcClient;
-import org.elastos.carrier.webrtc.signaling.CarrierClient;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -140,7 +139,12 @@ public class ConnectActivity extends Activity {
 
     requestPermissions();
 
-    String address = CarrierClient.getInstance(this).getMyAddress();
+    String userId = null;
+    try {
+      userId = CarrierClient.getInstance(this).getCarrier().getUserId();
+    } catch (CarrierException e) {
+      e.printStackTrace();
+    }
     if (CarrierClient.getInstance(this).getCarrier().isReady()) {
       mAdrress.append("\n service ready!!!");
     }
@@ -148,14 +152,6 @@ public class ConnectActivity extends Activity {
       @Override
       public void onReady(Carrier carrier) {
         mAdrress.post(()->{
-          StringBuilder turn_address = new StringBuilder();
-          try {
-            TurnServer turnServer = carrier.getTurnServer();
-            turn_address.append(turnServer.getServer()).append(":").append(turnServer.getPort());
-          } catch (CarrierException e) {
-            e.printStackTrace();
-          }
-          mAdrress.append("\n service ready and turn server is: " + turn_address);
         });
       }
 
@@ -166,7 +162,7 @@ public class ConnectActivity extends Activity {
           Toast.makeText(ConnectActivity.this, "carrier friend invite onFriendInviteRequest from : " + from, Toast.LENGTH_LONG).show();
           Log.e(TAG, "carrier friend invite  onFriendInviteRequest from: " + from + "\r\n" + data);
 
-          if (data != null && data.contains("invite") && data.contains("calleeAddress")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
+          if (data != null && data.contains("invite") && data.contains("calleeUserId")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
 
             //启动进去CallActivity
             JSONObject json = null;
@@ -176,7 +172,7 @@ public class ConnectActivity extends Activity {
               String message = json.optString("msg");
               msg = new JSONObject(message);
               String type = msg.optString("type");
-              String callee = msg.optString("calleeAddress");
+              String callee = msg.optString("calleeUserId");
 
               if ("invite".equalsIgnoreCase(type) && !TextUtils.isEmpty(callee)) {
                 connectToRoom(callee, false, false, 0, false);
@@ -190,8 +186,8 @@ public class ConnectActivity extends Activity {
       }
     });
 
-    mQRCodeImage.setImageBitmap(QRCodeUtils.createQRCodeBitmap(address));
-    mAdrress.setText(address);
+    mQRCodeImage.setImageBitmap(QRCodeUtils.createQRCodeBitmap(userId));
+    mAdrress.setText(userId);
   }
 
   @Override

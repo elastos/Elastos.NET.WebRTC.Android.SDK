@@ -36,11 +36,13 @@ import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 
+import org.elastos.carrier.Carrier;
 import org.elastos.carrier.webrtc.CarrierPeerConnectionClient;
 import org.elastos.carrier.webrtc.CarrierPeerConnectionClient.PeerConnectionParameters;
 import org.elastos.carrier.webrtc.CarrierWebrtcClient;
 import org.elastos.carrier.webrtc.PeerConnectionEvents;
 import org.elastos.carrier.webrtc.WebrtcClient;
+import org.elastos.carrier.webrtc.demo.rtccall.CarrierClient;
 import org.webrtc.Camera1Enumerator;
 import org.webrtc.Camera2Enumerator;
 import org.webrtc.CameraEnumerator;
@@ -93,20 +95,24 @@ public abstract class BaseCallActivity extends Activity implements WebrtcClient.
     @Nullable
     protected WebrtcClient webrtcClient;
 
+    private Carrier carrier;
+
     @SuppressWarnings("deprecation")
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         final EglBase eglBase = EglBase.create();
 
+        carrier = CarrierClient.getInstance(getApplicationContext()).getCarrier();
+
         // Create peer connection client.
-        carrierPeerConnectionClient = new CarrierPeerConnectionClient(
+        carrierPeerConnectionClient = new CarrierPeerConnectionClient(carrier,
                 getApplicationContext(), eglBase, peerConnectionParameters, this);
         PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
 
         carrierPeerConnectionClient.createPeerConnectionFactory(options);
 
         // Create connection client.
-        webrtcClient = new CarrierWebrtcClient(this, getApplicationContext());
+        webrtcClient = new CarrierWebrtcClient(carrier,this);
 
     }
 
