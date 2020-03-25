@@ -51,6 +51,8 @@ import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 
 import org.elastos.carrier.CarrierExtension;
+import org.elastos.carrier.ConnectionStatus;
+import org.elastos.carrier.FriendInfo;
 import org.elastos.carrier.webrtc.demo.apprtc.util.QRCodeUtils;
 import org.elastos.carrier.AbstractCarrierHandler;
 import org.elastos.carrier.Carrier;
@@ -140,7 +142,9 @@ public class ConnectActivity extends Activity {
     requestPermissions();
 
     String userId = null;
+    String address = null;
     try {
+      address = CarrierClient.getInstance(this).getCarrier().getAddress();
       userId = CarrierClient.getInstance(this).getCarrier().getUserId();
     } catch (CarrierException e) {
       e.printStackTrace();
@@ -152,6 +156,21 @@ public class ConnectActivity extends Activity {
       @Override
       public void onReady(Carrier carrier) {
         mAdrress.post(()->{
+        });
+      }
+
+      @Override
+      public void onFriendConnection(Carrier carrier, String friendId, ConnectionStatus status) {
+        super.onFriendConnection(carrier, friendId, status);
+        Log.d(TAG, "onFriendConnection: " + friendId);
+      }
+
+      @Override
+      public void onFriendAdded(Carrier carrier, FriendInfo info) {
+        super.onFriendAdded(carrier, info);
+        Log.d(TAG, "onFriendAdded: " + info.getUserId());
+        roomEditText.post(() -> {
+          roomEditText.setText(info.getUserId());
         });
       }
 
@@ -186,7 +205,7 @@ public class ConnectActivity extends Activity {
       }
     });
 
-    mQRCodeImage.setImageBitmap(QRCodeUtils.createQRCodeBitmap(userId));
+    mQRCodeImage.setImageBitmap(QRCodeUtils.createQRCodeBitmap(address));
     mAdrress.setText(userId);
   }
 
@@ -320,7 +339,8 @@ public class ConnectActivity extends Activity {
         roomEditText.post(new Runnable() {
           @Override
           public void run() {
-            roomEditText.setText(result);
+            String id = Carrier.getIdFromAddress(result);
+            roomEditText.setText(id);
             try {
               CarrierClient.getInstance(ConnectActivity.this).addFriend(result);
             } catch (CarrierException e) {

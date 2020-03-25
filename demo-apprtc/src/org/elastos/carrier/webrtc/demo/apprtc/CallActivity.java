@@ -282,6 +282,8 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
       calleeUserId = intent.getStringExtra(EXTRA_ROOMID); //calleeUserId
       remoteUserId = calleeUserId;
     }
+    calleeUserId = intent.getStringExtra(EXTRA_ROOMID); //calleeUserId
+    remoteUserId = calleeUserId;
 
     Log.d(TAG, "Callee User Id: " + calleeUserId);
     if ((calleeUserId == null || calleeUserId.length() == 0)){
