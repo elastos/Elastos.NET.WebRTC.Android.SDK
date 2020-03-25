@@ -85,6 +85,11 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     final HandlerThread handlerThread = new HandlerThread(TAG);
     handlerThread.start();
     handler = new Handler(handlerThread.getLooper());
+    try {
+      registerExtension();
+    } catch (Exception e) {
+      Log.e(TAG, "CarrierPeerConnectionClient: register carrier extension error", e);
+    }
   }
 
   // --------------------------------------------------------------------

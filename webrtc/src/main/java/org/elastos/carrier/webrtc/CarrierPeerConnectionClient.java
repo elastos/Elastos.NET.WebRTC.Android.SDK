@@ -434,6 +434,12 @@ public class CarrierPeerConnectionClient extends CarrierExtension{
                             .setEnableInternalTracer(true)
                             .createInitializationOptions());
         });
+
+        try {
+            registerExtension();
+        } catch (Exception e) {
+            Log.e(TAG, "CarrierPeerConnectionClient: register carrier extension error", e);
+        }
     }
 
     /**
