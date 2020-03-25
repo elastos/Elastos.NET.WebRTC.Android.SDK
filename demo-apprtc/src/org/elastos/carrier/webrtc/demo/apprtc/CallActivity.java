@@ -282,8 +282,6 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
       calleeUserId = intent.getStringExtra(EXTRA_ROOMID); //calleeUserId
       remoteUserId = calleeUserId;
     }
-    calleeUserId = intent.getStringExtra(EXTRA_ROOMID); //calleeUserId
-    remoteUserId = calleeUserId;
 
     Log.d(TAG, "Callee User Id: " + calleeUserId);
     if ((calleeUserId == null || calleeUserId.length() == 0)){
@@ -580,7 +578,7 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
 
     // Start call connection.
     logAndToast(getString(R.string.connecting_to, calleeUserId));
-    webrtcClient.initialCall(calleeUserId);
+    webrtcClient.initialCall(calleeUserId, remoteUserId);
     Log.d(TAG, "startCall: isCaller = " + isCaller + "; caller = " + callerUserId + "; callee = " + calleeUserId + "; remote = " + remoteUserId);
     if (isCaller) {
       try {
