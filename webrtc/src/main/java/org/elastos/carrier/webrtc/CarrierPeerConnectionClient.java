@@ -99,7 +99,7 @@ import org.webrtc.audio.JavaAudioDeviceModule.AudioTrackStateCallback;
  * All PeerConnectionEvents callbacks are invoked from the same looper thread.
  * This class is a singleton.
  */
-public class CarrierPeerConnectionClient extends CarrierExtension{
+public class CarrierPeerConnectionClient{
     public static final String VIDEO_TRACK_ID = "ARDAMSv0";
     public static final String AUDIO_TRACK_ID = "ARDAMSa0";
     public static final String VIDEO_TRACK_TYPE = "video";
@@ -192,9 +192,7 @@ public class CarrierPeerConnectionClient extends CarrierExtension{
     // recorded audio samples to an output file.
     @Nullable private RecordedAudioToFileController saveRecordedAudioToFile;
 
-    @Override
-    protected void onFriendInvite(Carrier carrier, String s, String s1) {
-    }
+    private CarrierWebrtcClient carrierWebrtcClient; //inject WebrtcClient for using Carrier and TurnServer from the CarrierExtension.
 
     /**
      * Peer connection parameters.
@@ -406,19 +404,20 @@ public class CarrierPeerConnectionClient extends CarrierExtension{
      * Create a PeerConnectionClient with the default parameters. PeerConnectionClient takes
      * ownership of |eglBase|.
      */
-    public CarrierPeerConnectionClient(Carrier carrier, Context appContext,  PeerConnectionEvents events) {
-        this(carrier, appContext, EglBase.create(), PeerConnectionParameters.getDefaultPeerConnectionParameters(), events);
+    public CarrierPeerConnectionClient(Context appContext, CarrierWebrtcClient carrierWebrtcClient, PeerConnectionEvents events) {
+        this(appContext, carrierWebrtcClient, EglBase.create(), PeerConnectionParameters.getDefaultPeerConnectionParameters(), events);
     }
 
     /**
      * Create a PeerConnectionClient with the specified parameters. PeerConnectionClient takes
      * ownership of |eglBase|.
      */
-    public CarrierPeerConnectionClient(Carrier carrier, Context appContext, EglBase eglBase,
+    public CarrierPeerConnectionClient(Context appContext, CarrierWebrtcClient carrierWebrtcClient, EglBase eglBase,
                                        PeerConnectionParameters peerConnectionParameters, PeerConnectionEvents events) {
-        super(carrier);
+        super();
         this.rootEglBase = eglBase;
         this.appContext = appContext;
+        this.carrierWebrtcClient = carrierWebrtcClient;
         this.events = events;
         this.peerConnectionParameters = peerConnectionParameters;
         this.dataChannelEnabled = peerConnectionParameters.dataChannelParameters != null;
@@ -434,12 +433,6 @@ public class CarrierPeerConnectionClient extends CarrierExtension{
                             .setEnableInternalTracer(true)
                             .createInitializationOptions());
         });
-
-//        try {
-//            registerExtension();
-//        } catch (Exception e) {
-//            Log.e(TAG, "CarrierPeerConnectionClient: register carrier extension error", e);
-//        }
     }
 
     /**
@@ -695,16 +688,8 @@ public class CarrierPeerConnectionClient extends CarrierExtension{
 
         queuedRemoteCandidates = new ArrayList<>();
 
-        //todo: get iceServers from carrier network.
-        List<PeerConnection.IceServer> iceServers = new ArrayList<>();
-
-//        try {
-//            TurnServerInfo turnServer = getTurnServerInfo();
-//            iceServers.add(PeerConnection.IceServer.builder("stun:" + turnServer.getServer()).setUsername(turnServer.getUsername()).setPassword(turnServer.getPassword()).createIceServer());
-//            iceServers.add(PeerConnection.IceServer.builder("turn:" + turnServer.getServer()).setUsername(turnServer.getUsername()).setPassword(turnServer.getPassword()).createIceServer());
-//        } catch (CarrierException e) {
-//            Log.e(TAG, "Get Turn server from carrier network error.");
-//        }
+        //Get iceServers from webrtcClient.
+        List<PeerConnection.IceServer> iceServers = carrierWebrtcClient.getIceServers();
 
         PeerConnection.RTCConfiguration rtcConfig =
                 new PeerConnection.RTCConfiguration(iceServers);

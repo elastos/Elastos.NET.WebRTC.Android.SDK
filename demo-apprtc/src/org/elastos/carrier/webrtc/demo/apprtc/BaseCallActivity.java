@@ -92,7 +92,7 @@ public abstract class BaseCallActivity extends Activity implements WebrtcClient.
     protected CarrierPeerConnectionClient carrierPeerConnectionClient;
 
     @Nullable
-    protected WebrtcClient webrtcClient;
+    protected CarrierWebrtcClient webrtcClient;
 
     private Carrier carrier;
 
@@ -102,15 +102,16 @@ public abstract class BaseCallActivity extends Activity implements WebrtcClient.
         final EglBase eglBase = EglBase.create();
         carrier = CarrierClient.getInstance(getApplicationContext()).getCarrier();
 
+        // Create connection client.
+        webrtcClient = new CarrierWebrtcClient(carrier,this);
+
         // Create peer connection client.
-        carrierPeerConnectionClient = new CarrierPeerConnectionClient(carrier,
-                getApplicationContext(), eglBase, peerConnectionParameters, this);
+        carrierPeerConnectionClient = new CarrierPeerConnectionClient(
+                getApplicationContext(), webrtcClient, eglBase, peerConnectionParameters, this);
         PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
 
         carrierPeerConnectionClient.createPeerConnectionFactory(options);
 
-        // Create connection client.
-        webrtcClient = new CarrierWebrtcClient(carrier,this);
 
     }
 

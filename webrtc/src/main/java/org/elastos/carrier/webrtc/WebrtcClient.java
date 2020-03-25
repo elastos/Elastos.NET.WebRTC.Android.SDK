@@ -35,12 +35,19 @@ public interface WebrtcClient {
    * Asynchronously initial a webrtc call. Once connection is established onCallInitialized()
    * callback is invoked.
    */
-  void initialCall(String calleeUserId, String remoteUserId) ;
+  void initialCall(String calleeUserId) ;
 
   /**
    * send invite message to callee.
    */
   void sendInvite();
+
+  /**
+   * The callee accept a webrtc call. Once accept the offer by CarrierExtension.onFriendInvite()
+   *  callback is invoked.
+   */
+  void receivedCall(String callerUserId) ;
+
 
   /**
    * Send offer SDP to the other participant.

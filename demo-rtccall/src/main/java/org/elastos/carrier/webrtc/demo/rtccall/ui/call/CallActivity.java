@@ -208,8 +208,8 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
                         false,
                         false, null);
         // Create peer connection client.
-        carrierPeerConnectionClient = new CarrierPeerConnectionClient(carrier,
-                getApplicationContext(), eglBase, peerConnectionParameters, CallActivity.this);
+        carrierPeerConnectionClient = new CarrierPeerConnectionClient(
+                getApplicationContext(), webrtcClient, eglBase, peerConnectionParameters, CallActivity.this);
         PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
 
         Log.d(TAG, "onCreate:  carrierPeerConnectionClient = " + carrierPeerConnectionClient);

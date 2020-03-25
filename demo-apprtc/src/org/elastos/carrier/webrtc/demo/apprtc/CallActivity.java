@@ -271,17 +271,9 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
 
     isCaller = intent.getBooleanExtra(EXTRA_IS_CALLER, false);
     // Get Intent parameters.
-    if (isCaller) {
-      remoteUserId = intent.getStringExtra(EXTRA_ROOMID);
-      try {
-        calleeUserId = CarrierClient.getInstance(this).getCarrier().getUserId();
-      } catch (CarrierException e) {
-        e.printStackTrace();
-      }
-    } else {
-      calleeUserId = intent.getStringExtra(EXTRA_ROOMID); //calleeUserId
-      remoteUserId = calleeUserId;
-    }
+
+    calleeUserId = intent.getStringExtra(EXTRA_ROOMID); //calleeUserId
+    remoteUserId = calleeUserId;
 
     Log.d(TAG, "Callee User Id: " + calleeUserId);
     if ((calleeUserId == null || calleeUserId.length() == 0)){
@@ -353,8 +345,8 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
 
 
     // Create peer connection client.
-    carrierPeerConnectionClient = new CarrierPeerConnectionClient(carrier,
-        getApplicationContext(), eglBase, peerConnectionParameters, CallActivity.this);
+    carrierPeerConnectionClient = new CarrierPeerConnectionClient(
+        getApplicationContext(),webrtcClient, eglBase, peerConnectionParameters, CallActivity.this);
     PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
 
     carrierPeerConnectionClient.createPeerConnectionFactory(options);
@@ -578,7 +570,7 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
 
     // Start call connection.
     logAndToast(getString(R.string.connecting_to, calleeUserId));
-    webrtcClient.initialCall(calleeUserId, remoteUserId);
+    webrtcClient.initialCall(remoteUserId);
     Log.d(TAG, "startCall: isCaller = " + isCaller + "; caller = " + callerUserId + "; callee = " + calleeUserId + "; remote = " + remoteUserId);
     if (isCaller) {
       try {

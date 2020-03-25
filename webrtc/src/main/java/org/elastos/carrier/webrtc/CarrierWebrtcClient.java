@@ -98,11 +98,30 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
   // Asynchronously initial a webrtc call. Once connection is established onCallInitialized()
   // callback is invoked with webrtc parameters.
   @Override
-  public void initialCall(String calleeUserId, String remoteUserId) {
+  public void initialCall(String calleeUserId) {
     try {
       this.callerUserId = carrier.getUserId();
       this.calleeUserId = calleeUserId;
-      this.remoteUserId = remoteUserId;
+      this.remoteUserId = calleeUserId;
+      handler.post(new Runnable() {
+        @Override
+        public void run() {
+          initialCallInternal();
+        }
+      });
+    } catch (CarrierException e) {
+      Log.e(TAG, "Get user id from carrier network error.");
+    }
+  }
+
+   // Asynchronously accept a webrtc call. Once accept the offer by CarrierExtension.onFriendInvite()
+   // callback is invoked.
+  @Override
+  public void receivedCall(String callerUserId) {
+    try {
+      this.callerUserId = callerUserId;
+      this.calleeUserId = carrier.getUserId();
+      this.remoteUserId = callerUserId;
       handler.post(new Runnable() {
         @Override
         public void run() {
@@ -129,8 +148,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         try {
           JSONObject json = new JSONObject();
           jsonPut(json, "type", "invite");
-          // let the counter party call me.
-          jsonPut(json, "calleeUserId", callerUserId);
+          jsonPut(json, "calleeUserId", remoteUserId);
           send(json.toString());
 
           JSONObject object = new JSONObject();
@@ -161,10 +179,6 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
   // Connects to webrtc call - function runs on a local looper thread.
   private void initialCallInternal() {
 
-    if(calleeUserId.equals(callerUserId)){ //wait for the connection from callee.
-      Log.d(TAG, "Waiting for connection to carrier user: " + calleeUserId);
-    }
-
     Log.d(TAG, "Connect to carrier user: " + calleeUserId + ", from: " + callerUserId);
     connectionState = ConnectionState.NEW;
 
@@ -173,18 +187,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     CarrierWebrtcClient.this.handler.post(new Runnable() {
       @Override
       public void run() {
-        CarrierExtension.TurnServerInfo turnServerInfo = null;
-        try {
-          turnServerInfo = getTurnServerInfo();
-        } catch (CarrierException e) {
-          Log.e(TAG, "Get Turn server from carrier network error.");
-        }
-
-        List<PeerConnection.IceServer> iceServers = new ArrayList<>();
-        if (turnServerInfo !=null) {
-          iceServers.add(PeerConnection.IceServer.builder("stun:" + turnServerInfo.getServer() + ":" + turnServerInfo.getPort()).setUsername(turnServerInfo.getUsername()).setPassword(turnServerInfo.getPassword()).createIceServer());
-          iceServers.add(PeerConnection.IceServer.builder("turn:" + turnServerInfo.getServer() + ":" + turnServerInfo.getPort()).setUsername(turnServerInfo.getUsername()).setPassword(turnServerInfo.getPassword()).createIceServer());
-        }
+        List<PeerConnection.IceServer> iceServers = getIceServers();
 
         SignalingParameters params = new SignalingParameters(
                 iceServers, initiator, calleeUserId, callerUserId, null, null);
@@ -192,6 +195,27 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         CarrierWebrtcClient.this.signalingParametersReady(params);
       }
     });
+  }
+
+
+  /**
+   * Initial
+   * @return
+   */
+  protected List<PeerConnection.IceServer> getIceServers() {
+    TurnServerInfo turnServerInfo = null;
+    try {
+      turnServerInfo = getTurnServerInfo();
+    } catch (CarrierException e) {
+      Log.e(TAG, "Get Turn server from carrier network error.");
+    }
+
+    List<PeerConnection.IceServer> iceServers = new ArrayList<>();
+    if (turnServerInfo !=null) {
+      iceServers.add(PeerConnection.IceServer.builder("stun:" + turnServerInfo.getServer() + ":" + turnServerInfo.getPort()).setUsername(turnServerInfo.getUsername()).setPassword(turnServerInfo.getPassword()).createIceServer());
+      iceServers.add(PeerConnection.IceServer.builder("turn:" + turnServerInfo.getServer() + ":" + turnServerInfo.getPort()).setUsername(turnServerInfo.getUsername()).setPassword(turnServerInfo.getPassword()).createIceServer());
+    }
+    return iceServers;
   }
 
 
@@ -237,7 +261,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         JSONObject json = new JSONObject();
         jsonPut(json, "sdp", sdp.description);
         jsonPut(json, "type", "offer");
-        sendMessageByCarrierChannel(json);
+        send(json.toString());
       }
     });
   }
@@ -251,7 +275,6 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         JSONObject json = new JSONObject();
         jsonPut(json, "sdp", sdp.description);
         jsonPut(json, "type", "answer");
-        //carrierChannelClient.sendJsonMessage(calleeUserId, callerUserId, json,false);
         send(json.toString());
       }
     });
@@ -274,10 +297,10 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
             reportError("Sending ICE candidate in non connected state.");
             return;
           }
-          sendMessageByCarrierChannel(json);
+          send(json.toString());
         } else {
           // Call receiver sends ice candidates to Carrier server.
-          sendMessageByCarrierChannel(json);
+          send(json.toString());
         }
       }
     });
@@ -302,10 +325,10 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
             reportError("Sending ICE candidate removals in non connected state.");
             return;
           }
-          sendMessageByCarrierChannel(json);
+          send(json.toString());
         } else {
           // Call receiver sends ice candidates to Carrier server.
-          sendMessageByCarrierChannel(json);
+          send(json.toString());
         }
       }
     });
@@ -313,26 +336,27 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
 
   @Override
   protected void onFriendInvite(Carrier carrier, String from, String data) {
+/*
     handler.post(new Runnable() {
       @Override
       public void run() {
+*/
         Log.e(TAG, "carrier friend invite  onFriendInviteRequest from: " + from);
 
         if (data != null && data.contains("msg")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
 
-          //更新calleeUserId,
-          calleeUserId = from; //更新为消息回执者
-
           if(data.contains("offer")){
-            calleeUserId = from ;
+            receivedCall(from);
           }
 
           onCarrierMessage(data);
           Log.d(TAG, "Get the carrier message: " + data);
         }
+/*
       }
     });
 
+*/
   }
 
 
@@ -420,19 +444,6 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     }
   }
 
-  // Send SDP or ICE candidate to the callee.
-  private void sendMessageByCarrierChannel(@Nullable final JSONObject message) {
-    String logInfo = "";
-    if (message != null) {
-      logInfo += "Send Message: " + message.toString() + " to: " + calleeUserId;
-    }
-    Log.d(TAG, "C->GAE: " + logInfo);
-
-    if (message != null) {
-      send(message.toString());
-    }
-  }
-
   // Converts a Java candidate to a JSONObject.
   private JSONObject toJsonCandidate(final IceCandidate candidate) {
     JSONObject json = new JSONObject();
@@ -505,7 +516,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
 
       Log.d(TAG, "C->Call: " + message);
 
-      if (remoteUserId.equals(callerUserId)) {
+      if (remoteUserId.equals(carrier.getUserId())) {
         return; //can not send message to self through carrier network.
       }
       sendMessageByInvite(remoteUserId, message);
