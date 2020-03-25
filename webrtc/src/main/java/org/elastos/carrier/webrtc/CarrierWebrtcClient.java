@@ -66,6 +66,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
 
   private String calleeUserId; //callee's carrier user id
   private String callerUserId; //caller's carrier user id
+  private String remoteUserId;
 
   private final Object closeEventLock = new Object();
   private boolean closeEvent;
@@ -97,10 +98,11 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
   // Asynchronously initial a webrtc call. Once connection is established onCallInitialized()
   // callback is invoked with webrtc parameters.
   @Override
-  public void initialCall(String calleeUserId) {
+  public void initialCall(String calleeUserId, String remoteUserId) {
     try {
       this.callerUserId = carrier.getUserId();
       this.calleeUserId = calleeUserId;
+      this.remoteUserId = remoteUserId;
       handler.post(new Runnable() {
         @Override
         public void run() {
@@ -117,18 +119,29 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
    */
   @Override
   public void sendInvite() {
-    Log.d(TAG, "sendInvite to : " + calleeUserId);
+    Log.d(TAG, "sendInvite to : " + remoteUserId);
     if(calleeUserId == null){
       throw new IllegalStateException("WebrtcClient has not been initialized, please call WebrtcClient.initialCall(String calleeUserId) firstly.");
     }
     handler.post(new Runnable() {
       @Override
       public void run() {
-        JSONObject json = new JSONObject();
-        jsonPut(json, "type", "invite");
-        // let the counter party call me.
-        jsonPut(json, "calleeUserId", callerUserId);
-        send(json.toString());
+        try {
+          JSONObject json = new JSONObject();
+          jsonPut(json, "type", "invite");
+          // let the counter party call me.
+          jsonPut(json, "calleeUserId", callerUserId);
+          send(json.toString());
+
+          JSONObject object = new JSONObject();
+          jsonPut(object, "cmd", "send");
+          jsonPut(object, "msg", json.toString());
+          jsonPut(object, "calleeUserId", calleeUserId);
+          carrier.inviteFriend(remoteUserId, object.toString(), friendInviteResponseHandler);
+        } catch (Exception e) {
+          Log.e(TAG, "sendInvite: ", e);
+        }
+
       }
     });
   }
@@ -492,10 +505,10 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
 
       Log.d(TAG, "C->Call: " + message);
 
-      if (calleeUserId.equals(callerUserId)) {
+      if (remoteUserId.equals(callerUserId)) {
         return; //can not send message to self through carrier network.
       }
-      sendMessageByInvite(calleeUserId, message);
+      sendMessageByInvite(remoteUserId, message);
 
     } catch (JSONException e) {
       reportError("Carrier send JSON error: " + e.getMessage());
@@ -508,7 +521,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
 
   private void sendMessageByInvite(String fid, String message) throws CarrierException {
     if(fid!=null && !fid.equals(carrier.getUserId())){
-      carrier.inviteFriend(fid, message, friendInviteResponseHandler);
+      inviteFriend(fid, message, friendInviteResponseHandler);
     }
   }
 

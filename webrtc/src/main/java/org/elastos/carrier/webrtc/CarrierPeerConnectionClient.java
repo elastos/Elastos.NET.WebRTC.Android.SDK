@@ -435,11 +435,11 @@ public class CarrierPeerConnectionClient extends CarrierExtension{
                             .createInitializationOptions());
         });
 
-        try {
-            registerExtension();
-        } catch (Exception e) {
-            Log.e(TAG, "CarrierPeerConnectionClient: register carrier extension error", e);
-        }
+//        try {
+//            registerExtension();
+//        } catch (Exception e) {
+//            Log.e(TAG, "CarrierPeerConnectionClient: register carrier extension error", e);
+//        }
     }
 
     /**
@@ -698,13 +698,13 @@ public class CarrierPeerConnectionClient extends CarrierExtension{
         //todo: get iceServers from carrier network.
         List<PeerConnection.IceServer> iceServers = new ArrayList<>();
 
-        try {
-            TurnServerInfo turnServer = getTurnServerInfo();
-            iceServers.add(PeerConnection.IceServer.builder("stun:" + turnServer.getServer()).setUsername(turnServer.getUsername()).setPassword(turnServer.getPassword()).createIceServer());
-            iceServers.add(PeerConnection.IceServer.builder("turn:" + turnServer.getServer()).setUsername(turnServer.getUsername()).setPassword(turnServer.getPassword()).createIceServer());
-        } catch (CarrierException e) {
-            Log.e(TAG, "Get Turn server from carrier network error.");
-        }
+//        try {
+//            TurnServerInfo turnServer = getTurnServerInfo();
+//            iceServers.add(PeerConnection.IceServer.builder("stun:" + turnServer.getServer()).setUsername(turnServer.getUsername()).setPassword(turnServer.getPassword()).createIceServer());
+//            iceServers.add(PeerConnection.IceServer.builder("turn:" + turnServer.getServer()).setUsername(turnServer.getUsername()).setPassword(turnServer.getPassword()).createIceServer());
+//        } catch (CarrierException e) {
+//            Log.e(TAG, "Get Turn server from carrier network error.");
+//        }
 
         PeerConnection.RTCConfiguration rtcConfig =
                 new PeerConnection.RTCConfiguration(iceServers);

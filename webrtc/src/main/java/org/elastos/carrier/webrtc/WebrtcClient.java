@@ -35,7 +35,7 @@ public interface WebrtcClient {
    * Asynchronously initial a webrtc call. Once connection is established onCallInitialized()
    * callback is invoked.
    */
-  void initialCall(String calleeUserId) ;
+  void initialCall(String calleeUserId, String remoteUserId) ;
 
   /**
    * send invite message to callee.
