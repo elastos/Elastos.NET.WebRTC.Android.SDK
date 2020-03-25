@@ -4,3 +4,6 @@ local.properties
 .gradle/
 *.iml
 .idea/
+demo-apprtc/libs/
+demo-rtccall/libs/
+webrtc/libs/
