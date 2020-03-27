@@ -77,6 +77,13 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
 
   public CarrierWebrtcClient(Carrier carrier, SignalingEvents events) {
     super(carrier);
+
+    try {
+      registerExtension();
+    } catch (Exception e) {
+      Log.e(TAG, "CarrierPeerConnectionClient: register carrier extension error", e);
+    }
+
     this.carrier = carrier;
     this.events = events;
     connectionState = ConnectionState.NEW;
@@ -86,11 +93,6 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     final HandlerThread handlerThread = new HandlerThread(TAG);
     handlerThread.start();
     handler = new Handler(handlerThread.getLooper());
-    try {
-      registerExtension();
-    } catch (Exception e) {
-      Log.e(TAG, "CarrierPeerConnectionClient: register carrier extension error", e);
-    }
   }
 
   // --------------------------------------------------------------------
@@ -125,7 +127,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
       handler.post(new Runnable() {
         @Override
         public void run() {
-          initialCallInternal();
+          //initialCallInternal();
         }
       });
     } catch (CarrierException e) {
@@ -189,7 +191,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     SignalingParameters params = new SignalingParameters(
             iceServers, initiator, calleeUserId, callerUserId, null, null);
 
-    CarrierWebrtcClient.this.signalingParametersReady(params);
+   signalingParametersReady(params);
   }
 
 
@@ -558,15 +560,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
 
     @Override
     public void onReceived(String from, int status, String reason, String data) {
-      handler.post(new Runnable() {
-        @Override
-        public void run() {
-          //Toast.makeText(context, "carrier friend invite onReceived from : " + from, Toast.LENGTH_LONG).show();
           Log.e(TAG, "carrier friend invite  onReceived from: " + from);
-        }
-
-      });
-
     }
   }
 
