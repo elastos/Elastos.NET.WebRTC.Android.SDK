@@ -184,17 +184,12 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
 
     boolean initiator = isInitiator(calleeUserId);
 
-    CarrierWebrtcClient.this.handler.post(new Runnable() {
-      @Override
-      public void run() {
-        List<PeerConnection.IceServer> iceServers = getIceServers();
+    List<PeerConnection.IceServer> iceServers = getIceServers();
 
-        SignalingParameters params = new SignalingParameters(
-                iceServers, initiator, calleeUserId, callerUserId, null, null);
+    SignalingParameters params = new SignalingParameters(
+            iceServers, initiator, calleeUserId, callerUserId, null, null);
 
-        CarrierWebrtcClient.this.signalingParametersReady(params);
-      }
-    });
+    CarrierWebrtcClient.this.signalingParametersReady(params);
   }
 
 
