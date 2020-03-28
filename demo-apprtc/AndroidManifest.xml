@@ -25,7 +25,7 @@
                  android:supportsRtl="false"
                  tools:ignore="HardcodedDebugMode"
         tools:replace="android:allowBackup,android:supportsRtl,android:appComponentFactory"
-        android:appComponentFactory="android.support.v4.app.CoreComponentFactory">
+        android:appComponentFactory="androidx.core.app.CoreComponentFactory">
 
         <activity android:name="ConnectActivity"
             android:configChanges="orientation|keyboard"
