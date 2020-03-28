@@ -137,6 +137,28 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
   // Peer connection statistics callback period in ms.
   private static final int STAT_CALLBACK_PERIOD = 1000;
 
+
+  private static class ProxyVideoSink implements VideoSink {
+    private VideoSink target;
+
+    @Override
+    synchronized public void onFrame(VideoFrame frame) {
+      if (target == null) {
+        Logging.d(TAG, "Dropping frame in proxy because target is null.");
+        return;
+      }
+
+      target.onFrame(frame);
+    }
+
+    synchronized public void setTarget(VideoSink target) {
+      this.target = target;
+    }
+  }
+
+  private final BaseCallActivity.ProxyVideoSink remoteProxyRenderer = new BaseCallActivity.ProxyVideoSink();
+  private final BaseCallActivity.ProxyVideoSink localProxyVideoSink = new BaseCallActivity.ProxyVideoSink();
+
   @Nullable
   private CarrierWebrtcClient.SignalingParameters signalingParameters;
   @Nullable private AppRTCAudioManager audioManager;
@@ -174,26 +196,20 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
 
   //you can override the peer connection parameters in their activity.
   @Nullable
-  protected PeerConnectionParameters peerConnectionParameters = PeerConnectionParameters.getDefaultPeerConnectionParameters();
+  private PeerConnectionParameters peerConnectionParameters = PeerConnectionParameters.getDefaultPeerConnectionParameters();
 
   @Nullable
-  protected CarrierPeerConnectionClient carrierPeerConnectionClient;
+  private CarrierPeerConnectionClient carrierPeerConnectionClient;
 
   @Nullable
-  protected CarrierWebrtcClient webrtcClient;
-
-  private Carrier carrier;
+  private CarrierWebrtcClient webrtcClient;
 
   @Override
-  // TODO(bugs.webrtc.org/8580): LayoutParams.FLAG_TURN_SCREEN_ON and
-  // LayoutParams.FLAG_SHOW_WHEN_LOCKED are deprecated.
-  @SuppressWarnings("deprecation")
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-
-    carrier = CarrierClient.getInstance(getApplicationContext()).getCarrier();
-
     Thread.setDefaultUncaughtExceptionHandler(new UnhandledExceptionHandler(this));
+
+    Carrier carrier = CarrierClient.getInstance(getApplicationContext()).getCarrier();
 
     // Set window styles for fullscreen-window size. Needs to be done before
     // adding content.
@@ -353,9 +369,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         }
       }, runTimeMs);
     }
-
-
-    carrier = CarrierClient.getInstance(getApplicationContext()).getCarrier();
 
     // Create connection client.
     webrtcClient = new CarrierWebrtcClient(carrier,this);
@@ -523,29 +536,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     activityRunning = false;
     super.onDestroy();
   }
-
-
-  protected static class ProxyVideoSink implements VideoSink {
-    private VideoSink target;
-
-    @Override
-    synchronized public void onFrame(VideoFrame frame) {
-      if (target == null) {
-        Logging.d(TAG, "Dropping frame in proxy because target is null.");
-        return;
-      }
-
-      target.onFrame(frame);
-    }
-
-    synchronized public void setTarget(VideoSink target) {
-      this.target = target;
-    }
-  }
-
-  protected final BaseCallActivity.ProxyVideoSink remoteProxyRenderer = new BaseCallActivity.ProxyVideoSink();
-  protected final BaseCallActivity.ProxyVideoSink localProxyVideoSink = new BaseCallActivity.ProxyVideoSink();
-
 
   // CallFragment.OnCallEvents interface implementation.
   @Override
