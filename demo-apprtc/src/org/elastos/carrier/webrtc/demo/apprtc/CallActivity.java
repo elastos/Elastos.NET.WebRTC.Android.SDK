@@ -24,7 +24,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import androidx.annotation.Nullable;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
@@ -32,22 +31,19 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
 import android.widget.Toast;
-import java.io.IOException;
-import java.lang.RuntimeException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+
+import androidx.annotation.Nullable;
 
 import org.elastos.carrier.Carrier;
 import org.elastos.carrier.exceptions.CarrierException;
+import org.elastos.carrier.webrtc.CarrierPeerConnectionClient;
+import org.elastos.carrier.webrtc.CarrierPeerConnectionClient.DataChannelParameters;
+import org.elastos.carrier.webrtc.CarrierPeerConnectionClient.PeerConnectionParameters;
 import org.elastos.carrier.webrtc.CarrierWebrtcClient;
-import org.elastos.carrier.webrtc.demo.apprtc.AppRTCAudioManager.AudioDevice;
-import org.elastos.carrier.webrtc.demo.apprtc.AppRTCAudioManager.AudioManagerEvents;
 import org.elastos.carrier.webrtc.PeerConnectionEvents;
 import org.elastos.carrier.webrtc.WebrtcClient;
-import org.elastos.carrier.webrtc.CarrierPeerConnectionClient;
-import org.elastos.carrier.webrtc.CarrierPeerConnectionClient.PeerConnectionParameters;
-import org.elastos.carrier.webrtc.CarrierPeerConnectionClient.DataChannelParameters;
+import org.elastos.carrier.webrtc.demo.apprtc.AppRTCAudioManager.AudioDevice;
+import org.elastos.carrier.webrtc.demo.apprtc.AppRTCAudioManager.AudioManagerEvents;
 import org.webrtc.Camera1Enumerator;
 import org.webrtc.Camera2Enumerator;
 import org.webrtc.CameraEnumerator;
@@ -63,13 +59,20 @@ import org.webrtc.StatsReport;
 import org.webrtc.SurfaceViewRenderer;
 import org.webrtc.VideoCapturer;
 import org.webrtc.VideoFileRenderer;
+import org.webrtc.VideoFrame;
 import org.webrtc.VideoSink;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 
 /**
  * Activity for peer connection register setup, register waiting
  * and register view.
  */
-public class CallActivity extends BaseCallActivity implements WebrtcClient.SignalingEvents,
+public class CallActivity extends Activity implements WebrtcClient.SignalingEvents,
         PeerConnectionEvents,
         CallFragment.OnCallEvents {
   private static final String TAG = "CallRTCClient";
@@ -153,8 +156,6 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
   private String callerUserId; //caller's carrier user id
   private String remoteUserId; //remote's carrier user id
 
-  @Nullable
-  private PeerConnectionParameters peerConnectionParameters;
   private boolean connected;
   private boolean isError;
   private boolean callControlFragmentVisible = true;
@@ -170,6 +171,16 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
   private CallFragment callFragment;
   private HudFragment hudFragment;
   private CpuMonitor cpuMonitor;
+
+  //you can override the peer connection parameters in their activity.
+  @Nullable
+  protected PeerConnectionParameters peerConnectionParameters = PeerConnectionParameters.getDefaultPeerConnectionParameters();
+
+  @Nullable
+  protected CarrierPeerConnectionClient carrierPeerConnectionClient;
+
+  @Nullable
+  protected CarrierWebrtcClient webrtcClient;
 
   private Carrier carrier;
 
@@ -344,9 +355,14 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
     }
 
 
+    carrier = CarrierClient.getInstance(getApplicationContext()).getCarrier();
+
+    // Create connection client.
+    webrtcClient = new CarrierWebrtcClient(carrier,this);
+
     // Create peer connection client.
     carrierPeerConnectionClient = new CarrierPeerConnectionClient(
-        getApplicationContext(),webrtcClient, eglBase, peerConnectionParameters, CallActivity.this);
+            getApplicationContext(), webrtcClient, eglBase, peerConnectionParameters, this);
     PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
 
     carrierPeerConnectionClient.createPeerConnectionFactory(options);
@@ -507,6 +523,29 @@ public class CallActivity extends BaseCallActivity implements WebrtcClient.Signa
     activityRunning = false;
     super.onDestroy();
   }
+
+
+  protected static class ProxyVideoSink implements VideoSink {
+    private VideoSink target;
+
+    @Override
+    synchronized public void onFrame(VideoFrame frame) {
+      if (target == null) {
+        Logging.d(TAG, "Dropping frame in proxy because target is null.");
+        return;
+      }
+
+      target.onFrame(frame);
+    }
+
+    synchronized public void setTarget(VideoSink target) {
+      this.target = target;
+    }
+  }
+
+  protected final BaseCallActivity.ProxyVideoSink remoteProxyRenderer = new BaseCallActivity.ProxyVideoSink();
+  protected final BaseCallActivity.ProxyVideoSink localProxyVideoSink = new BaseCallActivity.ProxyVideoSink();
+
 
   // CallFragment.OnCallEvents interface implementation.
   @Override
