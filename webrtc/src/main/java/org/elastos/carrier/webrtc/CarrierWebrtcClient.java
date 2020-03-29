@@ -22,13 +22,10 @@
 
 package org.elastos.carrier.webrtc;
 
-import android.content.Context;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.text.TextUtils;
 import android.util.Log;
-
-import androidx.annotation.Nullable;
 
 import org.elastos.carrier.Carrier;
 import org.elastos.carrier.CarrierExtension;
@@ -64,8 +61,6 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
   private SignalingEvents events;
   private ConnectionState connectionState;
 
-  private String calleeUserId; //callee's carrier user id
-  private String callerUserId; //caller's carrier user id
   private String remoteUserId;
 
   private final Object closeEventLock = new Object();
@@ -97,51 +92,39 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
 
   // --------------------------------------------------------------------
   // WebrtcClient interface implementation.
-  // Asynchronously initial a webrtc call. Once connection is established onCallInitialized()
-  // callback is invoked with webrtc parameters.
+  // AInvite a webrtc call to peer, the peer can choose to accept the invitation or reject.
   @Override
-  public void initialCall(String calleeUserId) {
-    try {
-      this.callerUserId = carrier.getUserId();
-      this.calleeUserId = calleeUserId;
-      this.remoteUserId = calleeUserId;
-      handler.post(new Runnable() {
-        @Override
-        public void run() {
-          initialCallInternal();
-        }
-      });
-    } catch (CarrierException e) {
-      Log.e(TAG, "Get user id from carrier network error.");
-    }
+  public void inviteCall(String peer) {
+    this.remoteUserId = peer;
+    sendInvite();
   }
+
 
    // Asynchronously accept a webrtc call. Once accept the offer by CarrierExtension.onFriendInvite()
    // callback is invoked.
+   @Override
+   public void acceptCallInvite(String peer) {
+     this.remoteUserId = peer;
+     acceptCallInternal();
+   }
+
   @Override
-  public void receivedCall(String callerUserId) {
-    try {
-      this.callerUserId = callerUserId;
-      this.calleeUserId = carrier.getUserId();
-      this.remoteUserId = callerUserId;
-      handler.post(new Runnable() {
-        @Override
-        public void run() {
-          //initialCallInternal();
-        }
-      });
-    } catch (CarrierException e) {
-      Log.e(TAG, "Get user id from carrier network error.");
-    }
+  public void rejectCallInvite(String peer) {
+    this.remoteUserId = peer;
+    handler.post(new Runnable() {
+      @Override
+      public void run() {
+        rejectCallInternal();
+      }
+    });
   }
 
   /**
    * send invite message to callee.
    */
-  @Override
-  public void sendInvite() {
+  private void sendInvite() {
     Log.d(TAG, "sendInvite to : " + remoteUserId);
-    if(calleeUserId == null){
+    if(remoteUserId == null){
       throw new IllegalStateException("WebrtcClient has not been initialized, please call WebrtcClient.initialCall(String calleeUserId) firstly.");
     }
     handler.post(new Runnable() {
@@ -156,12 +139,11 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
           JSONObject object = new JSONObject();
           jsonPut(object, "cmd", "send");
           jsonPut(object, "msg", json.toString());
-          jsonPut(object, "calleeUserId", calleeUserId);
+          jsonPut(object, "calleeUserId", remoteUserId);
           carrier.inviteFriend(remoteUserId, object.toString(), friendInviteResponseHandler);
         } catch (Exception e) {
           Log.e(TAG, "sendInvite: ", e);
         }
-
       }
     });
   }
@@ -178,20 +160,24 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
   }
 
 
-  // Connects to webrtc call - function runs on a local looper thread.
-  private void initialCallInternal() {
+  // accept the call invite and then send the offer.
+  private void acceptCallInternal() {
 
-    Log.d(TAG, "Connect to carrier user: " + calleeUserId + ", from: " + callerUserId);
+    Log.d(TAG, "Connect to carrier user: " + remoteUserId);
     connectionState = ConnectionState.NEW;
-
-    boolean initiator = isInitiator(calleeUserId);
 
     List<PeerConnection.IceServer> iceServers = getIceServers();
 
     SignalingParameters params = new SignalingParameters(
-            iceServers, initiator, calleeUserId, callerUserId, null, null);
+            iceServers, true, remoteUserId,null, null);
 
    signalingParametersReady(params);
+  }
+
+
+  // reject the call invite and set the connectionState to
+  private void rejectCallInternal() {
+    disconnectFromCallInternal();
   }
 
 
@@ -241,7 +227,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     connectionState = ConnectionState.CONNECTED;
 
     // Fire connection and signaling parameters events.
-    events.onCallInitialized(signalingParameters);
+    events.onCallInviteAccepted(signalingParameters);
   }
 
 
@@ -342,8 +328,8 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
 
         if (data != null && data.contains("msg")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
 
-          if(data.contains("offer")){
-            receivedCall(from);
+          if(data.contains("invite")){
+            acceptCallInvite(from);
           }
 
           onCarrierMessage(data);
@@ -464,18 +450,16 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     public final List<PeerConnection.IceServer> iceServers;
     public final boolean initiator;
 
-    public final String calleeUserId;
-    public final String callerUserId;
+    public final String remoteUserId;
     public final SessionDescription offerSdp;
     public final List<IceCandidate> iceCandidates;
 
     public SignalingParameters(List<PeerConnection.IceServer> iceServers, boolean initiator,
-                               String calleeUserId, String callerUserId, SessionDescription offerSdp,
+                               String remoteUserId,  SessionDescription offerSdp,
                                List<IceCandidate> iceCandidates) {
       this.iceServers = iceServers;
       this.initiator = initiator;
-      this.calleeUserId = calleeUserId;
-      this.callerUserId = callerUserId;
+      this.remoteUserId = remoteUserId;
       this.offerSdp = offerSdp;
       this.iceCandidates = iceCandidates;
     }
@@ -496,7 +480,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     } catch (CarrierException e) {
       Log.e(TAG, "Get user id from carrier error.");
     }
-    return userId!=null && !userId.equals(myUserId);
+    return userId!=null && userId.equals(myUserId);
   }
 
 
@@ -508,7 +492,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     try {
       json.put("cmd", "send");
       json.put("msg", message);
-      json.put("calleeUserId", calleeUserId);
+      json.put("calleeUserId", remoteUserId);
       message = json.toString();
 
       Log.d(TAG, "C->Call: " + message);

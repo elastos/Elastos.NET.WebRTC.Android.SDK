@@ -156,8 +156,8 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     }
   }
 
-  private final BaseCallActivity.ProxyVideoSink remoteProxyRenderer = new BaseCallActivity.ProxyVideoSink();
-  private final BaseCallActivity.ProxyVideoSink localProxyVideoSink = new BaseCallActivity.ProxyVideoSink();
+  private final CallActivity.ProxyVideoSink remoteProxyRenderer = new CallActivity.ProxyVideoSink();
+  private final CallActivity.ProxyVideoSink localProxyVideoSink = new CallActivity.ProxyVideoSink();
 
   @Nullable
   private CarrierWebrtcClient.SignalingParameters signalingParameters;
@@ -174,8 +174,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
   private boolean activityRunning;
 
   private boolean isCaller;
-  private String calleeUserId; //callee's carrier user id
-  private String callerUserId; //caller's carrier user id
   private String remoteUserId; //remote's carrier user id
 
   private boolean connected;
@@ -297,13 +295,10 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     }
 
     isCaller = intent.getBooleanExtra(EXTRA_IS_CALLER, false);
-    // Get Intent parameters.
+    remoteUserId = intent.getStringExtra(EXTRA_ROOMID); //calleeUserId
 
-    calleeUserId = intent.getStringExtra(EXTRA_ROOMID); //calleeUserId
-    remoteUserId = calleeUserId;
-
-    Log.d(TAG, "Callee User Id: " + calleeUserId);
-    if ((calleeUserId == null || calleeUserId.length() == 0)){
+    Log.d(TAG, "Callee User Id: " + remoteUserId);
+    if ((remoteUserId == null || remoteUserId.length() == 0)){
       logAndToast(getString(R.string.missing_url));
       Log.e(TAG, "Incorrect Callee User Id in intent!");
       setResult(RESULT_CANCELED);
@@ -338,12 +333,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     int runTimeMs = intent.getIntExtra(EXTRA_RUNTIME, 0);
 
     Log.d(TAG, "VIDEO_FILE: '" + intent.getStringExtra(EXTRA_VIDEO_FILE_AS_CAMERA) + "'");
-
-    try {
-      callerUserId = carrier.getUserId();
-    } catch (CarrierException e) {
-      e.printStackTrace();
-    }
 
     // Create CPU monitor
     if (CpuMonitor.isSupported()) {
@@ -598,16 +587,9 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     callStartedTimeMs = System.currentTimeMillis();
 
     // Start call connection.
-    logAndToast(getString(R.string.connecting_to, calleeUserId));
-    webrtcClient.initialCall(remoteUserId);
-    Log.d(TAG, "startCall: isCaller = " + isCaller + "; caller = " + callerUserId + "; callee = " + calleeUserId + "; remote = " + remoteUserId);
+    logAndToast(getString(R.string.connecting_to, remoteUserId));
     if (isCaller) {
-      try {
-        Thread.sleep(500);
-      } catch (Exception e) {
-        Log.e(TAG, "startCall: ", e);
-      }
-      webrtcClient.sendInvite();
+      webrtcClient.inviteCall(remoteUserId);
     }
 
     // Create and audio manager that will take care of audio routing,
@@ -809,7 +791,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
   // All callbacks are invoked from websocket signaling looper thread and
   // are routed to UI thread.
   @Override
-  public void onCallInitialized(final CarrierWebrtcClient.SignalingParameters params) {
+  public void onCallInviteAccepted(final CarrierWebrtcClient.SignalingParameters params) {
     runOnUiThread(new Runnable() {
       @Override
       public void run() {

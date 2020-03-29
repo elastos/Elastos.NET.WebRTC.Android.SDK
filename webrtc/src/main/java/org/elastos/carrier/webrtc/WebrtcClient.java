@@ -22,7 +22,6 @@
 
 package org.elastos.carrier.webrtc;
 
-import org.elastos.carrier.exceptions.CarrierException;
 import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
 
@@ -32,22 +31,20 @@ import org.webrtc.SessionDescription;
 public interface WebrtcClient {
 
   /**
-   * Asynchronously initial a webrtc call. Once connection is established onCallInitialized()
-   * callback is invoked.
+   * Invite a webrtc call to peer, the peer can choose to accept the invitation or reject.
    */
-  void initialCall(String calleeUserId) ;
+  void inviteCall(String peer) ;
 
   /**
-   * send invite message to callee.
+   * The callee accept a webrtc call invite. Once accept the invite, the callee will send offer to the caller,
+   * and also the SignalingEvents.onCallInviteAccepted() will be fired.
    */
-  void sendInvite();
+  void acceptCallInvite(String peer) ;
 
-  /**
-   * The callee accept a webrtc call. Once accept the offer by CarrierExtension.onFriendInvite()
-   *  callback is invoked.
-   */
-  void receivedCall(String callerUserId) ;
-
+    /**
+     * The callee reject the webrtc call invite.
+     */
+  void rejectCallInvite(String peer) ;
 
   /**
    * Send offer SDP to the other participant.
@@ -84,7 +81,7 @@ public interface WebrtcClient {
      * Callback fired once webrtc call started and the webrtc connection's
      * SignalingParameters are extracted.
      */
-    void onCallInitialized(final CarrierWebrtcClient.SignalingParameters params);
+    void onCallInviteAccepted(final CarrierWebrtcClient.SignalingParameters params);
 
     /**
      * Callback fired once remote SDP is received.

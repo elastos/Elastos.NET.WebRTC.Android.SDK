@@ -142,9 +142,7 @@ public class ConnectActivity extends Activity {
     requestPermissions();
 
     String userId = null;
-    String address = null;
     try {
-      address = CarrierClient.getInstance(this).getCarrier().getAddress();
       userId = CarrierClient.getInstance(this).getCarrier().getUserId();
     } catch (CarrierException e) {
       e.printStackTrace();
@@ -205,7 +203,7 @@ public class ConnectActivity extends Activity {
       }
     });
 
-    mQRCodeImage.setImageBitmap(QRCodeUtils.createQRCodeBitmap(address));
+    mQRCodeImage.setImageBitmap(QRCodeUtils.createQRCodeBitmap(userId));
     mAdrress.setText(userId);
   }
 
@@ -358,33 +356,6 @@ public class ConnectActivity extends Activity {
       commandLineRun = false;
       finish();
     }
-
-
-
-//    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-//      super.onActivityResult(requestCode,resultCode,data);
-//
-//      IntentResult scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
-//      if (scanResult != null) {
-//        String result = scanResult.getContents();
-//        if (result != null && !result.isEmpty()) {
-//          //TODO Add friend.
-//          Log.d(TAG, String.format("onActivityResult==scanResult=[%s]",result));
-//          sSimpleCarrier.AddFriend(result);
-//          Toast.makeText(this,result, Toast.LENGTH_LONG).show();
-//        }
-//        return;
-//      }
-//
-//      if(requestCode == SELECTFILE_REQUEST_CODE) {
-//        if (data != null) {
-//          String path = Utils.getPhotoPathFromContentUri(this, data.getData());
-//          Log.d(TAG, "onActivityResult file path="+path);
-//          mFilePath.setText(path);
-//        }
-//      }
-//    }
-
   }
 
   @Override
