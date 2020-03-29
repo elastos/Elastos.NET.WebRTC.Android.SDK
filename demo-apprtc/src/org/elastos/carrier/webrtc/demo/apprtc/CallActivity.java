@@ -350,16 +350,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     ft.add(R.id.hud_fragment_container, hudFragment);
     ft.commit();
 
-    // For command line execution run connection for <runTimeMs> and exit.
-    if (commandLineRun && runTimeMs > 0) {
-      (new Handler()).postDelayed(new Runnable() {
-        @Override
-        public void run() {
-          disconnect();
-        }
-      }, runTimeMs);
-    }
-
     // Create connection client.
     webrtcClient = new CarrierWebrtcClient(carrier,this);
 
