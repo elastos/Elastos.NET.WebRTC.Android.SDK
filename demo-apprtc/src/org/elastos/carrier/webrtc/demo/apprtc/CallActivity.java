@@ -160,14 +160,10 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
   private final CallActivity.ProxyVideoSink remoteProxyRenderer = new CallActivity.ProxyVideoSink();
   private final CallActivity.ProxyVideoSink localProxyVideoSink = new CallActivity.ProxyVideoSink();
 
-  @Nullable
   private CarrierWebrtcClient.SignalingParameters signalingParameters;
-  @Nullable private AppRTCAudioManager audioManager;
-  @Nullable
+  private AppRTCAudioManager audioManager;
   private SurfaceViewRenderer pipRenderer;
-  @Nullable
   private SurfaceViewRenderer fullscreenRenderer;
-  @Nullable
   private VideoFileRenderer videoFileRenderer;
   private final List<VideoSink> remoteSinks = new ArrayList<>();
   private Toast logToast;
@@ -194,13 +190,10 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
   private CpuMonitor cpuMonitor;
 
   //you can override the peer connection parameters in their activity.
-  @Nullable
   private PeerConnectionParameters peerConnectionParameters;
 
-  @Nullable
   private CarrierPeerConnectionClient carrierPeerConnectionClient;
 
-  @Nullable
   private CarrierWebrtcClient webrtcClient;
 
   @Override
