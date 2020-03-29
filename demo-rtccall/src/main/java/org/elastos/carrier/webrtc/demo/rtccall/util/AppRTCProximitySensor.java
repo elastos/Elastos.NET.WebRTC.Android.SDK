@@ -44,8 +44,9 @@ public class AppRTCProximitySensor implements SensorEventListener {
   @Nullable private Sensor proximitySensor;
   private boolean lastStateReportIsNear;
 
-  /** Construction */
-  static AppRTCProximitySensor create(Context context, Runnable sensorStateListener) {
+  /** Construction
+   * @return*/
+  public static AppRTCProximitySensor create(Context context, Runnable sensorStateListener) {
     return new AppRTCProximitySensor(context, sensorStateListener);
   }
 
