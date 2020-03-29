@@ -196,12 +196,14 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
 
   private CarrierWebrtcClient webrtcClient;
 
+  private Carrier carrier;
+
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     Thread.setDefaultUncaughtExceptionHandler(new UnhandledExceptionHandler(this));
 
-    Carrier carrier = CarrierClient.getInstance(getApplicationContext()).getCarrier();
+    carrier = CarrierClient.getInstance(getApplicationContext()).getCarrier();
 
     // Set window styles for fullscreen-window size. Needs to be done before
     // adding content.
@@ -343,6 +345,18 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     ft.add(R.id.hud_fragment_container, hudFragment);
     ft.commit();
 
+
+    initialWebrtcClient(carrier, eglBase);
+
+    if (screencaptureEnabled) {
+      startScreenCapture();
+    } else {
+      startCall();
+    }
+
+  }
+
+  protected void initialWebrtcClient(Carrier carrier, EglBase eglBase) {
     // Create connection client.
     webrtcClient = new CarrierWebrtcClient(carrier,this);
 
@@ -352,13 +366,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
 
     carrierPeerConnectionClient.createPeerConnectionFactory(options);
-
-    if (screencaptureEnabled) {
-      startScreenCapture();
-    } else {
-      startCall();
-    }
-
   }
 
   private void updatePeerConnectionParametersFromIntent(Intent intent, boolean tracing, int videoWidth, int videoHeight, DataChannelParameters dataChannelParameters) {
@@ -782,6 +789,9 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     runOnUiThread(new Runnable() {
       @Override
       public void run() {
+        if(webrtcClient==null){
+          initialWebrtcClient(carrier, EglBase.create());
+        }
         webrtcClient.acceptCallInvite(remoteUserId);
       }
     });
