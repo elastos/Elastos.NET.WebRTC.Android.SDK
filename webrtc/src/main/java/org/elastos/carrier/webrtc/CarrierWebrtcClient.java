@@ -141,6 +141,13 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
           jsonPut(json, "type", "invite");
           jsonPut(json, "calleeUserId", remoteUserId);
           send(json.toString());
+
+          JSONObject object = new JSONObject();
+          jsonPut(object, "cmd", "send");
+          jsonPut(object, "msg", json.toString());
+          jsonPut(object, "calleeUserId", remoteUserId);
+          carrier.inviteFriend(remoteUserId, object.toString(), friendInviteResponseHandler);
+
         } catch (Exception e) {
           Log.e(TAG, "sendInvite: ", e);
         }
