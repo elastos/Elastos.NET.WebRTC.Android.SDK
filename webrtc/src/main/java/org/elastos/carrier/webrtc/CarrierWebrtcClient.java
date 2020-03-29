@@ -96,6 +96,12 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
   @Override
   public void inviteCall(String peer) {
     this.remoteUserId = peer;
+    initialCallInternal(false);
+    try {
+      Thread.sleep(500);
+    } catch (Exception e) {
+      Log.e(TAG, "startCall: ", e);
+    }
     sendInvite();
   }
 
@@ -175,7 +181,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
 
 
   // accept the call invite and then send the offer.
-  private void initialCallInternal() {
+  private void initialCallInternal(boolean initiator) {
 
     Log.d(TAG, "Connect to carrier user: " + remoteUserId);
     connectionState = ConnectionState.NEW;
@@ -183,7 +189,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     List<PeerConnection.IceServer> iceServers = getIceServers();
 
     SignalingParameters params = new SignalingParameters(
-            iceServers, true, remoteUserId,null, null);
+            iceServers, initiator, remoteUserId,null, null);
 
     signalingParametersReady(params);
   }
@@ -389,7 +395,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         }else if(type.equals("invite")){
           acceptCallInvite(remoteUserId);
         }else if(type.equals("acceptInvite")){
-          initialCallInternal();
+          initialCallInternal(true);
         } else {
           reportError("Unexpected Carrier message: " + msg);
         }
