@@ -194,7 +194,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
 
   //you can override the peer connection parameters in their activity.
   @Nullable
-  private PeerConnectionParameters peerConnectionParameters = PeerConnectionParameters.getDefaultPeerConnectionParameters();
+  private PeerConnectionParameters peerConnectionParameters;
 
   @Nullable
   private CarrierPeerConnectionClient carrierPeerConnectionClient;
@@ -206,6 +206,8 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     Thread.setDefaultUncaughtExceptionHandler(new UnhandledExceptionHandler(this));
+
+    peerConnectionParameters = PeerConnectionParameters.getDefaultPeerConnectionParameters();
 
     Carrier carrier = CarrierClient.getInstance(getApplicationContext()).getCarrier();
 
