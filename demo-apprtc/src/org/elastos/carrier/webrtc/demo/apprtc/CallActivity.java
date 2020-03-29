@@ -785,6 +785,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
   // are routed to UI thread.
   @Override
   public void onCallInvited(String peer) {
+    remoteUserId = peer;
     //here we start and initial the activity.
     runOnUiThread(new Runnable() {
       @Override
