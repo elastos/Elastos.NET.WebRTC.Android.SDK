@@ -212,7 +212,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
    * Initial
    * @return
    */
-  protected List<PeerConnection.IceServer> getIceServers() {
+  public List<PeerConnection.IceServer> getIceServers() {
     TurnServerInfo turnServerInfo = null;
     try {
       turnServerInfo = getTurnServerInfo();
@@ -254,7 +254,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     connectionState = ConnectionState.CONNECTED;
 
     // Fire connection and signaling parameters events.
-    events.onCallInviteAccepted(signalingParameters);
+    events.onCallInviteAccepted(remoteUserId);
   }
 
 
@@ -401,9 +401,9 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         } else if (type.equals("bye")) {
           events.onChannelClose();
         }else if(type.equals("invite")){
-          acceptCallInvite(remoteUserId);
+          events.onCallInvited(remoteUserId); //let the activity to handle the call invited event.
         }else if(type.equals("acceptInvite")){
-          initialCallInternal(true);
+          events.onCallInviteAccepted(remoteUserId); //let the activity to handle the call invite accepted event.
         } else {
           reportError("Unexpected Carrier message: " + msg);
         }

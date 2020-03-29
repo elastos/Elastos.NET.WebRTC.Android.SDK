@@ -51,6 +51,7 @@ import org.webrtc.EglBase;
 import org.webrtc.FileVideoCapturer;
 import org.webrtc.IceCandidate;
 import org.webrtc.Logging;
+import org.webrtc.PeerConnection;
 import org.webrtc.PeerConnectionFactory;
 import org.webrtc.RendererCommon.ScalingType;
 import org.webrtc.ScreenCapturerAndroid;
@@ -590,6 +591,8 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     logAndToast(getString(R.string.connecting_to, remoteUserId));
     if (isCaller) {
       webrtcClient.inviteCall(remoteUserId);
+    }else{
+      webrtcClient.acceptCallInvite(remoteUserId);
     }
 
     // Create and audio manager that will take care of audio routing,
@@ -791,10 +794,25 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
   // All callbacks are invoked from websocket signaling looper thread and
   // are routed to UI thread.
   @Override
-  public void onCallInviteAccepted(final CarrierWebrtcClient.SignalingParameters params) {
+  public void onCallInvited(String peer) {
+    //here we start and initial the activity.
     runOnUiThread(new Runnable() {
       @Override
       public void run() {
+        webrtcClient.acceptCallInvite(remoteUserId);
+      }
+    });
+  }
+
+  @Override
+  public void onCallInviteAccepted(final String peer) {
+    runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        List<PeerConnection.IceServer> iceServers = webrtcClient.getIceServers();
+
+        CarrierWebrtcClient.SignalingParameters params = new CarrierWebrtcClient.SignalingParameters(
+                iceServers, true, remoteUserId,null, null);
         onConnectedToCallInternal(params);
       }
     });
