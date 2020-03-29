@@ -86,7 +86,7 @@ public interface WebrtcClient {
      * Callback fired once webrtc call started and the webrtc connection's
      * SignalingParameters are extracted.
      */
-    void onCallInviteAccepted(final String peer);
+    void onCallInviteAccepted(CarrierWebrtcClient.SignalingParameters params);
 
     /**
      * Callback fired once remote SDP is received.

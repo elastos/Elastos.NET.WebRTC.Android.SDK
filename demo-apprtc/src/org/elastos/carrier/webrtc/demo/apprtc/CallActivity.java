@@ -805,14 +805,10 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
   }
 
   @Override
-  public void onCallInviteAccepted(final String peer) {
+  public void onCallInviteAccepted(final CarrierWebrtcClient.SignalingParameters params) {
     runOnUiThread(new Runnable() {
       @Override
       public void run() {
-        List<PeerConnection.IceServer> iceServers = webrtcClient.getIceServers();
-
-        CarrierWebrtcClient.SignalingParameters params = new CarrierWebrtcClient.SignalingParameters(
-                iceServers, true, remoteUserId,null, null);
         onConnectedToCallInternal(params);
       }
     });

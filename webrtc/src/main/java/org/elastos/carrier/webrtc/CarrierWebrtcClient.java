@@ -245,12 +245,11 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
             && signalingParameters.offerSdp == null) {
       Log.w(TAG, "No offer SDP from the caller.");
     }
-    initiator = signalingParameters.initiator;
 
     connectionState = ConnectionState.CONNECTED;
 
     // Fire connection and signaling parameters events.
-    events.onCallInviteAccepted(remoteUserId);
+    events.onCallInviteAccepted(signalingParameters);
   }
 
 
@@ -399,7 +398,8 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         }else if(type.equals("invite")){
           events.onCallInvited(remoteUserId); //let the activity to handle the call invited event.
         }else if(type.equals("acceptInvite")){
-          events.onCallInviteAccepted(remoteUserId); //let the activity to handle the call invite accepted event.
+          SignalingParameters param = new SignalingParameters(getIceServers(), true, remoteUserId, null, null);
+          events.onCallInviteAccepted(param); //let the activity to handle the call invite accepted event.
         } else {
           reportError("Unexpected Carrier message: " + msg);
         }
