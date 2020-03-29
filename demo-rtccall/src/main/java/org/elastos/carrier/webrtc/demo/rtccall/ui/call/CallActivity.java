@@ -360,7 +360,8 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
 
         // Start room connection.
         logAndToast("connect to: " + calleeUserId);
-        webrtcClient.initialCall(calleeUserId, remoteUserId);
+//        webrtcClient.initialCall(calleeUserId, remoteUserId);
+        webrtcClient.initialCall(calleeUserId);
         Log.d(TAG, "startCall: isCaller = " + isCaller + "; caller = " + callerUserId + "; callee = " + calleeUserId + "; remote = " + remoteUserId);
         if (isCaller) {
             try {
