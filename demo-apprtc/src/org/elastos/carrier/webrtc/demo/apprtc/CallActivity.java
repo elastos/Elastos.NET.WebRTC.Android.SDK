@@ -207,8 +207,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     super.onCreate(savedInstanceState);
     Thread.setDefaultUncaughtExceptionHandler(new UnhandledExceptionHandler(this));
 
-    peerConnectionParameters = PeerConnectionParameters.getDefaultPeerConnectionParameters();
-
     Carrier carrier = CarrierClient.getInstance(getApplicationContext()).getCarrier();
 
     // Set window styles for fullscreen-window size. Needs to be done before
