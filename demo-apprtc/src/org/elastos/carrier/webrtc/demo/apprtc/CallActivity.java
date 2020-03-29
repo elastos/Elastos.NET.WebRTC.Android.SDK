@@ -582,7 +582,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     if (isCaller) {
       webrtcClient.inviteCall(remoteUserId);
     }else{
-      webrtcClient.acceptCallInvite(remoteUserId);
+      //webrtcClient.acceptCallInvite(remoteUserId);
     }
 
     // Create and audio manager that will take care of audio routing,
@@ -792,6 +792,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         if(webrtcClient==null){
           initialWebrtcClient(carrier, EglBase.create());
         }
+        webrtcClient.acceptCallInvite(remoteUserId);
       }
     });
   }
