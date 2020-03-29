@@ -792,7 +792,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         if(webrtcClient==null){
           initialWebrtcClient(carrier, EglBase.create());
         }
-        webrtcClient.acceptCallInvite(remoteUserId);
       }
     });
   }
