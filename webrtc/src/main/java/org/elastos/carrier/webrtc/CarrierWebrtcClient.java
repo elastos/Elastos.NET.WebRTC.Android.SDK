@@ -349,6 +349,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     Log.e(TAG, "carrier friend invite  onFriendInviteRequest from: " + from);
 
     if (data != null && data.contains("msg")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
+      remoteUserId = from;
       onCarrierMessage(data);
       Log.d(TAG, "Get the carrier message: " + data);
     }
