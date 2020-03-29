@@ -100,13 +100,13 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
   }
 
 
-   // Asynchronously accept a webrtc call. Once accept the offer by CarrierExtension.onFriendInvite()
-   // callback is invoked.
-   @Override
-   public void acceptCallInvite(String peer) {
-     this.remoteUserId = peer;
-     acceptCallInternal();
-   }
+  // Asynchronously accept a webrtc call. Once accept the offer by CarrierExtension.onFriendInvite()
+  // callback is invoked.
+  @Override
+  public void acceptCallInvite(String peer) {
+    this.remoteUserId = peer;
+    acceptInvite();
+  }
 
   @Override
   public void rejectCallInvite(String peer) {
@@ -135,14 +135,28 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
           jsonPut(json, "type", "invite");
           jsonPut(json, "calleeUserId", remoteUserId);
           send(json.toString());
-
-          JSONObject object = new JSONObject();
-          jsonPut(object, "cmd", "send");
-          jsonPut(object, "msg", json.toString());
-          jsonPut(object, "calleeUserId", remoteUserId);
-          carrier.inviteFriend(remoteUserId, object.toString(), friendInviteResponseHandler);
         } catch (Exception e) {
           Log.e(TAG, "sendInvite: ", e);
+        }
+      }
+    });
+  }
+
+  /**
+   * accept invite message to caller.
+   */
+  private void acceptInvite() {
+    Log.d(TAG, "acceptInvite to : " + remoteUserId);
+    handler.post(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          JSONObject json = new JSONObject();
+          jsonPut(json, "type", "acceptInvite");
+          jsonPut(json, "calleeUserId", remoteUserId);
+          send(json.toString());
+        } catch (Exception e) {
+          Log.e(TAG, "acceptInvite: ", e);
         }
       }
     });
@@ -161,7 +175,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
 
 
   // accept the call invite and then send the offer.
-  private void acceptCallInternal() {
+  private void initialCallInternal() {
 
     Log.d(TAG, "Connect to carrier user: " + remoteUserId);
     connectionState = ConnectionState.NEW;
@@ -171,7 +185,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     SignalingParameters params = new SignalingParameters(
             iceServers, true, remoteUserId,null, null);
 
-   signalingParametersReady(params);
+    signalingParametersReady(params);
   }
 
 
@@ -219,7 +233,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     Log.d(TAG, "Carrier WebrtcClient call initialized completed.");
 
     if (!signalingParameters.initiator
-        && signalingParameters.offerSdp == null) {
+            && signalingParameters.offerSdp == null) {
       Log.w(TAG, "No offer SDP from the caller.");
     }
     initiator = signalingParameters.initiator;
@@ -319,27 +333,12 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
 
   @Override
   protected void onFriendInvite(Carrier carrier, String from, String data) {
-/*
-    handler.post(new Runnable() {
-      @Override
-      public void run() {
-*/
-        Log.e(TAG, "carrier friend invite  onFriendInviteRequest from: " + from);
+    Log.e(TAG, "carrier friend invite  onFriendInviteRequest from: " + from);
 
-        if (data != null && data.contains("msg")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
-
-          if(data.contains("invite")){
-            acceptCallInvite(from);
-          }
-
-          onCarrierMessage(data);
-          Log.d(TAG, "Get the carrier message: " + data);
-        }
-/*
-      }
-    });
-
-*/
+    if (data != null && data.contains("msg")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
+      onCarrierMessage(data);
+      Log.d(TAG, "Get the carrier message: " + data);
+    }
   }
 
 
@@ -347,7 +346,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
   // CarrierChannelEvents interface implementation.
   // All events are called by CarrierChannelClient on a local looper thread
   // (passed to Carrier client constructor).
-  public void onCarrierMessage(final String msg) {
+  private void onCarrierMessage(final String msg) {
 
     try {
       JSONObject json = new JSONObject(msg);
@@ -372,7 +371,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         } else if (type.equals("answer")) {
           if (initiator) {
             SessionDescription sdp = new SessionDescription(
-                SessionDescription.Type.fromCanonicalForm(type), json.getString("sdp"));
+                    SessionDescription.Type.fromCanonicalForm(type), json.getString("sdp"));
             events.onRemoteDescription(sdp);
           } else {
             reportError("Received answer for register initiator: " + msg);
@@ -380,13 +379,17 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         } else if (type.equals("offer")) {
           if (!initiator) {
             SessionDescription sdp = new SessionDescription(
-                SessionDescription.Type.fromCanonicalForm(type), json.getString("sdp"));
+                    SessionDescription.Type.fromCanonicalForm(type), json.getString("sdp"));
             events.onRemoteDescription(sdp);
           } else {
             reportError("Received offer for register receiver: " + msg);
           }
         } else if (type.equals("bye")) {
           events.onChannelClose();
+        }else if(type.equals("invite")){
+          acceptCallInvite(remoteUserId);
+        }else if(type.equals("acceptInvite")){
+          initialCallInternal();
         } else {
           reportError("Unexpected Carrier message: " + msg);
         }
@@ -439,7 +442,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
   // Converts a JSON candidate to a Java object.
   IceCandidate toJavaCandidate(JSONObject json) throws JSONException {
     return new IceCandidate(
-        json.getString("id"), json.getInt("label"), json.getString("candidate"));
+            json.getString("id"), json.getInt("label"), json.getString("candidate"));
   }
 
 
@@ -472,17 +475,6 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
       throw new IllegalStateException("Carrier method is not called on valid thread");
     }
   }
-
-  public boolean isInitiator(String userId) {
-    String myUserId = "";
-    try {
-      myUserId = carrier.getUserId();
-    } catch (CarrierException e) {
-      Log.e(TAG, "Get user id from carrier error.");
-    }
-    return userId!=null && userId.equals(myUserId);
-  }
-
 
   //send message
   private void send(String message) {
@@ -544,7 +536,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
 
     @Override
     public void onReceived(String from, int status, String reason, String data) {
-          Log.e(TAG, "carrier friend invite  onReceived from: " + from);
+      Log.e(TAG, "carrier friend invite  onReceived from: " + from);
     }
   }
 
