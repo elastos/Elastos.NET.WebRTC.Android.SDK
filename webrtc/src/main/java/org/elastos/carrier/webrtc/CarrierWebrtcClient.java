@@ -247,7 +247,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     connectionState = ConnectionState.CONNECTED;
 
     // Fire connection and signaling parameters events.
-    events.onCallInviteAccepted(signalingParameters);
+    events.onCallInvited(signalingParameters.remoteUserId);
   }
 
 
