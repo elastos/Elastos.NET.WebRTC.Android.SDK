@@ -396,8 +396,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         }else if(type.equals("invite")){
           events.onCallInvited(from); //let the activity to handle the call invited event.
         }else if(type.equals("acceptInvite")){
-          SignalingParameters param = new SignalingParameters(getIceServers(), true, from, null, null);
-          events.onCallInviteAccepted(param); //let the activity to handle the call invite accepted event.
+          events.onCreateOffer(); //let the activity to handle the call invite accepted event.
         } else {
           reportError("Unexpected Carrier message: " + msg);
         }
