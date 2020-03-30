@@ -141,7 +141,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
           JSONObject json = new JSONObject();
           jsonPut(json, "type", "invite");
           jsonPut(json, "remoteUserId", remoteUserId);
-          send(json.toString());
+          send(json.toString(), remoteUserId);
 
           JSONObject object = new JSONObject();
           jsonPut(object, "cmd", "send");
@@ -168,7 +168,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
           JSONObject json = new JSONObject();
           jsonPut(json, "type", "acceptInvite");
           jsonPut(json, "remoteUserId", remoteUserId);
-          send(json.toString());
+          send(json.toString(), remoteUserId);
         } catch (Exception e) {
           Log.e(TAG, "acceptInvite: ", e);
         }
@@ -271,8 +271,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         JSONObject json = new JSONObject();
         jsonPut(json, "sdp", sdp.description);
         jsonPut(json, "type", "offer");
-        jsonPut(json, "remoteUserId", remoteUserId);
-        send(json.toString());
+        send(json.toString(), remoteUserId);
       }
     });
   }
@@ -286,7 +285,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         JSONObject json = new JSONObject();
         jsonPut(json, "sdp", sdp.description);
         jsonPut(json, "type", "answer");
-        send(json.toString());
+        send(json.toString(), remoteUserId);
       }
     });
   }
@@ -303,15 +302,15 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         jsonPut(json, "id", candidate.sdpMid);
         jsonPut(json, "candidate", candidate.sdp);
         if (initiator) {
-          // Call initiator sends ice candidates to GAE server.
+          // Call initiator sends ice candidates to peer.
           if (connectionState != ConnectionState.CONNECTED) {
             reportError("Sending ICE candidate in non connected state.");
             return;
           }
-          send(json.toString());
+          send(json.toString(), remoteUserId);
         } else {
-          // Call receiver sends ice candidates to Carrier server.
-          send(json.toString());
+          // Call receiver sends ice candidates to peer.
+          send(json.toString(), remoteUserId);
         }
       }
     });
@@ -331,15 +330,15 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         }
         jsonPut(json, "candidates", jsonArray);
         if (initiator) {
-          // Call initiator sends ice candidates to GAE server.
+          // Call initiator sends ice candidates to peer.
           if (connectionState != ConnectionState.CONNECTED) {
             reportError("Sending ICE candidate removals in non connected state.");
             return;
           }
-          send(json.toString());
+          send(json.toString(), remoteUserId);
         } else {
-          // Call receiver sends ice candidates to Carrier server.
-          send(json.toString());
+          // Call receiver sends ice candidates to peer.
+          send(json.toString(), remoteUserId);
         }
       }
     });
@@ -493,7 +492,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
   }
 
   //send message
-  private void send(String message) {
+  private void send(String message, String remoteUserId) {
     checkIfCalledOnValidThread();
 
     JSONObject json = new JSONObject();
