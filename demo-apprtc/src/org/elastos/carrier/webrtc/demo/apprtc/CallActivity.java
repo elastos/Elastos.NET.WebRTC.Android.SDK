@@ -816,6 +816,9 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
       @Override
       public void run() {
         onConnectedToCallInternal(params);
+        if (!params.initiator) {
+          webrtcClient.acceptCallInvite(remoteUserId);
+        }
       }
     });
   }
