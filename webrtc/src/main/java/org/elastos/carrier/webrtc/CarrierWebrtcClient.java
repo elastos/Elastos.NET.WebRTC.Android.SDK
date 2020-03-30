@@ -271,6 +271,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         JSONObject json = new JSONObject();
         jsonPut(json, "sdp", sdp.description);
         jsonPut(json, "type", "offer");
+        jsonPut(json, "remoteUserId", remoteUserId);
         send(json.toString());
       }
     });
@@ -350,7 +351,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
 
     if (data != null && data.contains("msg")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
       this.remoteUserId = from;
-      onCarrierMessage(data);
+      onCarrierMessage(data, from);
       Log.d(TAG, "Get the carrier message: " + data);
     }
   }
@@ -360,7 +361,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
   // CarrierChannelEvents interface implementation.
   // All events are called by CarrierChannelClient on a local looper thread
   // (passed to Carrier client constructor).
-  private void onCarrierMessage(final String msg) {
+  private void onCarrierMessage(final String msg, String from) {
 
     try {
       JSONObject json = new JSONObject(msg);
@@ -401,9 +402,9 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         } else if (type.equals("bye")) {
           events.onChannelClose();
         }else if(type.equals("invite")){
-          events.onCallInvited(remoteUserId); //let the activity to handle the call invited event.
+          events.onCallInvited(from); //let the activity to handle the call invited event.
         }else if(type.equals("acceptInvite")){
-          SignalingParameters param = new SignalingParameters(getIceServers(), true, remoteUserId, null, null);
+          SignalingParameters param = new SignalingParameters(getIceServers(), true, from, null, null);
           events.onCallInviteAccepted(param); //let the activity to handle the call invite accepted event.
         } else {
           reportError("Unexpected Carrier message: " + msg);
