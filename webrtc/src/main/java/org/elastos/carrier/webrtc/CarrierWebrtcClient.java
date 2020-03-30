@@ -83,6 +83,8 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     this.events = events;
     connectionState = ConnectionState.NEW;
 
+    friendInviteResponseHandler = new CarrierMessageObserver();
+
     final HandlerThread handlerThread = new HandlerThread(TAG);
     handlerThread.start();
     handler = new Handler(handlerThread.getLooper());
@@ -133,6 +135,15 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
           jsonPut(json, "type", "invite");
           jsonPut(json, "remoteUserId", remoteUserId);
           send(json.toString(), remoteUserId);
+
+/*
+          JSONObject object = new JSONObject();
+          jsonPut(object, "cmd", "send");
+          jsonPut(object, "msg", json.toString());
+          jsonPut(object, "remoteUserId", remoteUserId);
+          carrier.inviteFriend(remoteUserId, object.toString(), friendInviteResponseHandler);
+*/
+
         } catch (Exception e) {
           Log.e(TAG, "sendInvite: ", e);
         }
@@ -528,6 +539,15 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
       }
     }
     Log.d(TAG, "Disconnecting Carrier WebrtcClient done.");
+  }
+
+
+  private class CarrierMessageObserver implements FriendInviteResponseHandler {
+
+    @Override
+    public void onReceived(String from, int status, String reason, String data) {
+      Log.e(TAG, "carrier friend invite  onReceived from: " + from);
+    }
   }
 
 
