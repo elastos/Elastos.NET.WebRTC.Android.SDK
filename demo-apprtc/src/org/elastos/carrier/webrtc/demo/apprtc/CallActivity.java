@@ -748,6 +748,10 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
   private void onConnectedToCallInternal(final CarrierWebrtcClient.SignalingParameters params) {
     final long delta = System.currentTimeMillis() - callStartedTimeMs;
 
+    if(carrierPeerConnectionClient == null){
+      initialWebrtcClient(carrier, EglBase.create());
+    }
+
     signalingParameters = params;
     logAndToast("Creating peer connection, delay=" + delta + "ms");
     VideoCapturer videoCapturer = null;
