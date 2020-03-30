@@ -247,7 +247,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     connectionState = ConnectionState.CONNECTED;
 
     // Fire connection and signaling parameters events.
-    events.onCallInvited(signalingParameters.remoteUserId);
+    events.onCallInvited(signalingParameters);
   }
 
 
@@ -394,7 +394,8 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         } else if (type.equals("bye")) {
           events.onChannelClose();
         }else if(type.equals("invite")){
-          events.onCallInvited(from); //let the activity to handle the call invited event.
+          SignalingParameters param = new SignalingParameters(getIceServers(), false, from, null, null);
+          events.onCallInvited(param); //let the activity to handle the call invited event.
         }else if(type.equals("acceptInvite")){
           events.onCreateOffer(); //let the activity to handle the call invite accepted event.
         } else {
@@ -458,7 +459,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
    */
   public static class SignalingParameters {
     public final List<PeerConnection.IceServer> iceServers;
-    public final boolean initiator;
+    public boolean initiator;
 
     public final String remoteUserId;
     public final SessionDescription offerSdp;

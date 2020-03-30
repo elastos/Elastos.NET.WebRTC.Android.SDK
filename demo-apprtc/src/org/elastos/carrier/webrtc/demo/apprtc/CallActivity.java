@@ -585,7 +585,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
       }
     }
 
-    webrtcClient.initialCall(isCaller);
+    webrtcClient.initialCall(false);
 
     // Create and audio manager that will take care of audio routing,
     // audio modes, audio device enumeration etc.
@@ -790,8 +790,8 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
   // All callbacks are invoked from websocket signaling looper thread and
   // are routed to UI thread.
   @Override
-  public void onCallInvited(String peer) {
-    remoteUserId = peer;
+  public void onCallInvited(final CarrierWebrtcClient.SignalingParameters params) {
+    remoteUserId = params.remoteUserId;
     //here we start and initial the activity.
     runOnUiThread(new Runnable() {
       @Override
@@ -800,6 +800,14 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
           initialWebrtcClient(carrier, EglBase.create());
         }
         webrtcClient.acceptCallInvite(remoteUserId);
+
+        try {
+          Thread.sleep(500);
+        } catch (Exception e) {
+          Log.e(TAG, "startCall: ", e);
+        }
+
+        onConnectedToCallInternal(params);
       }
     });
   }
