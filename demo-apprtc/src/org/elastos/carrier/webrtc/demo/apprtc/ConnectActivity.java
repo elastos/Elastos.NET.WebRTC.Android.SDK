@@ -154,6 +154,7 @@ public class ConnectActivity extends Activity {
       @Override
       public void onReady(Carrier carrier) {
         mAdrress.post(()->{
+          mAdrress.append("\n service ready" );
         });
       }
 
