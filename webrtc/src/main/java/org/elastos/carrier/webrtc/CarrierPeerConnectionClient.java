@@ -192,7 +192,7 @@ public class CarrierPeerConnectionClient{
     // recorded audio samples to an output file.
     @Nullable private RecordedAudioToFileController saveRecordedAudioToFile;
 
-    private CarrierWebrtcClient carrierWebrtcClient; //inject WebrtcClient for using Carrier and TurnServer from the CarrierExtension.
+    @Nullable private CarrierWebrtcClient carrierWebrtcClient; //inject WebrtcClient for using Carrier and TurnServer from the CarrierExtension.
 
     /**
      * Peer connection parameters.

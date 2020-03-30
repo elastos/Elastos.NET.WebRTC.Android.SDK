@@ -45,8 +45,12 @@ import java.util.List;
  *
  * Initial the Carrier Webrtc Client instance for webrtc call using carrier network.
  * <p>To use: create an instance of this object (registering a message handler) and
- * register initialCall().  Once carrier network connection is established
- * onCallInitialized() callback with webrtc parameters is invoked.
+ * then invite the peer to join the call (inviteCall), if the peer accept (acceptCallInvite()), then
+ * then peers can prepare the peerConnection by call initialCall(), after that,
+ * the peers can exchange offer/answer.
+ *
+ * Once the call is invited, the onCallInvited() callback with webrtc parameters is invoked,
+ * once the call is initialized, onCallInitialized() callback will be fired.
  * Messages to other party (with local Ice candidates and answer SDP) can
  * be sent after Carrier connection is established.
  */
@@ -116,7 +120,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
       public void run() {
           try {
               JSONObject json = new JSONObject();
-              jsonPut(json, "type", "reject");
+              jsonPut(json, "type", "bye");
               jsonPut(json, "remoteUserId", remoteUserId);
               send(json.toString(), remoteUserId);
           } catch (Exception e) {
@@ -401,9 +405,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
           events.onCallInvited(param); //let the activity to handle the call invited event.
         }else if(type.equals("acceptInvite")){
           events.onCreateOffer(); //let the activity to handle the call invite accepted event.
-        }else if(type.equals("reject")){
-          events.onChannelClose(); //let the activity to handle the call invite accepted event.
-        } else {
+        }else {
           reportError("Unexpected Carrier message: " + msg);
         }
       } else {

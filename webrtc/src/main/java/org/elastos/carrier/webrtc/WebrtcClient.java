@@ -31,12 +31,12 @@ import org.webrtc.SessionDescription;
 public interface WebrtcClient {
 
   /**
-   * Invite a webrtc call to peer, the peer can choose to accept the invitation or reject.
+   * Invite a peer to join the webrtc call, the peer can choose to accept the invitation or reject.
    */
   void inviteCall(String peer) ;
 
   /**
-   * The callee accept a webrtc call invite. Once accept the invite, the callee will send offer to the caller,
+   * The peer accept a webrtc call invite. Once accept the invite, the caller will send offer to the peer,
    * and also the SignalingEvents.onCallInviteAccepted() will be fired.
    */
   void acceptCallInvite(String peer) ;
@@ -47,7 +47,7 @@ public interface WebrtcClient {
   void initialCall(boolean initiator);
 
     /**
-     * The callee reject the webrtc call invite.
+     * The peer reject the webrtc call invite.
      */
   void rejectCallInvite(String peer) ;
 
