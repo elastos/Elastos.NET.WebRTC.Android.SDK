@@ -179,7 +179,7 @@ public class ConnectActivity extends Activity {
           Toast.makeText(ConnectActivity.this, "carrier friend invite onFriendInviteRequest from : " + from, Toast.LENGTH_LONG).show();
           Log.e(TAG, "carrier friend invite  onFriendInviteRequest from: " + from + "\r\n" + data);
 
-          if (data != null && data.contains("invite") && data.contains("remoteUserId")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
+          if (data != null && data.contains("invite")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
 
             //启动进去CallActivity
             JSONObject json = null;
@@ -189,10 +189,9 @@ public class ConnectActivity extends Activity {
               String message = json.optString("msg");
               msg = new JSONObject(message);
               String type = msg.optString("type");
-              String callee = msg.optString("remoteUserId");
 
-              if ("invite".equalsIgnoreCase(type) && !TextUtils.isEmpty(callee)) {
-                connectToRoom(callee, false, false, 0, false);
+              if ("invite".equalsIgnoreCase(type) && !TextUtils.isEmpty(from)) {
+                connectToRoom(from, false, false, 0, false);
               }
             } catch (JSONException e) {
               e.printStackTrace();
@@ -685,7 +684,7 @@ public class ConnectActivity extends Activity {
         CallActivity.EXTRA_PROTOCOL, R.string.pref_data_protocol_default, useValuesFromIntent);
 
     // Start AppRTCMobile activity.
-    Log.d(TAG, "Connecting to room " + roomId );
+    Log.d(TAG, "Connecting with" + roomId );
     if (validateUrl(roomUrl)) {
       Uri uri = Uri.parse(roomUrl);
       Intent intent = new Intent(this, CallActivity.class);
