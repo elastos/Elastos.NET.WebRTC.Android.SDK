@@ -582,7 +582,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     if (isCaller) {
       webrtcClient.inviteCall(remoteUserId);
     }else{
-      //webrtcClient.acceptCallInvite(remoteUserId);
+      webrtcClient.initialCallInternal(false);
     }
 
     // Create and audio manager that will take care of audio routing,

@@ -189,7 +189,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
 
 
   // accept the call invite and then send the offer.
-  private void initialCallInternal(boolean initiator) {
+  public void initialCallInternal(boolean initiator) {
 
     Log.d(TAG, "Connect to carrier user: " + remoteUserId);
     connectionState = ConnectionState.NEW;
