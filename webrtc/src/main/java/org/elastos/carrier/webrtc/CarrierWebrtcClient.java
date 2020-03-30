@@ -153,7 +153,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
    * accept invite message to caller.
    */
   private void acceptInvite() {
-    Log.d(TAG, "acceptInvite to : " + remoteUserId);
+    Log.d(TAG, "acceptInvite from : " + remoteUserId);
     handler.post(new Runnable() {
       @Override
       public void run() {
