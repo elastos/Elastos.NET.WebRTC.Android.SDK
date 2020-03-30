@@ -519,6 +519,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     // CallFragment.OnCallEvents interface implementation.
     @Override
     public void onCallHangUp() {
+        webrtcClient.rejectCallInvite(remoteUserId);
         disconnect();
     }
 

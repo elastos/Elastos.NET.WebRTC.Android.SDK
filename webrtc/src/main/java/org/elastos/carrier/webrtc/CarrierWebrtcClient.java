@@ -114,7 +114,15 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     handler.post(new Runnable() {
       @Override
       public void run() {
-        rejectCallInternal();
+          try {
+              JSONObject json = new JSONObject();
+              jsonPut(json, "type", "reject");
+              jsonPut(json, "remoteUserId", remoteUserId);
+              send(json.toString(), remoteUserId);
+          } catch (Exception e) {
+              Log.e(TAG, "sendInvite: ", e);
+          }
+          rejectCallInternal();
       }
     });
   }
@@ -393,6 +401,8 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
           events.onCallInvited(param); //let the activity to handle the call invited event.
         }else if(type.equals("acceptInvite")){
           events.onCreateOffer(); //let the activity to handle the call invite accepted event.
+        }else if(type.equals("reject")){
+          events.onChannelClose(); //let the activity to handle the call invite accepted event.
         } else {
           reportError("Unexpected Carrier message: " + msg);
         }
