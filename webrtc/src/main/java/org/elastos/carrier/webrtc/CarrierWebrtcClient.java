@@ -132,7 +132,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
   private void sendInvite() {
     Log.d(TAG, "sendInvite to : " + remoteUserId);
     if(remoteUserId == null){
-      throw new IllegalStateException("WebrtcClient has not been initialized, please call WebrtcClient.initialCall(String calleeUserId) firstly.");
+      throw new IllegalStateException("WebrtcClient has not been invited, please call WebrtcClient.inviteCall(String peer) firstly.");
     }
     handler.post(new Runnable() {
       @Override
@@ -140,13 +140,13 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         try {
           JSONObject json = new JSONObject();
           jsonPut(json, "type", "invite");
-          jsonPut(json, "calleeUserId", remoteUserId);
+          jsonPut(json, "remoteUserId", remoteUserId);
           send(json.toString());
 
           JSONObject object = new JSONObject();
           jsonPut(object, "cmd", "send");
           jsonPut(object, "msg", json.toString());
-          jsonPut(object, "calleeUserId", remoteUserId);
+          jsonPut(object, "remoteUserId", remoteUserId);
           carrier.inviteFriend(remoteUserId, object.toString(), friendInviteResponseHandler);
 
         } catch (Exception e) {
@@ -167,7 +167,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         try {
           JSONObject json = new JSONObject();
           jsonPut(json, "type", "acceptInvite");
-          jsonPut(json, "calleeUserId", remoteUserId);
+          jsonPut(json, "remoteUserId", remoteUserId);
           send(json.toString());
         } catch (Exception e) {
           Log.e(TAG, "acceptInvite: ", e);
@@ -349,7 +349,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     Log.e(TAG, "carrier friend invite  onFriendInviteRequest from: " + from);
 
     if (data != null && data.contains("msg")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
-      remoteUserId = from;
+      this.remoteUserId = from;
       onCarrierMessage(data);
       Log.d(TAG, "Get the carrier message: " + data);
     }
@@ -499,7 +499,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     try {
       json.put("cmd", "send");
       json.put("msg", message);
-      json.put("calleeUserId", remoteUserId);
+      json.put("remoteUserId", remoteUserId);
       message = json.toString();
 
       Log.d(TAG, "C->Call: " + message);

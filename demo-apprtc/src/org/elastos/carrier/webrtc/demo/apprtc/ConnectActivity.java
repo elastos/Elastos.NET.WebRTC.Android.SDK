@@ -179,7 +179,7 @@ public class ConnectActivity extends Activity {
           Toast.makeText(ConnectActivity.this, "carrier friend invite onFriendInviteRequest from : " + from, Toast.LENGTH_LONG).show();
           Log.e(TAG, "carrier friend invite  onFriendInviteRequest from: " + from + "\r\n" + data);
 
-          if (data != null && data.contains("invite") && data.contains("calleeUserId")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
+          if (data != null && data.contains("invite") && data.contains("remoteUserId")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
 
             //启动进去CallActivity
             JSONObject json = null;
@@ -189,7 +189,7 @@ public class ConnectActivity extends Activity {
               String message = json.optString("msg");
               msg = new JSONObject(message);
               String type = msg.optString("type");
-              String callee = msg.optString("calleeUserId");
+              String callee = msg.optString("remoteUserId");
 
               if ("invite".equalsIgnoreCase(type) && !TextUtils.isEmpty(callee)) {
                 connectToRoom(callee, false, false, 0, false);

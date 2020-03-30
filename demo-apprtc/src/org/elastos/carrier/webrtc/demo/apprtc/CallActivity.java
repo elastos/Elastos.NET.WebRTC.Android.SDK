@@ -291,7 +291,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     }
 
     isCaller = intent.getBooleanExtra(EXTRA_IS_CALLER, false);
-    remoteUserId = intent.getStringExtra(EXTRA_ROOMID); //calleeUserId
+    remoteUserId = intent.getStringExtra(EXTRA_ROOMID);
 
     Log.d(TAG, "Callee User Id: " + remoteUserId);
     if ((remoteUserId == null || remoteUserId.length() == 0)){
