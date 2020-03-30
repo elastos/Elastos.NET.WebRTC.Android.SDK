@@ -97,9 +97,6 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
   public void inviteCall(String peer) {
     this.remoteUserId = peer;
     sendInvite();
-
-    initialCallInternal(false);
-
   }
 
 
@@ -108,11 +105,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
   @Override
   public void acceptCallInvite(String peer) {
     this.remoteUserId = peer;
-
-    initialCallInternal(false);
-
     acceptInvite();
-
   }
 
   @Override
@@ -189,7 +182,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
 
 
   // accept the call invite and then send the offer.
-  public void initialCallInternal(boolean initiator) {
+  public void initialCall(boolean initiator) {
 
     Log.d(TAG, "Connect to carrier user: " + remoteUserId);
     connectionState = ConnectionState.NEW;

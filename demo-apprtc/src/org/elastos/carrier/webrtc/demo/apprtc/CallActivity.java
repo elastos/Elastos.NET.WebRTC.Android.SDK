@@ -23,7 +23,6 @@ import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
@@ -35,7 +34,6 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 
 import org.elastos.carrier.Carrier;
-import org.elastos.carrier.exceptions.CarrierException;
 import org.elastos.carrier.webrtc.CarrierPeerConnectionClient;
 import org.elastos.carrier.webrtc.CarrierPeerConnectionClient.DataChannelParameters;
 import org.elastos.carrier.webrtc.CarrierPeerConnectionClient.PeerConnectionParameters;
@@ -51,7 +49,6 @@ import org.webrtc.EglBase;
 import org.webrtc.FileVideoCapturer;
 import org.webrtc.IceCandidate;
 import org.webrtc.Logging;
-import org.webrtc.PeerConnection;
 import org.webrtc.PeerConnectionFactory;
 import org.webrtc.RendererCommon.ScalingType;
 import org.webrtc.ScreenCapturerAndroid;
@@ -581,9 +578,14 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     logAndToast(getString(R.string.connecting_to, remoteUserId));
     if (isCaller) {
       webrtcClient.inviteCall(remoteUserId);
-    }else{
-      webrtcClient.initialCallInternal(false);
+      try {
+        Thread.sleep(500);
+      } catch (Exception e) {
+        Log.e(TAG, "startCall: ", e);
+      }
     }
+
+    webrtcClient.initialCall(false);
 
     // Create and audio manager that will take care of audio routing,
     // audio modes, audio device enumeration etc.
@@ -796,6 +798,12 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
       public void run() {
         if(webrtcClient==null){
           initialWebrtcClient(carrier, EglBase.create());
+        }
+        webrtcClient.initialCall(false);
+        try {
+          Thread.sleep(500);
+        } catch (Exception e) {
+          Log.e(TAG, "startCall: ", e);
         }
         webrtcClient.acceptCallInvite(remoteUserId);
       }
