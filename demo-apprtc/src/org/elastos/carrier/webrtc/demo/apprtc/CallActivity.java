@@ -585,7 +585,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
       }
     }
 
-    webrtcClient.initialCall(false);
+    webrtcClient.initialCall(isCaller);
 
     // Create and audio manager that will take care of audio routing,
     // audio modes, audio device enumeration etc.
