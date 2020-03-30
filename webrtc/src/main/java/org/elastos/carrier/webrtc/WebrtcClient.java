@@ -42,6 +42,11 @@ public interface WebrtcClient {
   void acceptCallInvite(String peer) ;
 
     /**
+     * After invite the peer to join the call, the caller or callee can call initialCall() to prepare for peerConnection.
+     */
+  void initialCall(boolean initiator);
+
+    /**
      * The callee reject the webrtc call invite.
      */
   void rejectCallInvite(String peer) ;
@@ -83,10 +88,9 @@ public interface WebrtcClient {
     void onCallInvited(final CarrierWebrtcClient.SignalingParameters params);
 
     /**
-     * Callback fired once webrtc call started and the webrtc connection's
-     * SignalingParameters are extracted.
+     * Callback fired once webrtcClient.initialCall() has been invoked.
      */
-    void onCallInviteAccepted(final CarrierWebrtcClient.SignalingParameters params);
+    void onCallInitialized(final CarrierWebrtcClient.SignalingParameters params);
 
     /**
      * Callback fired once remote SDP is received.

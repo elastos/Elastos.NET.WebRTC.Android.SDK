@@ -189,11 +189,21 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
 
     List<PeerConnection.IceServer> iceServers = getIceServers();
 
-    SignalingParameters params = new SignalingParameters(
+    SignalingParameters signalingParameters = new SignalingParameters(
             iceServers, initiator, remoteUserId,null, null);
 
-    signalingParametersReady(params);
-  }
+    Log.d(TAG, "Carrier WebrtcClient call initialized completed.");
+
+    if (!signalingParameters.initiator
+            && signalingParameters.offerSdp == null) {
+      Log.w(TAG, "No offer SDP from the caller.");
+    }
+
+    connectionState = ConnectionState.CONNECTED;
+
+    // Fire connection and signaling parameters events.
+    events.onCallInitialized(signalingParameters);
+}
 
 
   // reject the call invite and set the connectionState to
@@ -234,21 +244,6 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
   }
 
 
-  // Callback issued when webrtc call parameters are extracted. Runs on local
-  // looper thread.
-  private void signalingParametersReady(final SignalingParameters signalingParameters) {
-    Log.d(TAG, "Carrier WebrtcClient call initialized completed.");
-
-    if (!signalingParameters.initiator
-            && signalingParameters.offerSdp == null) {
-      Log.w(TAG, "No offer SDP from the caller.");
-    }
-
-    connectionState = ConnectionState.CONNECTED;
-
-    // Fire connection and signaling parameters events.
-    events.onCallInvited(signalingParameters);
-  }
 
 
   // Send local offer SDP to the other participant.

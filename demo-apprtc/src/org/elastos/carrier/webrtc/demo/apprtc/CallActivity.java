@@ -587,7 +587,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
             }
         }
 
-        webrtcClient.initialCall(false);
+        webrtcClient.initialCall(isCaller);
 
         // Create and audio manager that will take care of audio routing,
         // audio modes, audio device enumeration etc.
@@ -750,7 +750,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         pipRenderer.setMirror(!isSwappedFeeds);
     }
 
-    private void onConnectedToCallInternal(final CarrierWebrtcClient.SignalingParameters params) {
+    private void onCallInitializedInternal(final CarrierWebrtcClient.SignalingParameters params) {
         final long delta = System.currentTimeMillis() - callStartedTimeMs;
 
         if (carrierPeerConnectionClient == null) {
@@ -766,24 +766,17 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         carrierPeerConnectionClient.createPeerConnection(this,
                 localProxyVideoSink, remoteSinks, videoCapturer);
 
-        if (signalingParameters.initiator) {
-            logAndToast("Creating OFFER...");
-            // Create offer. Offer SDP will be sent to answering client in
+        if (params.offerSdp != null) {
+            carrierPeerConnectionClient.setRemoteDescription(params.offerSdp);
+            logAndToast("Creating ANSWER...");
+            // Create answer. Answer SDP will be sent to offering client in
             // PeerConnectionEvents.onLocalDescription event.
-            carrierPeerConnectionClient.createOffer();
-        } else {
-            if (params.offerSdp != null) {
-                carrierPeerConnectionClient.setRemoteDescription(params.offerSdp);
-                logAndToast("Creating ANSWER...");
-                // Create answer. Answer SDP will be sent to offering client in
-                // PeerConnectionEvents.onLocalDescription event.
-                carrierPeerConnectionClient.createAnswer();
-            }
-            if (params.iceCandidates != null) {
-                // Add remote ICE candidates from room.
-                for (IceCandidate iceCandidate : params.iceCandidates) {
-                    carrierPeerConnectionClient.addRemoteIceCandidate(iceCandidate);
-                }
+            carrierPeerConnectionClient.createAnswer();
+        }
+        if (params.iceCandidates != null) {
+            // Add remote ICE candidates from room.
+            for (IceCandidate iceCandidate : params.iceCandidates) {
+                carrierPeerConnectionClient.addRemoteIceCandidate(iceCandidate);
             }
         }
     }
@@ -796,6 +789,16 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     public void onCallInvited(final CarrierWebrtcClient.SignalingParameters params) {
         remoteUserId = params.remoteUserId;
         //here we start and initial the activity.
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                onCallInitializedInternal(params);
+            }
+        });
+    }
+
+    @Override
+    public void onCallInitialized(final CarrierWebrtcClient.SignalingParameters params) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -812,20 +815,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
                     }
                 }
 
-                onConnectedToCallInternal(params);
-            }
-        });
-    }
-
-    @Override
-    public void onCallInviteAccepted(final CarrierWebrtcClient.SignalingParameters params) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                onConnectedToCallInternal(params);
-                if (!params.initiator) {
-                    //webrtcClient.acceptCallInvite(remoteUserId);
-                }
+                onCallInitializedInternal(params);
             }
         });
     }
