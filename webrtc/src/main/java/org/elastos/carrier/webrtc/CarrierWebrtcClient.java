@@ -108,9 +108,11 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
   @Override
   public void acceptCallInvite(String peer) {
     this.remoteUserId = peer;
-    acceptInvite();
 
     initialCallInternal(false);
+
+    acceptInvite();
+
   }
 
   @Override
