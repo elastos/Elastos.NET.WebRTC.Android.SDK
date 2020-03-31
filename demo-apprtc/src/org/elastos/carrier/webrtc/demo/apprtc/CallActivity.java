@@ -761,15 +761,16 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
 
     private void setSwappedFeeds(boolean isSwappedFeeds) {
         Logging.d(TAG, "setSwappedFeeds: " + isSwappedFeeds);
-        this.isSwappedFeeds = isSwappedFeeds;
-        localProxyVideoSink.setTarget(isSwappedFeeds ? fullscreenRenderer : pipRenderer);
-        remoteProxyRenderer.setTarget(isSwappedFeeds ? pipRenderer : fullscreenRenderer);
         if(fullscreenRenderer == null){
             fullscreenRenderer = findViewById(R.id.fullscreen_video_view);
         }
         if(pipRenderer == null){
             pipRenderer = findViewById(R.id.pip_video_view);
         }
+
+        this.isSwappedFeeds = isSwappedFeeds;
+        localProxyVideoSink.setTarget(isSwappedFeeds ? fullscreenRenderer : pipRenderer);
+        remoteProxyRenderer.setTarget(isSwappedFeeds ? pipRenderer : fullscreenRenderer);
         fullscreenRenderer.setMirror(isSwappedFeeds);
         pipRenderer.setMirror(!isSwappedFeeds);
     }
