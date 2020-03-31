@@ -351,7 +351,9 @@ public class ConnectActivity extends Activity {
           @Override
           public void run() {
             String id = Carrier.getIdFromAddress(result);
-            roomEditText.setText(id);
+            if (id==null)
+                id=result;
+             roomEditText.setText(id);
             try {
               CarrierClient.getInstance(ConnectActivity.this).addFriend(result);
             } catch (CarrierException e) {
