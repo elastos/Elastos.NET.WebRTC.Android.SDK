@@ -329,7 +329,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         jsonPut(json, "candidate", candidate.sdp);
         if (initiator) {
           // Call initiator sends ice candidates to peer.
-          if (connectionState != ConnectionState.CONNECTED) {
+          if (connectionState != ConnectionState.CONNECTED && connectionState!=ConnectionState.NEW) {
             reportError("Sending ICE candidate in non connected state.");
             return;
           }
@@ -364,7 +364,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         jsonPut(json, "candidates", jsonArray);
         if (initiator) {
           // Call initiator sends ice candidates to peer.
-          if (connectionState != ConnectionState.CONNECTED) {
+          if (connectionState != ConnectionState.CONNECTED && connectionState!=ConnectionState.NEW) {
             reportError("Sending ICE candidate removals in non connected state.");
             return;
           }
