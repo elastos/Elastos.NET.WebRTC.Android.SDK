@@ -94,6 +94,10 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     handler = new Handler(handlerThread.getLooper());
   }
 
+  public void setRemoteUserId(String remoteUserId) {
+    this.remoteUserId = remoteUserId;
+  }
+
   // --------------------------------------------------------------------
   // WebrtcClient interface implementation.
   // AInvite a webrtc call to peer, the peer can choose to accept the invitation or reject.

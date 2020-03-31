@@ -345,6 +345,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     protected void initialWebrtcClient(Carrier carrier, EglBase eglBase) {
         // Create connection client.
         webrtcClient = new CarrierWebrtcClient(carrier, this);
+        webrtcClient.setRemoteUserId(remoteUserId);
 
         if (peerConnectionParameters==null) {
             updatePeerConnectionParametersFromIntent(getIntent());
