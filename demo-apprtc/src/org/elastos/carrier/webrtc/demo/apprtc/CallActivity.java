@@ -780,6 +780,10 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     private void onCallInitializedInternal(final CarrierWebrtcClient.SignalingParameters params) {
         final long delta = System.currentTimeMillis() - callStartedTimeMs;
 
+        if (peerConnectionParameters == null) {
+            updatePeerConnectionParametersFromIntent(getIntent());
+        }
+
         if (carrierPeerConnectionClient == null) {
             initialWebrtcClient(carrier, eglBase);
         }
