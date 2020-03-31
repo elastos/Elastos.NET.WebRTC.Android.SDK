@@ -307,28 +307,9 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
             return;
         }
 
-        boolean tracing = intent.getBooleanExtra(EXTRA_TRACING, false);
-
-        int videoWidth = intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0);
-        int videoHeight = intent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0);
-
-        screencaptureEnabled = intent.getBooleanExtra(EXTRA_SCREENCAPTURE, false);
-        // If capturing format is not specified for screencapture, use screen resolution.
-        if (screencaptureEnabled && videoWidth == 0 && videoHeight == 0) {
-            DisplayMetrics displayMetrics = getDisplayMetrics();
-            videoWidth = displayMetrics.widthPixels;
-            videoHeight = displayMetrics.heightPixels;
-        }
-        DataChannelParameters dataChannelParameters = null;
-        if (intent.getBooleanExtra(EXTRA_DATA_CHANNEL_ENABLED, false)) {
-            dataChannelParameters = new DataChannelParameters(intent.getBooleanExtra(EXTRA_ORDERED, true),
-                    intent.getIntExtra(EXTRA_MAX_RETRANSMITS_MS, -1),
-                    intent.getIntExtra(EXTRA_MAX_RETRANSMITS, -1), intent.getStringExtra(EXTRA_PROTOCOL),
-                    intent.getBooleanExtra(EXTRA_NEGOTIATED, false), intent.getIntExtra(EXTRA_ID, -1));
-        }
 
         //update peerConnectionPararmeters from intent.
-        updatePeerConnectionParametersFromIntent(intent, tracing, videoWidth, videoHeight, dataChannelParameters);
+        updatePeerConnectionParametersFromIntent(intent);
 
         commandLineRun = intent.getBooleanExtra(EXTRA_CMDLINE, false);
         int runTimeMs = intent.getIntExtra(EXTRA_RUNTIME, 0);
@@ -365,6 +346,9 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         // Create connection client.
         webrtcClient = new CarrierWebrtcClient(carrier, this);
 
+        if (peerConnectionParameters==null) {
+            updatePeerConnectionParametersFromIntent(getIntent());
+        }
         // Create peer connection client.
         carrierPeerConnectionClient = new CarrierPeerConnectionClient(
                 getApplicationContext(), webrtcClient, eglBase, peerConnectionParameters, this);
@@ -373,7 +357,27 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         carrierPeerConnectionClient.createPeerConnectionFactory(options);
     }
 
-    private void updatePeerConnectionParametersFromIntent(Intent intent, boolean tracing, int videoWidth, int videoHeight, DataChannelParameters dataChannelParameters) {
+    private void updatePeerConnectionParametersFromIntent(Intent intent) {
+        boolean tracing = intent.getBooleanExtra(EXTRA_TRACING, false);
+
+        int videoWidth = intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0);
+        int videoHeight = intent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0);
+
+        screencaptureEnabled = intent.getBooleanExtra(EXTRA_SCREENCAPTURE, false);
+        // If capturing format is not specified for screencapture, use screen resolution.
+        if (screencaptureEnabled && videoWidth == 0 && videoHeight == 0) {
+            DisplayMetrics displayMetrics = getDisplayMetrics();
+            videoWidth = displayMetrics.widthPixels;
+            videoHeight = displayMetrics.heightPixels;
+        }
+        DataChannelParameters dataChannelParameters = null;
+        if (intent.getBooleanExtra(EXTRA_DATA_CHANNEL_ENABLED, false)) {
+            dataChannelParameters = new DataChannelParameters(intent.getBooleanExtra(EXTRA_ORDERED, true),
+                    intent.getIntExtra(EXTRA_MAX_RETRANSMITS_MS, -1),
+                    intent.getIntExtra(EXTRA_MAX_RETRANSMITS, -1), intent.getStringExtra(EXTRA_PROTOCOL),
+                    intent.getBooleanExtra(EXTRA_NEGOTIATED, false), intent.getIntExtra(EXTRA_ID, -1));
+        }
+
         peerConnectionParameters =
                 new PeerConnectionParameters(intent.getBooleanExtra(EXTRA_VIDEO_CALL, true),
                         tracing, videoWidth, videoHeight, intent.getIntExtra(EXTRA_VIDEO_FPS, 0),
