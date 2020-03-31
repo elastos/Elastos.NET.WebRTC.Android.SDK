@@ -210,6 +210,17 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
 
         carrier = CarrierClient.getInstance(getApplicationContext()).getCarrier();
 
+        initialWebrtcClient(carrier);
+
+        if (screencaptureEnabled) {
+            startScreenCapture();
+        } else {
+            startCall();
+        }
+
+    }
+
+    protected void initialWebrtcClient(Carrier carrier) {
         // Set window styles for fullscreen-window size. Needs to be done before
         // adding content.
         requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -307,7 +318,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
             return;
         }
 
-
         //update peerConnectionPararmeters from intent.
         updatePeerConnectionParametersFromIntent(intent);
 
@@ -331,23 +341,11 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         ft.add(R.id.hud_fragment_container, hudFragment);
         ft.commit();
 
-
-        initialWebrtcClient(carrier, eglBase);
-
-        if (screencaptureEnabled) {
-            startScreenCapture();
-        } else {
-            startCall();
-        }
-
-    }
-
-    protected void initialWebrtcClient(Carrier carrier, EglBase eglBase) {
         // Create connection client.
         webrtcClient = new CarrierWebrtcClient(carrier, this);
         webrtcClient.setRemoteUserId(remoteUserId);
 
-        if (peerConnectionParameters==null) {
+        if (peerConnectionParameters == null) {
             updatePeerConnectionParametersFromIntent(getIntent());
         }
         // Create peer connection client.
@@ -509,8 +507,8 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     public void onStart() {
         super.onStart();
         activityRunning = true;
-        if(carrierPeerConnectionClient == null){
-            initialWebrtcClient(carrier, EglBase.create());
+        if (carrierPeerConnectionClient == null) {
+            initialWebrtcClient(carrier);
         }
         // Video is not paused for screencapture. See onPause.
         if (carrierPeerConnectionClient != null && !screencaptureEnabled) {
@@ -771,7 +769,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         final long delta = System.currentTimeMillis() - callStartedTimeMs;
 
         if (carrierPeerConnectionClient == null) {
-            initialWebrtcClient(carrier, EglBase.create());
+            initialWebrtcClient(carrier);
         }
 
         signalingParameters = params;
@@ -821,10 +819,9 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
             public void run() {
                 if (!params.initiator) {
                     if (webrtcClient == null) {
-                        initialWebrtcClient(carrier, EglBase.create());
+                        initialWebrtcClient(carrier);
                     }
                     webrtcClient.acceptCallInvite(remoteUserId);
-
                     try {
                         Thread.sleep(500);
                     } catch (Exception e) {
@@ -905,8 +902,8 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
 
     @Override
     public void onCreateOffer() {
-        if(carrierPeerConnectionClient==null){
-            initialWebrtcClient(carrier, EglBase.create());
+        if (carrierPeerConnectionClient == null) {
+            initialWebrtcClient(carrier);
             onCallInitializedInternal(new CarrierWebrtcClient.SignalingParameters(webrtcClient.getIceServers(), true, remoteUserId, null, null));
         }
         carrierPeerConnectionClient.createOffer();
@@ -922,8 +919,8 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if(webrtcClient==null){
-                    initialWebrtcClient(carrier, EglBase.create());
+                if (webrtcClient == null) {
+                    initialWebrtcClient(carrier);
                 }
                 if (webrtcClient != null) {
                     logAndToast("Sending " + sdp.type + ", delay=" + delta + "ms");
