@@ -210,6 +210,8 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
 
         carrier = CarrierClient.getInstance(getApplicationContext()).getCarrier();
 
+        // Set window styles for fullscreen-window size. Needs to be done before
+        // adding content.
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().addFlags(LayoutParams.FLAG_FULLSCREEN | LayoutParams.FLAG_KEEP_SCREEN_ON
                 | LayoutParams.FLAG_SHOW_WHEN_LOCKED | LayoutParams.FLAG_TURN_SCREEN_ON);
@@ -341,8 +343,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     }
 
     protected void initialWebrtcClient(Carrier carrier, EglBase eglBase) {
-        // Set window styles for fullscreen-window size. Needs to be done before
-        // adding content.
 
         // Create connection client.
         webrtcClient = new CarrierWebrtcClient(carrier, this);
@@ -764,6 +764,12 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         this.isSwappedFeeds = isSwappedFeeds;
         localProxyVideoSink.setTarget(isSwappedFeeds ? fullscreenRenderer : pipRenderer);
         remoteProxyRenderer.setTarget(isSwappedFeeds ? pipRenderer : fullscreenRenderer);
+        if(fullscreenRenderer == null){
+            fullscreenRenderer = findViewById(R.id.fullscreen_video_view);
+        }
+        if(pipRenderer == null){
+            pipRenderer = findViewById(R.id.pip_video_view);
+        }
         fullscreenRenderer.setMirror(isSwappedFeeds);
         pipRenderer.setMirror(!isSwappedFeeds);
     }
