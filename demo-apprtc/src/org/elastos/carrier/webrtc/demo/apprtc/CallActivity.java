@@ -50,6 +50,7 @@ import org.webrtc.FileVideoCapturer;
 import org.webrtc.IceCandidate;
 import org.webrtc.Logging;
 import org.webrtc.PeerConnectionFactory;
+import org.webrtc.RendererCommon;
 import org.webrtc.RendererCommon.ScalingType;
 import org.webrtc.ScreenCapturerAndroid;
 import org.webrtc.SessionDescription;
@@ -202,6 +203,8 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     private CarrierWebrtcClient webrtcClient;
 
     private Carrier carrier;
+    private final EglBase eglBase = EglBase.create();
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -219,7 +222,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         setContentView(R.layout.activity_call);
 
         final Intent intent = getIntent();
-        final EglBase eglBase = EglBase.create();
 
         Uri roomUri = intent.getData();
         if (roomUri == null) {
@@ -259,7 +261,38 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
 
         connected = false;
         signalingParameters = null;
+        initUIControls(intent);
 
+        // Check for mandatory permissions.
+        for (String permission : MANDATORY_PERMISSIONS) {
+            if (checkCallingOrSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
+                logAndToast("Permission " + permission + " is not granted");
+                setResult(RESULT_CANCELED);
+                finish();
+                return;
+            }
+        }
+
+        Log.d(TAG, "Callee User Id: " + remoteUserId);
+        if ((remoteUserId == null || remoteUserId.length() == 0)) {
+            logAndToast(getString(R.string.missing_url));
+            Log.e(TAG, "Incorrect Callee User Id in intent!");
+            setResult(RESULT_CANCELED);
+            finish();
+            return;
+        }
+
+        initialWebrtcClient(carrier, eglBase);
+
+        if (screencaptureEnabled) {
+            startScreenCapture();
+        } else {
+            startCall();
+        }
+
+    }
+
+    protected void initUIControls(Intent intent) {
         // Create UI controls.
         pipRenderer = findViewById(R.id.pip_video_view);
         fullscreenRenderer = findViewById(R.id.fullscreen_video_view);
@@ -298,25 +331,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         // Start with local feed in fullscreen and swap it to the pip when the register is connected.
         setSwappedFeeds(true /* isSwappedFeeds */);
 
-        // Check for mandatory permissions.
-        for (String permission : MANDATORY_PERMISSIONS) {
-            if (checkCallingOrSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
-                logAndToast("Permission " + permission + " is not granted");
-                setResult(RESULT_CANCELED);
-                finish();
-                return;
-            }
-        }
-
-        Log.d(TAG, "Callee User Id: " + remoteUserId);
-        if ((remoteUserId == null || remoteUserId.length() == 0)) {
-            logAndToast(getString(R.string.missing_url));
-            Log.e(TAG, "Incorrect Callee User Id in intent!");
-            setResult(RESULT_CANCELED);
-            finish();
-            return;
-        }
-
         // Create CPU monitor
         if (CpuMonitor.isSupported()) {
             cpuMonitor = new CpuMonitor(this);
@@ -331,15 +345,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         ft.add(R.id.call_fragment_container, callFragment);
         ft.add(R.id.hud_fragment_container, hudFragment);
         ft.commit();
-
-        initialWebrtcClient(carrier, eglBase);
-
-        if (screencaptureEnabled) {
-            startScreenCapture();
-        } else {
-            startCall();
-        }
-
     }
 
     protected void initialWebrtcClient(Carrier carrier, EglBase eglBase) {
@@ -511,7 +516,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         super.onStart();
         activityRunning = true;
         if (carrierPeerConnectionClient == null) {
-            initialWebrtcClient(carrier, EglBase.create());
+            initialWebrtcClient(carrier, eglBase);
         }
         // Video is not paused for screencapture. See onPause.
         if (carrierPeerConnectionClient != null && !screencaptureEnabled) {
@@ -761,11 +766,8 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
 
     private void setSwappedFeeds(boolean isSwappedFeeds) {
         Logging.d(TAG, "setSwappedFeeds: " + isSwappedFeeds);
-        if(fullscreenRenderer == null){
-            fullscreenRenderer = findViewById(R.id.fullscreen_video_view);
-        }
-        if(pipRenderer == null){
-            pipRenderer = findViewById(R.id.pip_video_view);
+        if(fullscreenRenderer == null || pipRenderer == null){
+            initUIControls(getIntent());
         }
 
         this.isSwappedFeeds = isSwappedFeeds;
@@ -779,7 +781,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         final long delta = System.currentTimeMillis() - callStartedTimeMs;
 
         if (carrierPeerConnectionClient == null) {
-            initialWebrtcClient(carrier, EglBase.create());
+            initialWebrtcClient(carrier, eglBase);
         }
 
         signalingParameters = params;
@@ -829,7 +831,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
             public void run() {
                 if (!params.initiator) {
                     if (webrtcClient == null) {
-                        initialWebrtcClient(carrier, EglBase.create());
+                        initialWebrtcClient(carrier, eglBase);
                     }
                     webrtcClient.acceptCallInvite(remoteUserId);
                     try {
@@ -913,7 +915,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     @Override
     public void onCreateOffer() {
         if (carrierPeerConnectionClient == null) {
-            initialWebrtcClient(carrier, EglBase.create());
+            initialWebrtcClient(carrier, eglBase);
             onCallInitializedInternal(new CarrierWebrtcClient.SignalingParameters(webrtcClient.getIceServers(), true, remoteUserId, null, null));
         }
         carrierPeerConnectionClient.createOffer();
