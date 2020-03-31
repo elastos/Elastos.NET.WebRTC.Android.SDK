@@ -123,6 +123,9 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
               jsonPut(json, "type", "bye");
               jsonPut(json, "remoteUserId", remoteUserId);
               send(json.toString(), remoteUserId);
+
+            Log.d(TAG, "rejectCallInvite() from "  + carrier.getUserId() + ", to: "+ remoteUserId);
+
           } catch (Exception e) {
               Log.e(TAG, "sendInvite: ", e);
           }
@@ -152,8 +155,9 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
           jsonPut(object, "cmd", "send");
           jsonPut(object, "msg", json.toString());
           jsonPut(object, "remoteUserId", remoteUserId);
-          carrier.inviteFriend(remoteUserId, object.toString(), friendInviteResponseHandler);
+          carrier.inviteFriend(remoteUserId, object.toString(), friendInviteResponseHandler);//why we invite twice？ this is used for the activity to handle the message.
 
+          Log.d(TAG, "inviteCall() from caller: " + carrier.getUserId()+" to "+ remoteUserId);
         } catch (Exception e) {
           Log.e(TAG, "sendInvite: ", e);
         }
@@ -174,6 +178,9 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
           jsonPut(json, "type", "acceptInvite");
           jsonPut(json, "remoteUserId", remoteUserId);
           send(json.toString(), remoteUserId);
+
+          Log.d(TAG, "acceptCallInvite() from callee: " + carrier.getUserId()+" to "+ remoteUserId);
+
         } catch (Exception e) {
           Log.e(TAG, "acceptInvite: ", e);
         }
@@ -188,6 +195,13 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
       public void run() {
         disconnectFromCallInternal();
         handler.getLooper().quit();
+
+        try {
+          Log.d(TAG, "disconnectFromCall() from callee: " + carrier.getUserId()+" to "+ remoteUserId);
+        } catch (CarrierException e) {
+          Log.e(TAG, "No Carrier instance");
+        }
+
       }
     });
   }
@@ -204,7 +218,11 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     SignalingParameters signalingParameters = new SignalingParameters(
             iceServers, initiator, remoteUserId,null, null);
 
-    Log.d(TAG, "Carrier WebrtcClient call initialized completed.");
+    try {
+      Log.d(TAG, "initialCall() from " + (initiator?"caller":"callee") + ": " + carrier.getUserId() + ", to: "+ remoteUserId);
+    } catch (CarrierException e) {
+      Log.e(TAG, "No Carrier instance.");
+    }
 
     if (!signalingParameters.initiator
             && signalingParameters.offerSdp == null) {
@@ -272,6 +290,13 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         jsonPut(json, "sdp", sdp.description);
         jsonPut(json, "type", "offer");
         send(json.toString(), remoteUserId);
+
+        try {
+          Log.d(TAG, "sendOfferSdp() from "  + carrier.getUserId() + ", to: "+ remoteUserId);
+        } catch (CarrierException e) {
+          Log.e(TAG, "No Carrier instance.");
+        }
+
       }
     });
   }
@@ -286,6 +311,13 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
         jsonPut(json, "sdp", sdp.description);
         jsonPut(json, "type", "answer");
         send(json.toString(), remoteUserId);
+
+        try {
+          Log.d(TAG, "sendAnswerSdp() from "  + carrier.getUserId() + ", to: "+ remoteUserId);
+        } catch (CarrierException e) {
+          Log.e(TAG, "No Carrier instance.");
+        }
+
       }
     });
   }
@@ -308,6 +340,13 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
             return;
           }
           send(json.toString(), remoteUserId);
+
+          try {
+            Log.d(TAG, "sendLocalIceCandidate() from "  + carrier.getUserId() + ", to: "+ remoteUserId);
+          } catch (CarrierException e) {
+            Log.e(TAG, "No Carrier instance.");
+          }
+
         } else {
           // Call receiver sends ice candidates to peer.
           send(json.toString(), remoteUserId);
@@ -340,6 +379,13 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
           // Call receiver sends ice candidates to peer.
           send(json.toString(), remoteUserId);
         }
+
+        try {
+          Log.d(TAG, "sendLocalIceCandidateRemovals() from "  + carrier.getUserId() + ", to: "+ remoteUserId);
+        } catch (CarrierException e) {
+          Log.e(TAG, "No Carrier instance.");
+        }
+
       }
     });
   }
