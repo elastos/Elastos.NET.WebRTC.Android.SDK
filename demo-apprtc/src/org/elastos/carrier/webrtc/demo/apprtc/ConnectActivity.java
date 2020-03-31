@@ -93,9 +93,6 @@ public class ConnectActivity extends Activity {
   private ImageView mQRCodeImage;
   private TextView mAdrress;
 
-  @Nullable
-  private WebrtcClient appRtcClient;
-
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
