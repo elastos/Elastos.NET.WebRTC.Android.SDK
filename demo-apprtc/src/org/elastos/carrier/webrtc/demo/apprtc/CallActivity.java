@@ -504,6 +504,9 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     public void onStart() {
         super.onStart();
         activityRunning = true;
+        if(carrierPeerConnectionClient == null){
+            initialWebrtcClient(carrier, EglBase.create());
+        }
         // Video is not paused for screencapture. See onPause.
         if (carrierPeerConnectionClient != null && !screencaptureEnabled) {
             carrierPeerConnectionClient.startVideoSource();
@@ -897,6 +900,9 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
 
     @Override
     public void onCreateOffer() {
+        if(carrierPeerConnectionClient==null){
+            initialWebrtcClient(carrier, EglBase.create());
+        }
         carrierPeerConnectionClient.createOffer();
     }
 
