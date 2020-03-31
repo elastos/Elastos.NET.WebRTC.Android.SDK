@@ -255,20 +255,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
 
         Log.d(TAG, "VIDEO_FILE: '" + intent.getStringExtra(EXTRA_VIDEO_FILE_AS_CAMERA) + "'");
 
-        initialWebrtcClient(carrier, eglBase);
-
-        if (screencaptureEnabled) {
-            startScreenCapture();
-        } else {
-            startCall();
-        }
-
-    }
-
-    protected void initialWebrtcClient(Carrier carrier, EglBase eglBase) {
-        // Set window styles for fullscreen-window size. Needs to be done before
-        // adding content.
-
         connected = false;
         signalingParameters = null;
 
@@ -296,8 +282,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
 
         fullscreenRenderer.setOnClickListener(listener);
         remoteSinks.add(remoteProxyRenderer);
-
-        final Intent intent = getIntent();
 
         // Create video renderers.
         pipRenderer.init(eglBase.getEglBaseContext(), null);
@@ -345,6 +329,20 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         ft.add(R.id.call_fragment_container, callFragment);
         ft.add(R.id.hud_fragment_container, hudFragment);
         ft.commit();
+
+        initialWebrtcClient(carrier, eglBase);
+
+        if (screencaptureEnabled) {
+            startScreenCapture();
+        } else {
+            startCall();
+        }
+
+    }
+
+    protected void initialWebrtcClient(Carrier carrier, EglBase eglBase) {
+        // Set window styles for fullscreen-window size. Needs to be done before
+        // adding content.
 
         // Create connection client.
         webrtcClient = new CarrierWebrtcClient(carrier, this);
