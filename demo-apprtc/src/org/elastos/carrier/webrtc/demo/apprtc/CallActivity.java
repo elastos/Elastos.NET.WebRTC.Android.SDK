@@ -925,7 +925,14 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     public void onCreateOffer() {
         if (carrierPeerConnectionClient == null) {
             initialWebrtcClient(carrier, eglBase);
-            onCallInitializedInternal(new CarrierWebrtcClient.SignalingParameters(webrtcClient.getIceServers(), true, remoteUserId, null, null));
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    CarrierWebrtcClient.SignalingParameters params = new CarrierWebrtcClient.SignalingParameters(webrtcClient.getIceServers(), true, remoteUserId, null, null);
+                    onCallInitializedInternal(params);
+                }
+            });
+
         }
         carrierPeerConnectionClient.createOffer();
     }
