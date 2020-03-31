@@ -210,7 +210,52 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
 
         carrier = CarrierClient.getInstance(getApplicationContext()).getCarrier();
 
-        initialWebrtcClient(carrier);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().addFlags(LayoutParams.FLAG_FULLSCREEN | LayoutParams.FLAG_KEEP_SCREEN_ON
+                | LayoutParams.FLAG_SHOW_WHEN_LOCKED | LayoutParams.FLAG_TURN_SCREEN_ON);
+        getWindow().getDecorView().setSystemUiVisibility(getSystemUiVisibility());
+        setContentView(R.layout.activity_call);
+
+        final Intent intent = getIntent();
+        final EglBase eglBase = EglBase.create();
+
+        Uri roomUri = intent.getData();
+        if (roomUri == null) {
+            logAndToast(getString(R.string.missing_url));
+            Log.e(TAG, "Didn't get any URL in intent!");
+            setResult(RESULT_CANCELED);
+            finish();
+            return;
+        }
+
+        String saveRemoteVideoToFile = intent.getStringExtra(EXTRA_SAVE_REMOTE_VIDEO_TO_FILE);
+
+        // When saveRemoteVideoToFile is set we save the video from the remote to a file.
+        if (saveRemoteVideoToFile != null) {
+            int videoOutWidth = intent.getIntExtra(EXTRA_SAVE_REMOTE_VIDEO_TO_FILE_WIDTH, 0);
+            int videoOutHeight = intent.getIntExtra(EXTRA_SAVE_REMOTE_VIDEO_TO_FILE_HEIGHT, 0);
+            try {
+                videoFileRenderer = new VideoFileRenderer(
+                        saveRemoteVideoToFile, videoOutWidth, videoOutHeight, eglBase.getEglBaseContext());
+                remoteSinks.add(videoFileRenderer);
+            } catch (IOException e) {
+                throw new RuntimeException(
+                        "Failed to open video file for output: " + saveRemoteVideoToFile, e);
+            }
+        }
+
+        isCaller = intent.getBooleanExtra(EXTRA_IS_CALLER, false);
+        remoteUserId = intent.getStringExtra(EXTRA_ROOMID);
+
+        //update peerConnectionPararmeters from intent.
+        updatePeerConnectionParametersFromIntent(intent);
+
+        commandLineRun = intent.getBooleanExtra(EXTRA_CMDLINE, false);
+        int runTimeMs = intent.getIntExtra(EXTRA_RUNTIME, 0);
+
+        Log.d(TAG, "VIDEO_FILE: '" + intent.getStringExtra(EXTRA_VIDEO_FILE_AS_CAMERA) + "'");
+
+        initialWebrtcClient(carrier, eglBase);
 
         if (screencaptureEnabled) {
             startScreenCapture();
@@ -220,14 +265,9 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
 
     }
 
-    protected void initialWebrtcClient(Carrier carrier) {
+    protected void initialWebrtcClient(Carrier carrier, EglBase eglBase) {
         // Set window styles for fullscreen-window size. Needs to be done before
         // adding content.
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().addFlags(LayoutParams.FLAG_FULLSCREEN | LayoutParams.FLAG_KEEP_SCREEN_ON
-                | LayoutParams.FLAG_SHOW_WHEN_LOCKED | LayoutParams.FLAG_TURN_SCREEN_ON);
-        getWindow().getDecorView().setSystemUiVisibility(getSystemUiVisibility());
-        setContentView(R.layout.activity_call);
 
         connected = false;
         signalingParameters = null;
@@ -258,26 +298,11 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         remoteSinks.add(remoteProxyRenderer);
 
         final Intent intent = getIntent();
-        final EglBase eglBase = EglBase.create();
 
         // Create video renderers.
         pipRenderer.init(eglBase.getEglBaseContext(), null);
         pipRenderer.setScalingType(ScalingType.SCALE_ASPECT_FIT);
-        String saveRemoteVideoToFile = intent.getStringExtra(EXTRA_SAVE_REMOTE_VIDEO_TO_FILE);
 
-        // When saveRemoteVideoToFile is set we save the video from the remote to a file.
-        if (saveRemoteVideoToFile != null) {
-            int videoOutWidth = intent.getIntExtra(EXTRA_SAVE_REMOTE_VIDEO_TO_FILE_WIDTH, 0);
-            int videoOutHeight = intent.getIntExtra(EXTRA_SAVE_REMOTE_VIDEO_TO_FILE_HEIGHT, 0);
-            try {
-                videoFileRenderer = new VideoFileRenderer(
-                        saveRemoteVideoToFile, videoOutWidth, videoOutHeight, eglBase.getEglBaseContext());
-                remoteSinks.add(videoFileRenderer);
-            } catch (IOException e) {
-                throw new RuntimeException(
-                        "Failed to open video file for output: " + saveRemoteVideoToFile, e);
-            }
-        }
         fullscreenRenderer.init(eglBase.getEglBaseContext(), null);
         fullscreenRenderer.setScalingType(ScalingType.SCALE_ASPECT_FILL);
 
@@ -297,18 +322,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
             }
         }
 
-        Uri roomUri = intent.getData();
-        if (roomUri == null) {
-            logAndToast(getString(R.string.missing_url));
-            Log.e(TAG, "Didn't get any URL in intent!");
-            setResult(RESULT_CANCELED);
-            finish();
-            return;
-        }
-
-        isCaller = intent.getBooleanExtra(EXTRA_IS_CALLER, false);
-        remoteUserId = intent.getStringExtra(EXTRA_ROOMID);
-
         Log.d(TAG, "Callee User Id: " + remoteUserId);
         if ((remoteUserId == null || remoteUserId.length() == 0)) {
             logAndToast(getString(R.string.missing_url));
@@ -317,14 +330,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
             finish();
             return;
         }
-
-        //update peerConnectionPararmeters from intent.
-        updatePeerConnectionParametersFromIntent(intent);
-
-        commandLineRun = intent.getBooleanExtra(EXTRA_CMDLINE, false);
-        int runTimeMs = intent.getIntExtra(EXTRA_RUNTIME, 0);
-
-        Log.d(TAG, "VIDEO_FILE: '" + intent.getStringExtra(EXTRA_VIDEO_FILE_AS_CAMERA) + "'");
 
         // Create CPU monitor
         if (CpuMonitor.isSupported()) {
@@ -508,7 +513,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         super.onStart();
         activityRunning = true;
         if (carrierPeerConnectionClient == null) {
-            initialWebrtcClient(carrier);
+            initialWebrtcClient(carrier, EglBase.create());
         }
         // Video is not paused for screencapture. See onPause.
         if (carrierPeerConnectionClient != null && !screencaptureEnabled) {
@@ -769,7 +774,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         final long delta = System.currentTimeMillis() - callStartedTimeMs;
 
         if (carrierPeerConnectionClient == null) {
-            initialWebrtcClient(carrier);
+            initialWebrtcClient(carrier, EglBase.create());
         }
 
         signalingParameters = params;
@@ -819,7 +824,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
             public void run() {
                 if (!params.initiator) {
                     if (webrtcClient == null) {
-                        initialWebrtcClient(carrier);
+                        initialWebrtcClient(carrier, EglBase.create());
                     }
                     webrtcClient.acceptCallInvite(remoteUserId);
                     try {
@@ -903,7 +908,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     @Override
     public void onCreateOffer() {
         if (carrierPeerConnectionClient == null) {
-            initialWebrtcClient(carrier);
+            initialWebrtcClient(carrier, EglBase.create());
             onCallInitializedInternal(new CarrierWebrtcClient.SignalingParameters(webrtcClient.getIceServers(), true, remoteUserId, null, null));
         }
         carrierPeerConnectionClient.createOffer();
@@ -920,7 +925,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
             @Override
             public void run() {
                 if (webrtcClient == null) {
-                    initialWebrtcClient(carrier);
+                    initialWebrtcClient(carrier, EglBase.create());
                 }
                 if (webrtcClient != null) {
                     logAndToast("Sending " + sdp.type + ", delay=" + delta + "ms");
