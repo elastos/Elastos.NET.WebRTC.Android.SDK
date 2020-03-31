@@ -142,7 +142,9 @@ public class ConnectActivity extends Activity {
     requestPermissions();
 
     String userId = null;
+    String address = null;
     try {
+        address = CarrierClient.getInstance(this).getCarrier().getAddress();
       userId = CarrierClient.getInstance(this).getCarrier().getUserId();
     } catch (CarrierException e) {
       e.printStackTrace();
@@ -203,7 +205,7 @@ public class ConnectActivity extends Activity {
       }
     });
 
-    mQRCodeImage.setImageBitmap(QRCodeUtils.createQRCodeBitmap(userId));
+    mQRCodeImage.setImageBitmap(QRCodeUtils.createQRCodeBitmap(address));
     mAdrress.setText(userId);
 
       if (Build.VERSION.SDK_INT >= 23) {
