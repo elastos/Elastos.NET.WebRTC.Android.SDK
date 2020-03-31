@@ -701,6 +701,9 @@ public class CarrierPeerConnectionClient{
             factory.dispose();
             factory = null;
         }
+        if(carrierWebrtcClient!=null){
+            carrierWebrtcClient = null;
+        }
         rootEglBase.release();
         Log.d(TAG, "Closing peer connection done.");
         events.onPeerConnectionClosed();
