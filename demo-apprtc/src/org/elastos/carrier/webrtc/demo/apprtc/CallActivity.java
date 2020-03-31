@@ -774,7 +774,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         }
 
         signalingParameters = params;
-        logAndToast("Creating peer connection, delay=" + delta + "ms");
+
         VideoCapturer videoCapturer = null;
         if (peerConnectionParameters.videoCallEnabled) {
             videoCapturer = createVideoCapturer();
