@@ -129,7 +129,6 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
           } catch (Exception e) {
               Log.e(TAG, "sendInvite: ", e);
           }
-          rejectCallInternal();
       }
     });
   }
@@ -236,11 +235,6 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
 }
 
 
-  // reject the call invite and set the connectionState to
-  private void rejectCallInternal() {
-    disconnectFromCallInternal();
-  }
-
 
   /**
    * Initial
@@ -282,7 +276,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     handler.post(new Runnable() {
       @Override
       public void run() {
-        if (connectionState != ConnectionState.CONNECTED) {
+        if (connectionState != ConnectionState.CONNECTED && connectionState != ConnectionState.NEW) {
           reportError("Sending offer SDP in non connected state.");
           return;
         }

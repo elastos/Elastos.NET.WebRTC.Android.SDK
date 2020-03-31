@@ -921,6 +921,9 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                if(webrtcClient==null){
+                    initialWebrtcClient(carrier, EglBase.create());
+                }
                 if (webrtcClient != null) {
                     logAndToast("Sending " + sdp.type + ", delay=" + delta + "ms");
                     if (signalingParameters.initiator) {
