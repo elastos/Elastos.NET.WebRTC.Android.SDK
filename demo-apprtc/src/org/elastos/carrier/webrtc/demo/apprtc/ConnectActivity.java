@@ -703,6 +703,9 @@ public class ConnectActivity extends Activity {
     if (validateUrl(roomUrl)) {
       Uri uri = Uri.parse(roomUrl);
       Intent intent = new Intent(this, CallActivity.class);
+      intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
+      intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
       intent.setData(uri);
       intent.putExtra(CallActivity.EXTRA_IS_CALLER, isCaller);
       intent.putExtra(CallActivity.EXTRA_ROOMID, roomId);

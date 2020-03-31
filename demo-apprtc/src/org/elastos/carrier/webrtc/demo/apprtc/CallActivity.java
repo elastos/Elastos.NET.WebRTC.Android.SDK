@@ -604,7 +604,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         if (isCaller) {
             webrtcClient.inviteCall(remoteUserId);
             try {
-                Thread.sleep(500);
+                Thread.sleep(1500);
             } catch (Exception e) {
                 Log.e(TAG, "startCall: ", e);
             }
@@ -839,7 +839,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
                     }
                     webrtcClient.acceptCallInvite(remoteUserId);
                     try {
-                        Thread.sleep(500);
+                        Thread.sleep(1500);
                     } catch (Exception e) {
                         Log.e(TAG, "startCall: ", e);
                     }
@@ -920,7 +920,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     public void onCreateOffer() {
         if (carrierPeerConnectionClient == null) {
             initialWebrtcClient(carrier, eglBase);
-            onCallInitializedInternal(new CarrierWebrtcClient.SignalingParameters(webrtcClient.getIceServers(), true, remoteUserId, null, null));
+            //onCallInitializedInternal(new CarrierWebrtcClient.SignalingParameters(webrtcClient.getIceServers(), true, remoteUserId, null, null));
         }
         carrierPeerConnectionClient.createOffer();
     }
