@@ -702,6 +702,11 @@ public class CarrierPeerConnectionClient{
             factory = null;
         }
         if(carrierWebrtcClient!=null){
+            try {
+                carrierWebrtcClient.finalize();
+            } catch (Throwable throwable) {
+                Log.e(TAG, "Error to finalize carrierWebrtcClient");
+            }
             carrierWebrtcClient = null;
         }
         Log.d(TAG, "Closing carrier webrtc client.");

@@ -399,6 +399,10 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     }
   }
 
+  @Override
+  protected void finalize() throws Throwable {
+    super.finalize();
+  }
 
   // --------------------------------------------------------------------
   // CarrierChannelEvents interface implementation.
