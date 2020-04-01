@@ -818,11 +818,11 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     // are routed to UI thread.
     @Override
     public void onCallInvited(final CarrierWebrtcClient.SignalingParameters params) {
-        remoteUserId = params.remoteUserId;
         //here we start and initial the activity.
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                remoteUserId = params.remoteUserId;
                 onCallInitializedInternal(params);
             }
         });
@@ -923,18 +923,18 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
 
     @Override
     public void onCreateOffer() {
-        if (carrierPeerConnectionClient == null) {
-            initialWebrtcClient(carrier, eglBase);
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (carrierPeerConnectionClient == null) {
+                    initialWebrtcClient(carrier, eglBase);
                     CarrierWebrtcClient.SignalingParameters params = new CarrierWebrtcClient.SignalingParameters(webrtcClient.getIceServers(), true, remoteUserId, null, null);
                     onCallInitializedInternal(params);
                 }
-            });
+                carrierPeerConnectionClient.createOffer();
+            }
+        });
 
-        }
-        carrierPeerConnectionClient.createOffer();
     }
 
     // -----Implementation of CarrierPeerConnectionClient.PeerConnectionEvents.---------
