@@ -20,6 +20,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -92,7 +93,7 @@ public class ConnectActivity extends Activity {
   private String keyprefRoom;
   private String keyprefRoomList;
   private ArrayList<String> roomList;
-  private ArrayAdapter<String> adapter;
+  private CustomListAdapter<String> adapter;
   private ImageView mQRCodeImage;
   private TextView mAdrress;
 
@@ -167,13 +168,17 @@ public class ConnectActivity extends Activity {
         switch (status) {
           case Connected:
             ONLINE_FRIENDS.add(friendId);
+            adapter.addOnline(friendId);
             break;
           case Disconnected:
             ONLINE_FRIENDS.remove(friendId);
+            adapter.removeOnline(friendId);
             break;
           default:
             break;
         }
+
+        runOnUiThread(() -> adapter.notifyDataSetChanged());
       }
 
       @Override
@@ -344,12 +349,14 @@ public class ConnectActivity extends Activity {
         Log.e(TAG, "Failed to load room list: " + e.toString());
       }
     }
-    adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, roomList);
+    adapter = new CustomListAdapter<>(this, android.R.layout.simple_list_item_1, roomList);
     roomListView.setAdapter(adapter);
     if (adapter.getCount() > 0) {
       roomListView.requestFocus();
       roomListView.setItemChecked(0, true);
     }
+    adapter.setOnlineList(ONLINE_FRIENDS);
+    adapter.notifyDataSetChanged();
 
   }
 
