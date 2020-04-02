@@ -53,6 +53,7 @@ import com.google.zxing.integration.android.IntentResult;
 import org.elastos.carrier.CarrierExtension;
 import org.elastos.carrier.ConnectionStatus;
 import org.elastos.carrier.FriendInfo;
+import org.elastos.carrier.PresenceStatus;
 import org.elastos.carrier.webrtc.demo.apprtc.util.QRCodeUtils;
 import org.elastos.carrier.AbstractCarrierHandler;
 import org.elastos.carrier.Carrier;
@@ -63,6 +64,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Handles the initial setup where the user selects which room to join.
@@ -74,6 +76,7 @@ public class ConnectActivity extends Activity {
   private static final int SCAN_REQUEST = 3;
   private static final int REMOVE_FAVORITE_INDEX = 0;
   private static boolean commandLineRun;
+  private static final List<String> ONLINE_FRIENDS = new ArrayList<>();
 
   private ImageButton addFavoriteButton;
   private EditText roomEditText;
@@ -161,6 +164,16 @@ public class ConnectActivity extends Activity {
       public void onFriendConnection(Carrier carrier, String friendId, ConnectionStatus status) {
         super.onFriendConnection(carrier, friendId, status);
         Log.d(TAG, "onFriendConnection: " + friendId);
+        switch (status) {
+          case Connected:
+            ONLINE_FRIENDS.add(friendId);
+            break;
+          case Disconnected:
+            ONLINE_FRIENDS.remove(friendId);
+            break;
+          default:
+            break;
+        }
       }
 
       @Override
@@ -803,6 +816,10 @@ public class ConnectActivity extends Activity {
         @Override
         public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
           String roomId = ((TextView) view).getText().toString();
+          if (ONLINE_FRIENDS.isEmpty() || !ONLINE_FRIENDS.contains(roomId)) {
+            Toast.makeText(ConnectActivity.this, String.format("%s is offline.", roomId), Toast.LENGTH_LONG).show();
+            return;
+          }
           connectToRoom(roomId, false, false, 0, true);
         }
       };

@@ -290,14 +290,12 @@ public class CarrierPeerConnectionClient{
         Log.d(TAG, "Preferred video codec: " + getSdpVideoCodecName(peerConnectionParameters));
 
         final String fieldTrials = getFieldTrials(peerConnectionParameters);
-        executor.execute(() -> {
-            Log.d(TAG, "Initialize WebRTC. Field trials: " + fieldTrials);
-            PeerConnectionFactory.initialize(
-                    PeerConnectionFactory.InitializationOptions.builder(appContext)
-                            .setFieldTrials(fieldTrials)
-                            .setEnableInternalTracer(true)
-                            .createInitializationOptions());
-        });
+        Log.d(TAG, "Initialize WebRTC. Field trials: " + fieldTrials);
+        PeerConnectionFactory.initialize(
+                PeerConnectionFactory.InitializationOptions.builder(appContext)
+                        .setFieldTrials(fieldTrials)
+                        .setEnableInternalTracer(true)
+                        .createInitializationOptions());
     }
 
     /**
@@ -315,7 +313,7 @@ public class CarrierPeerConnectionClient{
         if (factory != null) {
             throw new IllegalStateException("PeerConnectionFactory has already been constructed");
         }
-        executor.execute(() -> createPeerConnectionFactoryInternal(options));
+        createPeerConnectionFactoryInternal(options);
     }
 
     public void createPeerConnection(Context context, final VideoSink localRender, final VideoSink remoteSink,
@@ -336,16 +334,14 @@ public class CarrierPeerConnectionClient{
         this.localRender = localRender;
         this.remoteSinks = remoteSinks;
         this.videoCapturer = videoCapturer;
-        executor.execute(() -> {
-            try {
-                createMediaConstraintsInternal();
-                createPeerConnectionInternal();
-                maybeCreateAndStartRtcEventLog();
-            } catch (Exception e) {
-                reportError("Failed to create peer connection: " + e.getMessage());
-                throw e;
-            }
-        });
+        try {
+            createMediaConstraintsInternal();
+            createPeerConnectionInternal();
+            maybeCreateAndStartRtcEventLog();
+        } catch (Exception e) {
+            reportError("Failed to create peer connection: " + e.getMessage());
+            throw e;
+        }
     }
 
     public void close() {

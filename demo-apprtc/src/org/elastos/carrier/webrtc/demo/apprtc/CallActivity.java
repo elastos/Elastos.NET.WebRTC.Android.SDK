@@ -603,11 +603,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         logAndToast(getString(R.string.connecting_to, remoteUserId));
         if (isCaller) {
             webrtcClient.inviteCall(remoteUserId);
-            try {
-                Thread.sleep(1500);
-            } catch (Exception e) {
-                Log.e(TAG, "startCall: ", e);
-            }
         }
 
         webrtcClient.initialCall(isCaller);
@@ -837,17 +832,7 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
                     if (webrtcClient == null) {
                         initialWebrtcClient(carrier, eglBase);
                     }
-                    try {
-                        Thread.sleep(500);
-                    } catch (Exception e) {
-                        Log.e(TAG, "startCall: ", e);
-                    }
                     webrtcClient.acceptCallInvite(remoteUserId);
-                    try {
-                        Thread.sleep(500);
-                    } catch (Exception e) {
-                        Log.e(TAG, "startCall: ", e);
-                    }
                 }
 
                 onCallInitializedInternal(params);
