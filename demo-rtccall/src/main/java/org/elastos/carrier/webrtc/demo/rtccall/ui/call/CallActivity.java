@@ -276,10 +276,11 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
 
     @Override
     public void onCallHangUp() {
+        CarrierWebrtcClient.getInstance().disconnectFromCall();
         // ElastosWebrtc.getInstance().hangup();
-        if (webrtcClient != null) {
-            webrtcClient.disconnectFromCall();
-        }
+//        if (webrtcClient != null) {
+//            webrtcClient.disconnectFromCall();
+//        }
         finish();
     }
 
