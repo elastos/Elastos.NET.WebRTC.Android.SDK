@@ -1,2 +1,2 @@
-include ':webrtc', ':demo-apprtc'
+include ':webrtc', ':demo-apprtc', ':demo-rtccall'
 

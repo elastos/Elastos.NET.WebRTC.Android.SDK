@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 
+import org.elastos.carrier.webrtc.CarrierWebrtcClient;
 import org.elastos.carrier.webrtc.demo.rtccall.eos.CarrierHandlerImpl;
 import org.elastos.carrier.webrtc.demo.rtccall.ui.dashboard.DashboardFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -71,6 +72,7 @@ public class MainActivity extends AppCompatActivity {
             // Carrier.initializeInstance(new CarrierOption(this.getFilesDir().getParent()), new CarrierHandlerImpl());
             Carrier.getInstance().start(0);
             Log.i(TAG, "Carrier node is ready now");
+            initWebrtc();
         } catch (Exception e) {
             Log.e(TAG, "initialCarrier: ", e);
         }
@@ -78,6 +80,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void initWebrtc() {
         try {
+            CarrierWebrtcClient.initialize(this, Carrier.getInstance(), new CallHandlerImpl(),  null);
             //
         }  catch (Exception e) {
             Log.e(TAG, "initWebrtc: error", e);

@@ -352,25 +352,27 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
     }
 
     private void startCall() {
-        if (webrtcClient == null) {
-            Log.e(TAG, "AppRTC client is not allocated for a register.");
-            return;
-        }
-        callStartedTimeMs = System.currentTimeMillis();
+        CarrierWebrtcClient.getInstance().inviteCall(remoteUserId);
 
-        // Start room connection.
-        logAndToast("connect to: " + calleeUserId);
-//        webrtcClient.initialCall(calleeUserId, remoteUserId);
-        webrtcClient.initialCall(calleeUserId);
-        Log.d(TAG, "startCall: isCaller = " + isCaller + "; caller = " + callerUserId + "; callee = " + calleeUserId + "; remote = " + remoteUserId);
-        if (isCaller) {
-            try {
-                Thread.sleep(500);
-            } catch (Exception e) {
-                Log.e(TAG, "startCall: ", e);
-            }
-            webrtcClient.sendInvite();
-        }
+//        if (webrtcClient == null) {
+//            Log.e(TAG, "AppRTC client is not allocated for a register.");
+//            return;
+//        }
+//        callStartedTimeMs = System.currentTimeMillis();
+//
+//        // Start room connection.
+//        logAndToast("connect to: " + calleeUserId);
+////        webrtcClient.initialCall(calleeUserId, remoteUserId);
+//        webrtcClient.initialCall(calleeUserId);
+//        Log.d(TAG, "startCall: isCaller = " + isCaller + "; caller = " + callerUserId + "; callee = " + calleeUserId + "; remote = " + remoteUserId);
+//        if (isCaller) {
+//            try {
+//                Thread.sleep(500);
+//            } catch (Exception e) {
+//                Log.e(TAG, "startCall: ", e);
+//            }
+//            webrtcClient.sendInvite();
+//        }
 
         // Create and audio manager that will take care of audio routing,
         // audio modes, audio device enumeration etc.
@@ -627,6 +629,11 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
         }
     }
 
+
+    @Override
+    public void onCallInvited(CarrierWebrtcClient.SignalingParameters params) {
+
+    }
 
     // -----Implementation of WebrtcClient.SignalingEvents ---------------
     // All callbacks are invoked from websocket signaling looper thread and

@@ -86,8 +86,8 @@ public abstract class BaseCallActivity extends Activity implements WebrtcClient.
     private CarrierWebrtcClient.SignalingParameters signalingParameters;
 
     //you can override the peer connection parameters in their activity.
-    @Nullable
-    protected PeerConnectionParameters peerConnectionParameters = PeerConnectionParameters.getDefaultPeerConnectionParameters();
+//    @Nullable
+//    protected PeerConnectionParameters peerConnectionParameters = PeerConnectionParameters.getDefaultPeerConnectionParameters();
 
     @Nullable
     protected CarrierPeerConnectionClient carrierPeerConnectionClient;
@@ -105,14 +105,14 @@ public abstract class BaseCallActivity extends Activity implements WebrtcClient.
         carrier = CarrierClient.getInstance(getApplicationContext()).getCarrier();
 
         // Create connection client.
-        webrtcClient = new CarrierWebrtcClient(carrier,this);
-
-        // Create peer connection client.
-        carrierPeerConnectionClient = new CarrierPeerConnectionClient(
-                getApplicationContext(), webrtcClient, eglBase, peerConnectionParameters, this);
-        PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
-
-        carrierPeerConnectionClient.createPeerConnectionFactory(options);
+//        webrtcClient = new CarrierWebrtcClient(carrier,this);
+//
+//        // Create peer connection client.
+//        carrierPeerConnectionClient = new CarrierPeerConnectionClient(
+//                getApplicationContext(), webrtcClient, eglBase, peerConnectionParameters, this);
+//        PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
+//
+//        carrierPeerConnectionClient.createPeerConnectionFactory(options);
 
 
     }
@@ -179,32 +179,32 @@ public abstract class BaseCallActivity extends Activity implements WebrtcClient.
         signalingParameters = params;
         logAndToast("Creating peer connection, delay=" + delta + "ms");
         VideoCapturer videoCapturer = null;
-        if (peerConnectionParameters.videoCallEnabled) {
-            videoCapturer = createVideoCapturer();
-        }
-        carrierPeerConnectionClient.createPeerConnection(this,
-                localProxyVideoSink, remoteSinks, videoCapturer);
-
-        if (signalingParameters.initiator) {
-            logAndToast("Creating OFFER...");
-            // Create offer. Offer SDP will be sent to answering client in
-            // PeerConnectionEvents.onLocalDescription event.
-            carrierPeerConnectionClient.createOffer();
-        } else {
-            if (params.offerSdp != null) {
-                carrierPeerConnectionClient.setRemoteDescription(params.offerSdp);
-                logAndToast("Creating ANSWER...");
-                // Create answer. Answer SDP will be sent to offering client in
-                // PeerConnectionEvents.onLocalDescription event.
-                carrierPeerConnectionClient.createAnswer();
-            }
-            if (params.iceCandidates != null) {
-                // Add remote ICE candidates from room.
-                for (IceCandidate iceCandidate : params.iceCandidates) {
-                    carrierPeerConnectionClient.addRemoteIceCandidate(iceCandidate);
-                }
-            }
-        }
+//        if (peerConnectionParameters.videoCallEnabled) {
+//            videoCapturer = createVideoCapturer();
+//        }
+//        carrierPeerConnectionClient.createPeerConnection(this,
+//                localProxyVideoSink, remoteSinks, videoCapturer);
+//
+//        if (signalingParameters.initiator) {
+//            logAndToast("Creating OFFER...");
+//            // Create offer. Offer SDP will be sent to answering client in
+//            // PeerConnectionEvents.onLocalDescription event.
+//            carrierPeerConnectionClient.createOffer();
+//        } else {
+//            if (params.offerSdp != null) {
+//                carrierPeerConnectionClient.setRemoteDescription(params.offerSdp);
+//                logAndToast("Creating ANSWER...");
+//                // Create answer. Answer SDP will be sent to offering client in
+//                // PeerConnectionEvents.onLocalDescription event.
+//                carrierPeerConnectionClient.createAnswer();
+//            }
+//            if (params.iceCandidates != null) {
+//                // Add remote ICE candidates from room.
+//                for (IceCandidate iceCandidate : params.iceCandidates) {
+//                    carrierPeerConnectionClient.addRemoteIceCandidate(iceCandidate);
+//                }
+//            }
+//        }
     }
 
     @Override
@@ -429,18 +429,18 @@ public abstract class BaseCallActivity extends Activity implements WebrtcClient.
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (webrtcClient != null) {
-                    logAndToast("Sending " + sdp.type + ", delay=" + delta + "ms");
-                    if (signalingParameters.initiator) {
-                        webrtcClient.sendOfferSdp(sdp);
-                    } else {
-                        webrtcClient.sendAnswerSdp(sdp);
-                    }
-                }
-                if (peerConnectionParameters.videoMaxBitrate > 0) {
-                    Log.d(TAG, "Set video maximum bitrate: " + peerConnectionParameters.videoMaxBitrate);
-                    carrierPeerConnectionClient.setVideoMaxBitrate(peerConnectionParameters.videoMaxBitrate);
-                }
+//                if (webrtcClient != null) {
+//                    logAndToast("Sending " + sdp.type + ", delay=" + delta + "ms");
+//                    if (signalingParameters.initiator) {
+//                        webrtcClient.sendOfferSdp(sdp);
+//                    } else {
+//                        webrtcClient.sendAnswerSdp(sdp);
+//                    }
+//                }
+//                if (peerConnectionParameters.videoMaxBitrate > 0) {
+//                    Log.d(TAG, "Set video maximum bitrate: " + peerConnectionParameters.videoMaxBitrate);
+//                    carrierPeerConnectionClient.setVideoMaxBitrate(peerConnectionParameters.videoMaxBitrate);
+//                }
             }
         });
     }

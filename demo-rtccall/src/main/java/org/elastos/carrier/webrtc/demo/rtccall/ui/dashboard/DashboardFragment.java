@@ -81,6 +81,8 @@ public class DashboardFragment extends Fragment {
                 for (int i = 0; i < array.length(); i++) {
                     String friend = array.getString(i);
                     String friendId = Carrier.getInstance().getIdFromAddress(friend);
+                    if (friendId==null)
+                        friendId=friend;
                     boolean online = false;
                     if (Utils.ONLINE_FRIENDS != null && Utils.ONLINE_FRIENDS.contains(friendId)) {
                         online = true;
