@@ -24,6 +24,7 @@ package org.elastos.carrier.webrtc;
 
 import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
+import org.webrtc.SurfaceViewRenderer;
 
 /**
  * WebrtcClient is the interface representing an Carrier webrtc client.
@@ -39,18 +40,35 @@ public interface WebrtcClient {
    * The peer accept a webrtc call invite. Once accept the invite, the caller will send offer to the peer,
    * and also the SignalingEvents.onCallInviteAccepted() will be fired.
    */
-  void acceptCallInvite(String peer) ;
+  void acceptCallInvite() ;
 
-    /**
-     * After invite the peer to join the call, the caller or callee can call initialCall() to prepare for peerConnection.
-     */
-  void initialCall(boolean initiator);
+  /**
+   * The peer reject the webrtc call invite.
+   */
+  void rejectCallInvite();
 
-    /**
-     * The peer reject the webrtc call invite.
-     */
-  void rejectCallInvite(String peer) ;
+  /**
+   * set video renderer, this should be called before inviteCall or acceptCallInvite
+   * @param localRenderer
+   * @param remoteRenderer
+   */
+  void renderVideo(SurfaceViewRenderer localRenderer, SurfaceViewRenderer remoteRenderer);
 
+  /**
+   * swap video renderer or not
+   * @param isSwap
+   */
+  void swapVideoRenderer(boolean isSwap);
+
+  void switchCamera();
+
+  void setResolution(int width, int height, int fps);
+
+  void setAudioEnable(boolean enable);
+
+  void setVideoEnable(boolean enable);
+
+  void destroy();
   /**
    * Send offer SDP to the other participant.
    */

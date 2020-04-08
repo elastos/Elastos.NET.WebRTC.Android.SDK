@@ -71,9 +71,7 @@ import java.util.Set;
  * Activity for peer connection register setup, register waiting
  * and register view.
  */
-public class CallActivity extends Activity implements WebrtcClient.SignalingEvents,
-        PeerConnectionEvents,
-        CallFragment.OnCallEvents {
+public class CallActivity extends Activity implements CallFragment.OnCallEvents {
     private static final String TAG = "CallRTCClient";
 
     public static final String EXTRA_IS_CALLER = "org.elastos.carrier.webrtc.demo.apprtc.IS_CALLER";
@@ -136,39 +134,12 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     // Peer connection statistics callback period in ms.
     private static final int STAT_CALLBACK_PERIOD = 1000;
 
-
-    private static class ProxyVideoSink implements VideoSink {
-        private VideoSink target;
-
-        @Override
-        synchronized public void onFrame(VideoFrame frame) {
-            if (target == null) {
-                Logging.d(TAG, "Dropping frame in proxy because target is null.");
-                return;
-            }
-
-            target.onFrame(frame);
-        }
-
-        synchronized public void setTarget(VideoSink target) {
-            this.target = target;
-        }
-    }
-
-    private final CallActivity.ProxyVideoSink remoteProxyRenderer = new CallActivity.ProxyVideoSink();
-    private final CallActivity.ProxyVideoSink localProxyVideoSink = new CallActivity.ProxyVideoSink();
-
-    @Nullable
-    private CarrierWebrtcClient.SignalingParameters signalingParameters;
     @Nullable
     private AppRTCAudioManager audioManager;
     @Nullable
     private SurfaceViewRenderer pipRenderer;
     @Nullable
     private SurfaceViewRenderer fullscreenRenderer;
-    @Nullable
-    private VideoFileRenderer videoFileRenderer;
-    private final List<VideoSink> remoteSinks = new ArrayList<>();
     private Toast logToast;
     private boolean commandLineRun;
     private boolean activityRunning;
@@ -192,26 +163,13 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     private HudFragment hudFragment;
     private CpuMonitor cpuMonitor;
 
-    //you can override the peer connection parameters in their activity.
-    @Nullable
-    private PeerConnectionParameters peerConnectionParameters;
-
-    @Nullable
-    private CarrierPeerConnectionClient carrierPeerConnectionClient;
-
-    @Nullable
-    private CarrierWebrtcClient webrtcClient;
-
-    private Carrier carrier;
-    private final EglBase eglBase = EglBase.create();
-
+    public static CallActivity INSTANCE;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        INSTANCE  = this;
         Thread.setDefaultUncaughtExceptionHandler(new UnhandledExceptionHandler(this));
-
-        carrier = CarrierClient.getInstance(getApplicationContext()).getCarrier();
 
         // Set window styles for fullscreen-window size. Needs to be done before
         // adding content.
@@ -232,22 +190,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
             return;
         }
 
-        String saveRemoteVideoToFile = intent.getStringExtra(EXTRA_SAVE_REMOTE_VIDEO_TO_FILE);
-
-        // When saveRemoteVideoToFile is set we save the video from the remote to a file.
-        if (saveRemoteVideoToFile != null) {
-            int videoOutWidth = intent.getIntExtra(EXTRA_SAVE_REMOTE_VIDEO_TO_FILE_WIDTH, 0);
-            int videoOutHeight = intent.getIntExtra(EXTRA_SAVE_REMOTE_VIDEO_TO_FILE_HEIGHT, 0);
-            try {
-                videoFileRenderer = new VideoFileRenderer(
-                        saveRemoteVideoToFile, videoOutWidth, videoOutHeight, eglBase.getEglBaseContext());
-                remoteSinks.add(videoFileRenderer);
-            } catch (IOException e) {
-                throw new RuntimeException(
-                        "Failed to open video file for output: " + saveRemoteVideoToFile, e);
-            }
-        }
-
         isCaller = intent.getBooleanExtra(EXTRA_IS_CALLER, false);
         remoteUserId = intent.getStringExtra(EXTRA_ROOMID);
 
@@ -260,7 +202,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         Log.d(TAG, "VIDEO_FILE: '" + intent.getStringExtra(EXTRA_VIDEO_FILE_AS_CAMERA) + "'");
 
         connected = false;
-        signalingParameters = null;
         initUIControls(intent);
 
         // Check for mandatory permissions.
@@ -282,13 +223,8 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
             return;
         }
 
-        initialWebrtcClient(carrier, eglBase);
-
-        if (screencaptureEnabled) {
-            startScreenCapture();
-        } else {
-            startCall();
-        }
+        CarrierWebrtcClient.getInstance().renderVideo(pipRenderer, fullscreenRenderer);
+        startCall();
 
     }
 
@@ -316,20 +252,17 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         });
 
         fullscreenRenderer.setOnClickListener(listener);
-        remoteSinks.add(remoteProxyRenderer);
 
         // Create video renderers.
-        pipRenderer.init(eglBase.getEglBaseContext(), null);
         pipRenderer.setScalingType(ScalingType.SCALE_ASPECT_FIT);
 
-        fullscreenRenderer.init(eglBase.getEglBaseContext(), null);
         fullscreenRenderer.setScalingType(ScalingType.SCALE_ASPECT_FILL);
 
         pipRenderer.setZOrderMediaOverlay(true);
         pipRenderer.setEnableHardwareScaler(true /* enabled */);
         fullscreenRenderer.setEnableHardwareScaler(false /* enabled */);
         // Start with local feed in fullscreen and swap it to the pip when the register is connected.
-        setSwappedFeeds(true /* isSwappedFeeds */);
+        // setSwappedFeeds(true /* isSwappedFeeds */);
 
         // Create CPU monitor
         if (CpuMonitor.isSupported()) {
@@ -345,62 +278,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         ft.add(R.id.call_fragment_container, callFragment);
         ft.add(R.id.hud_fragment_container, hudFragment);
         ft.commit();
-    }
-
-    protected void initialWebrtcClient(Carrier carrier, EglBase eglBase) {
-
-        // Create connection client.
-        webrtcClient = new CarrierWebrtcClient(carrier, this);
-        webrtcClient.setRemoteUserId(remoteUserId);
-
-        if (peerConnectionParameters == null) {
-            updatePeerConnectionParametersFromIntent(getIntent());
-        }
-        // Create peer connection client.
-        carrierPeerConnectionClient = new CarrierPeerConnectionClient(
-                getApplicationContext(), webrtcClient, eglBase, peerConnectionParameters, this);
-        PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
-
-        carrierPeerConnectionClient.createPeerConnectionFactory(options);
-    }
-
-    private void updatePeerConnectionParametersFromIntent(Intent intent) {
-        boolean tracing = intent.getBooleanExtra(EXTRA_TRACING, false);
-
-        int videoWidth = intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0);
-        int videoHeight = intent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0);
-
-        screencaptureEnabled = intent.getBooleanExtra(EXTRA_SCREENCAPTURE, false);
-        // If capturing format is not specified for screencapture, use screen resolution.
-        if (screencaptureEnabled && videoWidth == 0 && videoHeight == 0) {
-            DisplayMetrics displayMetrics = getDisplayMetrics();
-            videoWidth = displayMetrics.widthPixels;
-            videoHeight = displayMetrics.heightPixels;
-        }
-        DataChannelParameters dataChannelParameters = null;
-        if (intent.getBooleanExtra(EXTRA_DATA_CHANNEL_ENABLED, false)) {
-            dataChannelParameters = new DataChannelParameters(intent.getBooleanExtra(EXTRA_ORDERED, true),
-                    intent.getIntExtra(EXTRA_MAX_RETRANSMITS_MS, -1),
-                    intent.getIntExtra(EXTRA_MAX_RETRANSMITS, -1), intent.getStringExtra(EXTRA_PROTOCOL),
-                    intent.getBooleanExtra(EXTRA_NEGOTIATED, false), intent.getIntExtra(EXTRA_ID, -1));
-        }
-
-        peerConnectionParameters =
-                new PeerConnectionParameters(intent.getBooleanExtra(EXTRA_VIDEO_CALL, true),
-                        tracing, videoWidth, videoHeight, intent.getIntExtra(EXTRA_VIDEO_FPS, 0),
-                        intent.getIntExtra(EXTRA_VIDEO_BITRATE, 0), intent.getStringExtra(EXTRA_VIDEOCODEC),
-                        intent.getBooleanExtra(EXTRA_HWCODEC_ENABLED, true),
-                        intent.getBooleanExtra(EXTRA_FLEXFEC_ENABLED, false),
-                        intent.getIntExtra(EXTRA_AUDIO_BITRATE, 0), intent.getStringExtra(EXTRA_AUDIOCODEC),
-                        intent.getBooleanExtra(EXTRA_NOAUDIOPROCESSING_ENABLED, false),
-                        intent.getBooleanExtra(EXTRA_AECDUMP_ENABLED, false),
-                        intent.getBooleanExtra(EXTRA_SAVE_INPUT_AUDIO_TO_FILE_ENABLED, false),
-                        intent.getBooleanExtra(EXTRA_OPENSLES_ENABLED, false),
-                        intent.getBooleanExtra(EXTRA_DISABLE_BUILT_IN_AEC, false),
-                        intent.getBooleanExtra(EXTRA_DISABLE_BUILT_IN_AGC, false),
-                        intent.getBooleanExtra(EXTRA_DISABLE_BUILT_IN_NS, false),
-                        intent.getBooleanExtra(EXTRA_DISABLE_WEBRTC_AGC_AND_HPF, false),
-                        intent.getBooleanExtra(EXTRA_ENABLE_RTCEVENTLOG, false), dataChannelParameters);
     }
 
     @TargetApi(17)
@@ -421,22 +298,13 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         return flags;
     }
 
-    @TargetApi(21)
-    private void startScreenCapture() {
-        MediaProjectionManager mediaProjectionManager =
-                (MediaProjectionManager) getApplication().getSystemService(
-                        Context.MEDIA_PROJECTION_SERVICE);
-        startActivityForResult(
-                mediaProjectionManager.createScreenCaptureIntent(), CAPTURE_PERMISSION_REQUEST_CODE);
-    }
-
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode != CAPTURE_PERMISSION_REQUEST_CODE)
             return;
         mediaProjectionPermissionResultCode = resultCode;
         mediaProjectionPermissionResultData = data;
-        startCall();
+        // startCall();
     }
 
     private boolean useCamera2() {
@@ -501,11 +369,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     public void onStop() {
         super.onStop();
         activityRunning = false;
-        // Don't stop the video when using screencapture to allow user to show other apps to the remote
-        // end.
-        if (carrierPeerConnectionClient != null && !screencaptureEnabled) {
-            carrierPeerConnectionClient.stopVideoSource();
-        }
         if (cpuMonitor != null) {
             cpuMonitor.pause();
         }
@@ -515,13 +378,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     public void onStart() {
         super.onStart();
         activityRunning = true;
-        if (carrierPeerConnectionClient == null) {
-            initialWebrtcClient(carrier, eglBase);
-        }
-        // Video is not paused for screencapture. See onPause.
-        if (carrierPeerConnectionClient != null && !screencaptureEnabled) {
-            carrierPeerConnectionClient.startVideoSource();
-        }
         if (cpuMonitor != null) {
             cpuMonitor.resume();
         }
@@ -541,15 +397,13 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     // CallFragment.OnCallEvents interface implementation.
     @Override
     public void onCallHangUp() {
-        webrtcClient.rejectCallInvite(remoteUserId);
+        CarrierWebrtcClient.getInstance().disconnectFromCall();
         disconnect();
     }
 
     @Override
     public void onCameraSwitch() {
-        if (carrierPeerConnectionClient != null) {
-            carrierPeerConnectionClient.switchCamera();
-        }
+        CarrierWebrtcClient.getInstance().switchCamera();
     }
 
     @Override
@@ -559,17 +413,13 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
 
     @Override
     public void onCaptureFormatChange(int width, int height, int framerate) {
-        if (carrierPeerConnectionClient != null) {
-            carrierPeerConnectionClient.changeCaptureFormat(width, height, framerate);
-        }
+        CarrierWebrtcClient.getInstance().setResolution(width, height, framerate);
     }
 
     @Override
     public boolean onToggleMic() {
-        if (carrierPeerConnectionClient != null) {
-            micEnabled = !micEnabled;
-            carrierPeerConnectionClient.setAudioEnabled(micEnabled);
-        }
+        micEnabled = !micEnabled;
+        CarrierWebrtcClient.getInstance().setAudioEnable(micEnabled);
         return micEnabled;
     }
 
@@ -593,19 +443,22 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     }
 
     private void startCall() {
-        if (webrtcClient == null) {
-            Log.e(TAG, "AppRTC client is not allocated for a register.");
-            return;
-        }
         callStartedTimeMs = System.currentTimeMillis();
 
         // Start call connection.
         logAndToast(getString(R.string.connecting_to, remoteUserId));
         if (isCaller) {
-            webrtcClient.inviteCall(remoteUserId);
+            CarrierWebrtcClient.getInstance().inviteCall(remoteUserId);
+        } else {
+            try {
+                Thread.sleep(1000);
+                CarrierWebrtcClient.getInstance().acceptCallInvite();
+            } catch (Exception e) {
+                Log.e(TAG, "startCall: ", e);
+            }
         }
 
-        webrtcClient.initialCall(isCaller);
+        // webrtcClient.initialCall(isCaller);
 
         // Create and audio manager that will take care of audio routing,
         // audio modes, audio device enumeration etc.
@@ -624,19 +477,6 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         });
     }
 
-    // Should be called from UI thread
-    private void callConnected() {
-        final long delta = System.currentTimeMillis() - callStartedTimeMs;
-        Log.i(TAG, "Call connected: delay=" + delta + "ms");
-        if (carrierPeerConnectionClient == null || isError) {
-            Log.w(TAG, "Call is connected in closed or error state");
-            return;
-        }
-        // Enable statistics callback.
-        carrierPeerConnectionClient.enableStatsEvents(true, STAT_CALLBACK_PERIOD);
-        setSwappedFeeds(false /* isSwappedFeeds */);
-    }
-
     // This method is called when the audio manager reports audio device change,
     // e.g. from wired headset to speakerphone.
     private void onAudioManagerDevicesChanged(
@@ -647,38 +487,28 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
     }
 
     // Disconnect from remote resources, dispose of local resources, and exit.
-    private void disconnect() {
-        activityRunning = false;
-        remoteProxyRenderer.setTarget(null);
-        localProxyVideoSink.setTarget(null);
-        if (webrtcClient != null) {
-            webrtcClient.disconnectFromCall();
-            webrtcClient = null;
-        }
-        if (pipRenderer != null) {
-            pipRenderer.release();
-            pipRenderer = null;
-        }
-        if (videoFileRenderer != null) {
-            videoFileRenderer.release();
-            videoFileRenderer = null;
-        }
-        if (fullscreenRenderer != null) {
-            fullscreenRenderer.release();
-            fullscreenRenderer = null;
-        }
-        if (carrierPeerConnectionClient != null) {
-            carrierPeerConnectionClient.close();
-            carrierPeerConnectionClient = null;
-        }
-        if (audioManager != null) {
-            audioManager.stop();
-            audioManager = null;
-        }
-        if (connected && !isError) {
-            setResult(RESULT_OK);
-        } else {
-            setResult(RESULT_CANCELED);
+    public void disconnect() {
+        try {
+            activityRunning = false;
+            if (pipRenderer != null) {
+                pipRenderer.release();
+                pipRenderer = null;
+            }
+            if (fullscreenRenderer != null) {
+                fullscreenRenderer.release();
+                fullscreenRenderer = null;
+            }
+            if (audioManager != null) {
+                audioManager.stop();
+                audioManager = null;
+            }
+            if (connected && !isError) {
+                setResult(RESULT_OK);
+            } else {
+                setResult(RESULT_CANCELED);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "disconnect: ", e);
         }
         finish();
     }
@@ -766,279 +596,46 @@ public class CallActivity extends Activity implements WebrtcClient.SignalingEven
         }
 
         this.isSwappedFeeds = isSwappedFeeds;
-        localProxyVideoSink.setTarget(isSwappedFeeds ? fullscreenRenderer : pipRenderer);
-        remoteProxyRenderer.setTarget(isSwappedFeeds ? pipRenderer : fullscreenRenderer);
-        fullscreenRenderer.setMirror(isSwappedFeeds);
-        pipRenderer.setMirror(!isSwappedFeeds);
+        CarrierWebrtcClient.getInstance().swapVideoRenderer(isSwappedFeeds);
     }
 
-    private void onCallInitializedInternal(final CarrierWebrtcClient.SignalingParameters params) {
-        final long delta = System.currentTimeMillis() - callStartedTimeMs;
+    private void updatePeerConnectionParametersFromIntent(Intent intent) {
+        boolean tracing = intent.getBooleanExtra(EXTRA_TRACING, false);
 
-        if (peerConnectionParameters == null) {
-            updatePeerConnectionParametersFromIntent(getIntent());
+        int videoWidth = intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0);
+        int videoHeight = intent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0);
+
+        screencaptureEnabled = intent.getBooleanExtra(EXTRA_SCREENCAPTURE, false);
+        // If capturing format is not specified for screencapture, use screen resolution.
+        if (screencaptureEnabled && videoWidth == 0 && videoHeight == 0) {
+            DisplayMetrics displayMetrics = getDisplayMetrics();
+            videoWidth = displayMetrics.widthPixels;
+            videoHeight = displayMetrics.heightPixels;
         }
-
-        if (carrierPeerConnectionClient == null) {
-            initialWebrtcClient(carrier, eglBase);
+        /*
+        DataChannelParameters dataChannelParameters = null;
+        if (intent.getBooleanExtra(EXTRA_DATA_CHANNEL_ENABLED, false)) {
+            dataChannelParameters = new DataChannelParameters(intent.getBooleanExtra(EXTRA_ORDERED, true),
+                    intent.getIntExtra(EXTRA_MAX_RETRANSMITS_MS, -1),
+                    intent.getIntExtra(EXTRA_MAX_RETRANSMITS, -1), intent.getStringExtra(EXTRA_PROTOCOL),
+                    intent.getBooleanExtra(EXTRA_NEGOTIATED, false), intent.getIntExtra(EXTRA_ID, -1));
         }
-
-        signalingParameters = params;
-
-        VideoCapturer videoCapturer = null;
-        if (peerConnectionParameters.videoCallEnabled) {
-            videoCapturer = createVideoCapturer();
-        }
-        carrierPeerConnectionClient.createPeerConnection(this,
-                localProxyVideoSink, remoteSinks, videoCapturer);
-
-        if (params.offerSdp != null) {
-            carrierPeerConnectionClient.setRemoteDescription(params.offerSdp);
-            logAndToast("Creating ANSWER...");
-            // Create answer. Answer SDP will be sent to offering client in
-            // PeerConnectionEvents.onLocalDescription event.
-            carrierPeerConnectionClient.createAnswer();
-        }
-        if (params.iceCandidates != null) {
-            // Add remote ICE candidates from room.
-            for (IceCandidate iceCandidate : params.iceCandidates) {
-                carrierPeerConnectionClient.addRemoteIceCandidate(iceCandidate);
-            }
-        }
-    }
-
-
-    // -----Implementation of WebrtcClient.SignalingEvents ---------------
-    // All callbacks are invoked from websocket signaling looper thread and
-    // are routed to UI thread.
-    @Override
-    public void onCallInvited(final CarrierWebrtcClient.SignalingParameters params) {
-        //here we start and initial the activity.
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                remoteUserId = params.remoteUserId;
-                onCallInitializedInternal(params);
-            }
-        });
-    }
-
-    @Override
-    public void onCallInitialized(final CarrierWebrtcClient.SignalingParameters params) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (!params.initiator) {
-                    if (webrtcClient == null) {
-                        initialWebrtcClient(carrier, eglBase);
-                    }
-                    webrtcClient.acceptCallInvite(remoteUserId);
-                }
-
-                onCallInitializedInternal(params);
-            }
-        });
-    }
-
-    @Override
-    public void onRemoteDescription(final SessionDescription sdp) {
-        final long delta = System.currentTimeMillis() - callStartedTimeMs;
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (carrierPeerConnectionClient == null) {
-                    Log.e(TAG, "Received remote SDP for non-initilized peer connection.");
-                    return;
-                }
-                logAndToast("Received remote " + sdp.type + ", delay=" + delta + "ms");
-                carrierPeerConnectionClient.setRemoteDescription(sdp);
-                if (!signalingParameters.initiator) {
-                    logAndToast("Creating ANSWER...");
-                    // Create answer. Answer SDP will be sent to offering client in
-                    // PeerConnectionEvents.onLocalDescription event.
-                    carrierPeerConnectionClient.createAnswer();
-                }
-            }
-        });
-    }
-
-    @Override
-    public void onRemoteIceCandidate(final IceCandidate candidate) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (carrierPeerConnectionClient == null) {
-                    Log.e(TAG, "Received ICE candidate for a non-initialized peer connection.");
-                    return;
-                }
-                carrierPeerConnectionClient.addRemoteIceCandidate(candidate);
-            }
-        });
-    }
-
-    @Override
-    public void onRemoteIceCandidatesRemoved(final IceCandidate[] candidates) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (carrierPeerConnectionClient == null) {
-                    Log.e(TAG, "Received ICE candidate removals for a non-initialized peer connection.");
-                    return;
-                }
-                carrierPeerConnectionClient.removeRemoteIceCandidates(candidates);
-            }
-        });
-    }
-
-    @Override
-    public void onChannelClose() {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                logAndToast("Remote end hung up; dropping PeerConnection");
-                disconnect();
-            }
-        });
-    }
-
-    @Override
-    public void onChannelError(final String description) {
-        reportError(description);
-    }
-
-    @Override
-    public void onCreateOffer() {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (carrierPeerConnectionClient == null) {
-                    initialWebrtcClient(carrier, eglBase);
-                    CarrierWebrtcClient.SignalingParameters params = new CarrierWebrtcClient.SignalingParameters(webrtcClient.getIceServers(), true, remoteUserId, null, null);
-                    onCallInitializedInternal(params);
-                }
-                carrierPeerConnectionClient.createOffer();
-            }
-        });
-
-    }
-
-    // -----Implementation of CarrierPeerConnectionClient.PeerConnectionEvents.---------
-    // Send local peer connection SDP and ICE candidates to remote party.
-    // All callbacks are invoked from peer connection client looper thread and
-    // are routed to UI thread.
-    @Override
-    public void onLocalDescription(final SessionDescription sdp) {
-        final long delta = System.currentTimeMillis() - callStartedTimeMs;
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (webrtcClient == null) {
-                    initialWebrtcClient(carrier, EglBase.create());
-                }
-                if (webrtcClient != null) {
-                    logAndToast("Sending " + sdp.type + ", delay=" + delta + "ms");
-                    if (signalingParameters.initiator) {
-                        webrtcClient.sendOfferSdp(sdp);
-                    } else {
-                        webrtcClient.sendAnswerSdp(sdp);
-                    }
-                }
-                if (peerConnectionParameters.videoMaxBitrate > 0) {
-                    Log.d(TAG, "Set video maximum bitrate: " + peerConnectionParameters.videoMaxBitrate);
-                    carrierPeerConnectionClient.setVideoMaxBitrate(peerConnectionParameters.videoMaxBitrate);
-                }
-            }
-        });
-    }
-
-    @Override
-    public void onIceCandidate(final IceCandidate candidate) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (webrtcClient != null) {
-                    webrtcClient.sendLocalIceCandidate(candidate);
-                }
-            }
-        });
-    }
-
-    @Override
-    public void onIceCandidatesRemoved(final IceCandidate[] candidates) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (webrtcClient != null) {
-                    webrtcClient.sendLocalIceCandidateRemovals(candidates);
-                }
-            }
-        });
-    }
-
-    @Override
-    public void onIceConnected() {
-        final long delta = System.currentTimeMillis() - callStartedTimeMs;
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                logAndToast("ICE connected, delay=" + delta + "ms");
-            }
-        });
-    }
-
-    @Override
-    public void onIceDisconnected() {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                logAndToast("ICE disconnected");
-            }
-        });
-    }
-
-    @Override
-    public void onConnected() {
-        final long delta = System.currentTimeMillis() - callStartedTimeMs;
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                logAndToast("DTLS connected, delay=" + delta + "ms");
-                connected = true;
-                callConnected();
-            }
-        });
-    }
-
-    @Override
-    public void onDisconnected() {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                logAndToast("DTLS disconnected");
-                connected = false;
-                disconnect();
-            }
-        });
-    }
-
-    @Override
-    public void onPeerConnectionClosed() {
-    }
-
-    @Override
-    public void onPeerConnectionStatsReady(final StatsReport[] reports) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (!isError && connected) {
-                    hudFragment.updateEncoderStatistics(reports);
-                }
-            }
-        });
-    }
-
-    @Override
-    public void onPeerConnectionError(final String description) {
-        reportError(description);
+        */
+//        peerConnectionParameters =
+//                new PeerConnectionParameters(intent.getBooleanExtra(EXTRA_VIDEO_CALL, true),
+//                        tracing, videoWidth, videoHeight, intent.getIntExtra(EXTRA_VIDEO_FPS, 0),
+//                        intent.getIntExtra(EXTRA_VIDEO_BITRATE, 0), intent.getStringExtra(EXTRA_VIDEOCODEC),
+//                        intent.getBooleanExtra(EXTRA_HWCODEC_ENABLED, true),
+//                        intent.getBooleanExtra(EXTRA_FLEXFEC_ENABLED, false),
+//                        intent.getIntExtra(EXTRA_AUDIO_BITRATE, 0), intent.getStringExtra(EXTRA_AUDIOCODEC),
+//                        intent.getBooleanExtra(EXTRA_NOAUDIOPROCESSING_ENABLED, false),
+//                        intent.getBooleanExtra(EXTRA_AECDUMP_ENABLED, false),
+//                        intent.getBooleanExtra(EXTRA_SAVE_INPUT_AUDIO_TO_FILE_ENABLED, false),
+//                        intent.getBooleanExtra(EXTRA_OPENSLES_ENABLED, false),
+//                        intent.getBooleanExtra(EXTRA_DISABLE_BUILT_IN_AEC, false),
+//                        intent.getBooleanExtra(EXTRA_DISABLE_BUILT_IN_AGC, false),
+//                        intent.getBooleanExtra(EXTRA_DISABLE_BUILT_IN_NS, false),
+//                        intent.getBooleanExtra(EXTRA_DISABLE_WEBRTC_AGC_AND_HPF, false),
+//                        intent.getBooleanExtra(EXTRA_ENABLE_RTCEVENTLOG, false), null);
     }
 }

@@ -136,7 +136,7 @@ public class CarrierPeerConnectionClient{
     private final PCObserver pcObserver = new PCObserver();
     private final SDPObserver sdpObserver = new SDPObserver();
     private final Timer statsTimer = new Timer();
-    private final EglBase rootEglBase;
+    private EglBase rootEglBase;
     private final Context appContext;
     private final PeerConnectionParameters peerConnectionParameters;
     private final PeerConnectionEvents events;
@@ -193,6 +193,7 @@ public class CarrierPeerConnectionClient{
     @Nullable private RecordedAudioToFileController saveRecordedAudioToFile;
 
     @Nullable private CarrierWebrtcClient carrierWebrtcClient; //inject WebrtcClient for using Carrier and TurnServer from the CarrierExtension.
+    @Nullable private List<PeerConnection.IceServer> iceServers;
 
     /**
      * Peer connection parameters.
@@ -271,6 +272,25 @@ public class CarrierPeerConnectionClient{
             this.enableRtcEventLog = enableRtcEventLog;
             this.dataChannelParameters = dataChannelParameters;
         }
+    }
+
+    public CarrierPeerConnectionClient(Context context, List<PeerConnection.IceServer> iceServers, EglBase eglBase,
+                                       PeerConnectionParameters peerConnectionParameters, PeerConnectionEvents events) {
+        super();
+        this.rootEglBase = eglBase;
+        this.appContext = context;
+        this.peerConnectionParameters = peerConnectionParameters;
+        this.events = events;
+        this.dataChannelEnabled = false;
+        this.iceServers = iceServers;
+
+        final String fieldTrials = getFieldTrials(peerConnectionParameters);
+        Log.d(TAG, "Initialize WebRTC. Field trials: " + fieldTrials);
+        PeerConnectionFactory.initialize(
+                PeerConnectionFactory.InitializationOptions.builder(appContext)
+                        .setFieldTrials(fieldTrials)
+                        .setEnableInternalTracer(true)
+                        .createInitializationOptions());
     }
 
     /**
@@ -549,9 +569,6 @@ public class CarrierPeerConnectionClient{
 
         queuedRemoteCandidates = new ArrayList<>();
 
-        //Get iceServers from webrtcClient.
-        List<PeerConnection.IceServer> iceServers = carrierWebrtcClient.getIceServers();
-
         PeerConnection.RTCConfiguration rtcConfig =
                 new PeerConnection.RTCConfiguration(iceServers);
         // TCP candidates are only useful when connecting to a server that supports
@@ -706,7 +723,14 @@ public class CarrierPeerConnectionClient{
             carrierWebrtcClient = null;
         }
         Log.d(TAG, "Closing carrier webrtc client.");
-        rootEglBase.release();
+        if (rootEglBase != null) {
+            try {
+                rootEglBase.release();
+                rootEglBase = null;
+            } catch (Exception e) {
+                Log.e(TAG, "closeInternal: release eglBase error", e);
+            }
+        }
         Log.d(TAG, "Closing peer connection done.");
         events.onPeerConnectionClosed();
         PeerConnectionFactory.stopInternalTracingCapture();
@@ -811,7 +835,9 @@ public class CarrierPeerConnectionClient{
             // Drain the queued remote candidates if there is any so that
             // they are processed in the proper order.
             drainCandidates();
-            peerConnection.removeIceCandidates(candidates);
+            if (candidates != null && candidates.length > 0) {
+                peerConnection.removeIceCandidates(candidates);
+            }
         });
     }
 

@@ -55,6 +55,7 @@ import org.elastos.carrier.CarrierExtension;
 import org.elastos.carrier.ConnectionStatus;
 import org.elastos.carrier.FriendInfo;
 import org.elastos.carrier.PresenceStatus;
+import org.elastos.carrier.webrtc.CarrierWebrtcClient;
 import org.elastos.carrier.webrtc.demo.apprtc.util.QRCodeUtils;
 import org.elastos.carrier.AbstractCarrierHandler;
 import org.elastos.carrier.Carrier;
@@ -96,10 +97,12 @@ public class ConnectActivity extends Activity {
   private CustomListAdapter<String> adapter;
   private ImageView mQRCodeImage;
   private TextView mAdrress;
+  public static ConnectActivity INSTANCE;
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    INSTANCE = this;
 
     // Get setting keys.
     PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
@@ -223,18 +226,20 @@ public class ConnectActivity extends Activity {
     mQRCodeImage.setImageBitmap(QRCodeUtils.createQRCodeBitmap(address));
     mAdrress.setText(userId);
 
-      if (Build.VERSION.SDK_INT >= 23) {
-          int REQUEST_CODE_CONTACT = 101;
-          String[] permissions = {Manifest.permission.WRITE_EXTERNAL_STORAGE};
-          //验证是否许可权限
-          for (String str : permissions) {
-              if (this.checkSelfPermission(str) != PackageManager.PERMISSION_GRANTED) {
-                  //申请权限
-                  this.requestPermissions(permissions, REQUEST_CODE_CONTACT);
-                  return;
-              }
-          }
+    if (Build.VERSION.SDK_INT >= 23) {
+      int REQUEST_CODE_CONTACT = 101;
+      String[] permissions = {Manifest.permission.WRITE_EXTERNAL_STORAGE};
+      //验证是否许可权限
+      for (String str : permissions) {
+        if (this.checkSelfPermission(str) != PackageManager.PERMISSION_GRANTED) {
+          //申请权限
+          this.requestPermissions(permissions, REQUEST_CODE_CONTACT);
+          return;
+        }
       }
+    }
+
+    CarrierWebrtcClient.initialize(this, Carrier.getInstance(), new CallHandlerImpl(),  null);
   }
 
   @Override
@@ -537,7 +542,7 @@ public class ConnectActivity extends Activity {
   }
 
   @SuppressWarnings("StringSplitter")
-  private void connectToRoom(String roomId, boolean commandLineRun,
+  public void connectToRoom(String roomId, boolean commandLineRun,
       boolean useValuesFromIntent, int runTimeMs, boolean isCaller) {
     ConnectActivity.commandLineRun = commandLineRun;
 
