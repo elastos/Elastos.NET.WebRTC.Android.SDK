@@ -172,11 +172,11 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
 
         final EglBase eglBase = EglBase.create();
         // Create video renderers.
-        pipRenderer.init(eglBase.getEglBaseContext(), null);
+//        pipRenderer.init(eglBase.getEglBaseContext(), null);
         pipRenderer.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT);
         pipRenderer.setZOrderMediaOverlay(true);
         pipRenderer.setEnableHardwareScaler(true /* enabled */);
-        fullscreenRenderer.init(eglBase.getEglBaseContext(), null);
+//        fullscreenRenderer.init(eglBase.getEglBaseContext(), null);
         fullscreenRenderer.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL);
         fullscreenRenderer.setEnableHardwareScaler(false /* enabled */);
         // Start with local feed in fullscreen and swap it to the pip when the register is connected.
@@ -214,6 +214,8 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
 
         Log.d(TAG, "onCreate:  carrierPeerConnectionClient = " + carrierPeerConnectionClient);
         carrierPeerConnectionClient.createPeerConnectionFactory(options);
+
+        CarrierWebrtcClient.getInstance().renderVideo(pipRenderer, fullscreenRenderer);
 
         // 主叫直接呼叫，被叫接听后再呼.
         if (isCaller) {
@@ -352,7 +354,17 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
     }
 
     private void startCall() {
-        CarrierWebrtcClient.getInstance().inviteCall(remoteUserId);
+//        CarrierWebrtcClient.getInstance().inviteCall(remoteUserId);
+        if (isCaller) {
+            CarrierWebrtcClient.getInstance().inviteCall(remoteUserId);
+        } else {
+            try {
+                Thread.sleep(1000);
+                CarrierWebrtcClient.getInstance().acceptCallInvite();
+            } catch (Exception e) {
+                Log.e(TAG, "startCall: ", e);
+            }
+        }
 
 //        if (webrtcClient == null) {
 //            Log.e(TAG, "AppRTC client is not allocated for a register.");
