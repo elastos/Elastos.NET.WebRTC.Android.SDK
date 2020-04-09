@@ -60,15 +60,36 @@ public interface WebrtcClient {
    */
   void swapVideoRenderer(boolean isSwap);
 
+  /**
+   * <p>switch camera</p>
+   */
   void switchCamera();
 
+    /**
+     * <p>reset video resolution</p>
+     * @param width video width
+     * @param height video height
+     * @param fps fps
+     */
   void setResolution(int width, int height, int fps);
 
+    /**
+     * enable or disable audio
+     * @param enable true - enable audio; false - disable audio
+     */
   void setAudioEnable(boolean enable);
 
+    /**
+     * enable or disable video
+     * @param enable true - enable video; false - disable video
+     */
   void setVideoEnable(boolean enable);
 
+    /**
+     * <p>this will release everything</p>
+     */
   void destroy();
+
   /**
    * Send offer SDP to the other participant.
    */

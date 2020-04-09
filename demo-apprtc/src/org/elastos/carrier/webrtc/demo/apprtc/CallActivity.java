@@ -18,8 +18,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.media.projection.MediaProjection;
-import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -33,37 +31,12 @@ import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 
-import org.elastos.carrier.Carrier;
-import org.elastos.carrier.webrtc.CarrierPeerConnectionClient;
-import org.elastos.carrier.webrtc.CarrierPeerConnectionClient.DataChannelParameters;
-import org.elastos.carrier.webrtc.CarrierPeerConnectionClient.PeerConnectionParameters;
 import org.elastos.carrier.webrtc.CarrierWebrtcClient;
-import org.elastos.carrier.webrtc.PeerConnectionEvents;
-import org.elastos.carrier.webrtc.WebrtcClient;
-import org.elastos.carrier.webrtc.demo.apprtc.AppRTCAudioManager.AudioDevice;
-import org.elastos.carrier.webrtc.demo.apprtc.AppRTCAudioManager.AudioManagerEvents;
-import org.webrtc.Camera1Enumerator;
-import org.webrtc.Camera2Enumerator;
-import org.webrtc.CameraEnumerator;
-import org.webrtc.EglBase;
-import org.webrtc.FileVideoCapturer;
-import org.webrtc.IceCandidate;
+import org.elastos.carrier.webrtc.util.WebRTCAudioManager;
+import org.elastos.carrier.webrtc.util.WebRTCAudioManager.*;
 import org.webrtc.Logging;
-import org.webrtc.PeerConnectionFactory;
-import org.webrtc.RendererCommon;
 import org.webrtc.RendererCommon.ScalingType;
-import org.webrtc.ScreenCapturerAndroid;
-import org.webrtc.SessionDescription;
-import org.webrtc.StatsReport;
 import org.webrtc.SurfaceViewRenderer;
-import org.webrtc.VideoCapturer;
-import org.webrtc.VideoFileRenderer;
-import org.webrtc.VideoFrame;
-import org.webrtc.VideoSink;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 
 
@@ -135,7 +108,7 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
     private static final int STAT_CALLBACK_PERIOD = 1000;
 
     @Nullable
-    private AppRTCAudioManager audioManager;
+    private WebRTCAudioManager audioManager;
     @Nullable
     private SurfaceViewRenderer pipRenderer;
     @Nullable
@@ -152,6 +125,8 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
     private boolean callControlFragmentVisible = true;
     private long callStartedTimeMs;
     private boolean micEnabled = true;
+    private boolean speakOn = false;
+    private boolean videoOn = true;
     private boolean screencaptureEnabled;
     private static Intent mediaProjectionPermissionResultData;
     private static int mediaProjectionPermissionResultCode;
@@ -307,63 +282,6 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
         // startCall();
     }
 
-    private boolean useCamera2() {
-        return Camera2Enumerator.isSupported(this) && getIntent().getBooleanExtra(EXTRA_CAMERA2, true);
-    }
-
-    private boolean captureToTexture() {
-        return getIntent().getBooleanExtra(EXTRA_CAPTURETOTEXTURE_ENABLED, false);
-    }
-
-    private @Nullable
-    VideoCapturer createCameraCapturer(CameraEnumerator enumerator) {
-        final String[] deviceNames = enumerator.getDeviceNames();
-
-        // First, try to find front facing camera
-        Logging.d(TAG, "Looking for front facing cameras.");
-        for (String deviceName : deviceNames) {
-            if (enumerator.isFrontFacing(deviceName)) {
-                Logging.d(TAG, "Creating front facing camera capturer.");
-                VideoCapturer videoCapturer = enumerator.createCapturer(deviceName, null);
-
-                if (videoCapturer != null) {
-                    return videoCapturer;
-                }
-            }
-        }
-
-        // Front facing camera not found, try something else
-        Logging.d(TAG, "Looking for other cameras.");
-        for (String deviceName : deviceNames) {
-            if (!enumerator.isFrontFacing(deviceName)) {
-                Logging.d(TAG, "Creating other camera capturer.");
-                VideoCapturer videoCapturer = enumerator.createCapturer(deviceName, null);
-
-                if (videoCapturer != null) {
-                    return videoCapturer;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    @TargetApi(21)
-    private @Nullable
-    VideoCapturer createScreenCapturer() {
-        if (mediaProjectionPermissionResultCode != Activity.RESULT_OK) {
-            reportError("User didn't give permission to capture the screen.");
-            return null;
-        }
-        return new ScreenCapturerAndroid(
-                mediaProjectionPermissionResultData, new MediaProjection.Callback() {
-            @Override
-            public void onStop() {
-                reportError("User revoked permission to capture the screen.");
-            }
-        });
-    }
-
     // Activity interfaces
     @Override
     public void onStop() {
@@ -423,6 +341,20 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
         return micEnabled;
     }
 
+    @Override
+    public boolean onToggleSpeaker() {
+        speakOn = !speakOn;
+        audioManager.selectAudioDevice(speakOn ? AudioDevice.SPEAKER_PHONE : AudioDevice.EARPIECE);
+        return speakOn;
+    }
+
+    @Override
+    public boolean onToggleVideo() {
+        videoOn = !videoOn;
+        CarrierWebrtcClient.getInstance().setVideoEnable(videoOn);
+        return videoOn;
+    }
+
     // Helper functions.
     private void toggleCallControlFragmentVisibility() {
         if (!connected || !callFragment.isAdded()) {
@@ -462,17 +394,14 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
 
         // Create and audio manager that will take care of audio routing,
         // audio modes, audio device enumeration etc.
-        audioManager = AppRTCAudioManager.create(getApplicationContext());
+        audioManager = WebRTCAudioManager.create(getApplicationContext());
         // Store existing audio settings and change audio mode to
         // MODE_IN_COMMUNICATION for best possible VoIP performance.
         Log.d(TAG, "Starting the audio manager...");
-        audioManager.start(new AudioManagerEvents() {
-            // This method will be called each time the number of available audio
-            // devices has changed.
+        audioManager.start(new WebRTCAudioManager.AudioManagerEvents() {
             @Override
-            public void onAudioDeviceChanged(
-                    AudioDevice audioDevice, Set<AudioDevice> availableAudioDevices) {
-                onAudioManagerDevicesChanged(audioDevice, availableAudioDevices);
+            public void onAudioDeviceChanged(AudioDevice selectedAudioDevice, Set<AudioDevice> availableAudioDevices) {
+                onAudioManagerDevicesChanged(selectedAudioDevice, availableAudioDevices);
             }
         });
     }
@@ -483,7 +412,6 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
             final AudioDevice device, final Set<AudioDevice> availableDevices) {
         Log.d(TAG, "onAudioManagerDevicesChanged: " + availableDevices + ", "
                 + "selected: " + device);
-        // TODO(henrika): add callback handler.
     }
 
     // Disconnect from remote resources, dispose of local resources, and exit.
@@ -555,38 +483,6 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
                 }
             }
         });
-    }
-
-    private @Nullable
-    VideoCapturer createVideoCapturer() {
-        final VideoCapturer videoCapturer;
-        String videoFileAsCamera = getIntent().getStringExtra(EXTRA_VIDEO_FILE_AS_CAMERA);
-        if (videoFileAsCamera != null) {
-            try {
-                videoCapturer = new FileVideoCapturer(videoFileAsCamera);
-            } catch (IOException e) {
-                reportError("Failed to open video file for emulated camera");
-                return null;
-            }
-        } else if (screencaptureEnabled) {
-            return createScreenCapturer();
-        } else if (useCamera2()) {
-            if (!captureToTexture()) {
-                reportError(getString(R.string.camera2_texture_only_error));
-                return null;
-            }
-
-            Logging.d(TAG, "Creating capturer using camera2 API.");
-            videoCapturer = createCameraCapturer(new Camera2Enumerator(this));
-        } else {
-            Logging.d(TAG, "Creating capturer using camera1 API.");
-            videoCapturer = createCameraCapturer(new Camera1Enumerator(captureToTexture()));
-        }
-        if (videoCapturer == null) {
-            reportError("Failed to open camera");
-            return null;
-        }
-        return videoCapturer;
     }
 
     private void setSwappedFeeds(boolean isSwappedFeeds) {

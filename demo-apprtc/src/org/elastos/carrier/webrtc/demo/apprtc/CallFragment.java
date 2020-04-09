@@ -29,6 +29,8 @@ public class CallFragment extends Fragment {
   private TextView contactView;
   private ImageButton cameraSwitchButton;
   private ImageButton videoScalingButton;
+  private ImageButton speakerButton;
+  private ImageButton videoButton;
   private ImageButton toggleMuteButton;
   private TextView captureFormatText;
   private SeekBar captureFormatSlider;
@@ -45,6 +47,8 @@ public class CallFragment extends Fragment {
     void onVideoScalingSwitch(ScalingType scalingType);
     void onCaptureFormatChange(int width, int height, int framerate);
     boolean onToggleMic();
+    boolean onToggleSpeaker();
+    boolean onToggleVideo();
   }
 
   @Override
@@ -57,6 +61,9 @@ public class CallFragment extends Fragment {
     ImageButton disconnectButton = controlView.findViewById(R.id.button_call_disconnect);
     cameraSwitchButton = controlView.findViewById(R.id.button_call_switch_camera);
     videoScalingButton = controlView.findViewById(R.id.button_call_scaling_mode);
+    speakerButton = controlView.findViewById(R.id.button_call_speaker);
+    speakerButton.setAlpha(0.3f);
+    videoButton = controlView.findViewById(R.id.button_call_video);
     toggleMuteButton = controlView.findViewById(R.id.button_call_toggle_mic);
     captureFormatText = controlView.findViewById(R.id.capture_format_text_call);
     captureFormatSlider = controlView.findViewById(R.id.capture_format_slider_call);
@@ -73,6 +80,22 @@ public class CallFragment extends Fragment {
       @Override
       public void onClick(View view) {
         callEvents.onCameraSwitch();
+      }
+    });
+
+    speakerButton.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View view) {
+        boolean enabled = callEvents.onToggleSpeaker();
+        speakerButton.setAlpha(enabled ? 1.0f : 0.3f);
+      }
+    });
+
+    videoButton.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View view) {
+        boolean enabled = callEvents.onToggleVideo();
+        videoButton.setAlpha(enabled ? 1.0f : 0.3f);
       }
     });
 

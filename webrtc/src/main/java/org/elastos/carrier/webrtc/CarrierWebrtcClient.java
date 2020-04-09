@@ -185,7 +185,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     Log.d(TAG, "inviteCall: " + peer);
     this.initiator = true;
     this.remoteUserId = peer;
-    this.callState = CallState.INVITING;
+    this.setCallState(CallState.INVITING);
      sendInvite();
   }
 
@@ -195,7 +195,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
   @Override
   public void acceptCallInvite() {
     this.initiator = false;
-    this.callState = CallState.CONNECTING;
+    this.setCallState(CallState.CONNECTING);
     acceptInvite();
   }
 
@@ -274,7 +274,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
 
   @Override
   public void disconnectFromCall() {
-    this.callState = CallState.INIT;
+    this.setCallState(CallState.INIT);
     sendBye();
     disconnectFromCallInternal();
 
@@ -374,7 +374,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
    * Initial
    * @return
    */
-  public List<PeerConnection.IceServer> getIceServers() {
+  private List<PeerConnection.IceServer> getIceServers() {
     TurnServerInfo turnServerInfo = null;
     try {
       turnServerInfo = getTurnServerInfo();
@@ -397,7 +397,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     if (connectionState == ConnectionState.CONNECTED) {
       Log.d(TAG, "Closing call.");
     }
-    this.callState = CallState.INIT;
+    this.setCallState(CallState.INIT);
     connectionState = ConnectionState.CLOSED;
     release();
   }
@@ -557,6 +557,14 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
     }
   }
 
+  public CallState getCallState() {
+    return this.callState;
+  }
+
+  private void setCallState(CallState callState) {
+    this.callState = callState;
+  }
+
   private void initialWebrtc() {
     if (eglBase == null) {
       eglBase = EglBase.create();
@@ -602,7 +610,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
       return;
     }
     this.remoteUserId = from;
-    this.callState = CallState.RINGING;
+    this.setCallState(CallState.RINGING);
     signalingParameters = new SignalingParameters(getIceServers(), false, from, null, null);
     // events.onCallInvited(signalingParameters); //let the activity to handle the call invited event.
     callHandler.onInvite(from);
@@ -610,7 +618,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
 
   private void handleAcceptInvite(String from) {
     Log.d(TAG, "handleAcceptInvite: ");
-    this.callState = CallState.CONNECTING;
+    this.setCallState(CallState.CONNECTING);
     initialCall();
     // events.onCreateOffer(); //let the activity to handle the call invite accepted event.
     carrierPeerConnectionClient.createOffer();
@@ -620,7 +628,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
   private void handleBye() {
     // events.onChannelClose();
     Log.d(TAG, "handleBye: ");
-    this.callState = CallState.INIT;
+    this.setCallState(CallState.INIT);
     disconnectFromCallInternal();
     callHandler.onEndCall(CallReason.NORMAL_HANGUP);
   }
@@ -628,7 +636,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
   private void handleReject() {
     // events.onChannelClose();
     Log.d(TAG, "handleReject: ");
-    this.callState = CallState.INIT;
+    this.setCallState(CallState.INIT);
     callHandler.onEndCall(CallReason.REJECT);
   }
 
@@ -911,7 +919,7 @@ public class CarrierWebrtcClient extends CarrierExtension implements WebrtcClien
 
   @Override
   public void onConnected() {
-    callState = CallState.ACTIVE;
+    this.setCallState(CallState.ACTIVE);
     callHandler.onActive();
   }
 
