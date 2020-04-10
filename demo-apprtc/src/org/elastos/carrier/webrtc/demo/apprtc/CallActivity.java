@@ -31,7 +31,7 @@ import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 
-import org.elastos.carrier.webrtc.CarrierWebrtcClient;
+import org.elastos.carrier.webrtc.WebrtcClient;
 import org.elastos.carrier.webrtc.util.WebRTCAudioManager;
 import org.elastos.carrier.webrtc.util.WebRTCAudioManager.*;
 import org.webrtc.Logging;
@@ -198,7 +198,7 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
             return;
         }
 
-        CarrierWebrtcClient.getInstance().renderVideo(pipRenderer, fullscreenRenderer);
+        // WebrtcClient.getInstance().renderVideo(pipRenderer, fullscreenRenderer);
         startCall();
 
     }
@@ -315,13 +315,13 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
     // CallFragment.OnCallEvents interface implementation.
     @Override
     public void onCallHangUp() {
-        CarrierWebrtcClient.getInstance().disconnectFromCall();
+        WebrtcClient.getInstance().disconnectFromCall();
         disconnect();
     }
 
     @Override
     public void onCameraSwitch() {
-        CarrierWebrtcClient.getInstance().switchCamera();
+        WebrtcClient.getInstance().switchCamera();
     }
 
     @Override
@@ -331,13 +331,13 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
 
     @Override
     public void onCaptureFormatChange(int width, int height, int framerate) {
-        CarrierWebrtcClient.getInstance().setResolution(width, height, framerate);
+        WebrtcClient.getInstance().setResolution(width, height, framerate);
     }
 
     @Override
     public boolean onToggleMic() {
         micEnabled = !micEnabled;
-        CarrierWebrtcClient.getInstance().setAudioEnable(micEnabled);
+        WebrtcClient.getInstance().setAudioEnable(micEnabled);
         return micEnabled;
     }
 
@@ -351,7 +351,7 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
     @Override
     public boolean onToggleVideo() {
         videoOn = !videoOn;
-        CarrierWebrtcClient.getInstance().setVideoEnable(videoOn);
+        WebrtcClient.getInstance().setVideoEnable(videoOn);
         return videoOn;
     }
 
@@ -380,15 +380,16 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
         // Start call connection.
         logAndToast(getString(R.string.connecting_to, remoteUserId));
         if (isCaller) {
-            CarrierWebrtcClient.getInstance().inviteCall(remoteUserId);
+            // WebrtcClient.getInstance().inviteCall(remoteUserId);
         } else {
             try {
                 Thread.sleep(1000);
-                CarrierWebrtcClient.getInstance().acceptCallInvite();
+                WebrtcClient.getInstance().acceptCallInvite();
             } catch (Exception e) {
                 Log.e(TAG, "startCall: ", e);
             }
         }
+        WebrtcClient.getInstance().renderVideo(pipRenderer, fullscreenRenderer);
 
         // webrtcClient.initialCall(isCaller);
 
@@ -492,7 +493,7 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
         }
 
         this.isSwappedFeeds = isSwappedFeeds;
-        CarrierWebrtcClient.getInstance().swapVideoRenderer(isSwappedFeeds);
+        WebrtcClient.getInstance().swapVideoRenderer(isSwappedFeeds);
     }
 
     private void updatePeerConnectionParametersFromIntent(Intent intent) {

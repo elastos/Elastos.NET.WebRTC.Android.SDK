@@ -38,10 +38,9 @@ import androidx.annotation.Nullable;
 
 import org.elastos.carrier.Carrier;
 import org.elastos.carrier.webrtc.CarrierPeerConnectionClient;
-import org.elastos.carrier.webrtc.CarrierPeerConnectionClient.PeerConnectionParameters;
-import org.elastos.carrier.webrtc.CarrierWebrtcClient;
-import org.elastos.carrier.webrtc.PeerConnectionEvents;
 import org.elastos.carrier.webrtc.WebrtcClient;
+import org.elastos.carrier.webrtc.PeerConnectionEvents;
+import org.elastos.carrier.webrtc.Webrtc;
 import org.elastos.carrier.webrtc.demo.rtccall.CarrierClient;
 import org.webrtc.Camera1Enumerator;
 import org.webrtc.Camera2Enumerator;
@@ -50,7 +49,6 @@ import org.webrtc.EglBase;
 import org.webrtc.FileVideoCapturer;
 import org.webrtc.IceCandidate;
 import org.webrtc.Logging;
-import org.webrtc.PeerConnectionFactory;
 import org.webrtc.ScreenCapturerAndroid;
 import org.webrtc.SessionDescription;
 import org.webrtc.StatsReport;
@@ -63,7 +61,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public abstract class BaseCallActivity extends Activity implements WebrtcClient.SignalingEvents,
+public abstract class BaseCallActivity extends Activity implements Webrtc.SignalingEvents,
         PeerConnectionEvents {
     private static final String TAG = "BaseCallActivity";
 
@@ -83,7 +81,7 @@ public abstract class BaseCallActivity extends Activity implements WebrtcClient.
     private static final int STAT_CALLBACK_PERIOD = 1000;
 
     @Nullable
-    private CarrierWebrtcClient.SignalingParameters signalingParameters;
+    private WebrtcClient.SignalingParameters signalingParameters;
 
     //you can override the peer connection parameters in their activity.
 //    @Nullable
@@ -93,7 +91,7 @@ public abstract class BaseCallActivity extends Activity implements WebrtcClient.
     protected CarrierPeerConnectionClient carrierPeerConnectionClient;
 
     @Nullable
-    protected CarrierWebrtcClient webrtcClient;
+    protected WebrtcClient webrtcClient;
 
     private Carrier carrier;
 
@@ -105,7 +103,7 @@ public abstract class BaseCallActivity extends Activity implements WebrtcClient.
         carrier = CarrierClient.getInstance(getApplicationContext()).getCarrier();
 
         // Create connection client.
-//        webrtcClient = new CarrierWebrtcClient(carrier,this);
+//        webrtcClient = new WebrtcClient(carrier,this);
 //
 //        // Create peer connection client.
 //        carrierPeerConnectionClient = new CarrierPeerConnectionClient(
@@ -170,10 +168,10 @@ public abstract class BaseCallActivity extends Activity implements WebrtcClient.
     protected final ProxyVideoSink localProxyVideoSink = new ProxyVideoSink();
 
 
-    // -----Implementation of WebrtcClient.AppRTCSignalingEvents ---------------
+    // -----Implementation of Webrtc.AppRTCSignalingEvents ---------------
     // All callbacks are invoked from websocket signaling looper thread and
     // are routed to UI thread.
-    private void onConnectedToCallInternal(final CarrierWebrtcClient.SignalingParameters params) {
+    private void onConnectedToCallInternal(final WebrtcClient.SignalingParameters params) {
         final long delta = System.currentTimeMillis() - callStartedTimeMs;
 
         signalingParameters = params;
@@ -208,7 +206,7 @@ public abstract class BaseCallActivity extends Activity implements WebrtcClient.
     }
 
     @Override
-    public void onCallInitialized(final CarrierWebrtcClient.SignalingParameters params) {
+    public void onCallInitialized(final WebrtcClient.SignalingParameters params) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {

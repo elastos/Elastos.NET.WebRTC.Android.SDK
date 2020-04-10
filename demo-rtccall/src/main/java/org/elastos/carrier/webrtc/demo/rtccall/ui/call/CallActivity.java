@@ -18,7 +18,7 @@ import android.view.WindowManager;
 import android.widget.Toast;
 
 import org.elastos.carrier.exceptions.CarrierException;
-import org.elastos.carrier.webrtc.CarrierWebrtcClient;
+import org.elastos.carrier.webrtc.WebrtcClient;
 import org.elastos.carrier.webrtc.demo.rtccall.CarrierClient;
 import org.elastos.carrier.webrtc.demo.rtccall.R;
 import org.elastos.carrier.webrtc.demo.rtccall.util.AppRTCAudioManager;
@@ -76,7 +76,7 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
     private static final int STAT_CALLBACK_PERIOD = 1000;
 
     @Nullable
-    private CarrierWebrtcClient.SignalingParameters signalingParameters;
+    private WebrtcClient.SignalingParameters signalingParameters;
     @Nullable private AppRTCAudioManager audioManager;
     @Nullable
     private VideoFileRenderer videoFileRenderer;
@@ -215,7 +215,7 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
         Log.d(TAG, "onCreate:  carrierPeerConnectionClient = " + carrierPeerConnectionClient);
         carrierPeerConnectionClient.createPeerConnectionFactory(options);
 
-        CarrierWebrtcClient.getInstance().renderVideo(pipRenderer, fullscreenRenderer);
+        WebrtcClient.getInstance().renderVideo(pipRenderer, fullscreenRenderer);
 
         // 主叫直接呼叫，被叫接听后再呼.
         if (isCaller) {
@@ -276,7 +276,7 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
 
     @Override
     public void onCallHangUp() {
-        CarrierWebrtcClient.getInstance().disconnectFromCall();
+        WebrtcClient.getInstance().disconnectFromCall();
         // ElastosWebrtc.getInstance().hangup();
 //        if (webrtcClient != null) {
 //            webrtcClient.disconnectFromCall();
@@ -355,13 +355,13 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
     }
 
     private void startCall() {
-//        CarrierWebrtcClient.getInstance().inviteCall(remoteUserId);
+//        WebrtcClient.getInstance().inviteCall(remoteUserId);
         if (isCaller) {
-            CarrierWebrtcClient.getInstance().inviteCall(remoteUserId);
+            WebrtcClient.getInstance().inviteCall(remoteUserId);
         } else {
             try {
                 Thread.sleep(1000);
-                CarrierWebrtcClient.getInstance().acceptCallInvite();
+                WebrtcClient.getInstance().acceptCallInvite();
             } catch (Exception e) {
                 Log.e(TAG, "startCall: ", e);
             }
@@ -605,7 +605,7 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
         pipRenderer.setMirror(!isSwappedFeeds);
     }
 
-    private void onConnectedToCallInternal(final CarrierWebrtcClient.SignalingParameters params) {
+    private void onConnectedToCallInternal(final WebrtcClient.SignalingParameters params) {
         final long delta = System.currentTimeMillis() - callStartedTimeMs;
 
         signalingParameters = params;
@@ -644,15 +644,15 @@ public class CallActivity extends BaseCallActivity implements CallFragment.OnCal
 
 
     @Override
-    public void onCallInvited(CarrierWebrtcClient.SignalingParameters params) {
+    public void onCallInvited(WebrtcClient.SignalingParameters params) {
 
     }
 
-    // -----Implementation of WebrtcClient.SignalingEvents ---------------
+    // -----Implementation of Webrtc.SignalingEvents ---------------
     // All callbacks are invoked from websocket signaling looper thread and
     // are routed to UI thread.
     @Override
-    public void onCallInitialized(final CarrierWebrtcClient.SignalingParameters params) {
+    public void onCallInitialized(final WebrtcClient.SignalingParameters params) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {

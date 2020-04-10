@@ -48,9 +48,6 @@ import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.elastos.carrier.Carrier;
-import org.elastos.carrier.CarrierExtension;
-import org.elastos.carrier.exceptions.CarrierException;
 import org.webrtc.AudioSource;
 import org.webrtc.AudioTrack;
 import org.webrtc.CameraVideoCapturer;
@@ -192,7 +189,7 @@ public class CarrierPeerConnectionClient{
     // recorded audio samples to an output file.
     @Nullable private RecordedAudioToFileController saveRecordedAudioToFile;
 
-    @Nullable private CarrierWebrtcClient carrierWebrtcClient; //inject WebrtcClient for using Carrier and TurnServer from the CarrierExtension.
+    @Nullable private WebrtcClient webrtcClientClient; //inject Webrtc for using Carrier and TurnServer from the CarrierExtension.
     @Nullable private List<PeerConnection.IceServer> iceServers;
 
     /**
@@ -297,12 +294,12 @@ public class CarrierPeerConnectionClient{
      * Create a PeerConnectionClient with the specified parameters. PeerConnectionClient takes
      * ownership of |eglBase|.
      */
-    public CarrierPeerConnectionClient(Context appContext, CarrierWebrtcClient carrierWebrtcClient, EglBase eglBase,
+    public CarrierPeerConnectionClient(Context appContext, WebrtcClient webrtcClientClient, EglBase eglBase,
                                        PeerConnectionParameters peerConnectionParameters, PeerConnectionEvents events) {
         super();
         this.rootEglBase = eglBase;
         this.appContext = appContext;
-        this.carrierWebrtcClient = carrierWebrtcClient;
+        this.webrtcClientClient = webrtcClientClient;
         this.events = events;
         this.peerConnectionParameters = peerConnectionParameters;
         this.dataChannelEnabled = peerConnectionParameters.dataChannelParameters != null;
@@ -714,13 +711,13 @@ public class CarrierPeerConnectionClient{
             factory.dispose();
             factory = null;
         }
-        if(carrierWebrtcClient!=null){
+        if(webrtcClientClient !=null){
             try {
-                carrierWebrtcClient.finalize();
+                webrtcClientClient.finalize();
             } catch (Throwable throwable) {
-                Log.e(TAG, "Error to finalize carrierWebrtcClient");
+                Log.e(TAG, "Error to finalize webrtcClientClient");
             }
-            carrierWebrtcClient = null;
+            webrtcClientClient = null;
         }
         Log.d(TAG, "Closing carrier webrtc client.");
         if (rootEglBase != null) {

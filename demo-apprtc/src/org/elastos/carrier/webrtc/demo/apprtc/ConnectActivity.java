@@ -20,12 +20,11 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import androidx.annotation.Nullable;
+
 import androidx.core.app.ActivityCompat;
 
 import android.text.TextUtils;
@@ -39,7 +38,6 @@ import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
 import android.webkit.URLUtil;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -51,16 +49,13 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 
-import org.elastos.carrier.CarrierExtension;
 import org.elastos.carrier.ConnectionStatus;
 import org.elastos.carrier.FriendInfo;
-import org.elastos.carrier.PresenceStatus;
-import org.elastos.carrier.webrtc.CarrierWebrtcClient;
+import org.elastos.carrier.webrtc.WebrtcClient;
 import org.elastos.carrier.webrtc.demo.apprtc.util.QRCodeUtils;
 import org.elastos.carrier.AbstractCarrierHandler;
 import org.elastos.carrier.Carrier;
 import org.elastos.carrier.exceptions.CarrierException;
-import org.elastos.carrier.webrtc.WebrtcClient;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -239,7 +234,7 @@ public class ConnectActivity extends Activity {
       }
     }
 
-    CarrierWebrtcClient.initialize(this, Carrier.getInstance(), new CallHandlerImpl(),  null);
+    WebrtcClient.initialize(this, Carrier.getInstance(), new CallHandlerImpl(),  null);
   }
 
   @Override
@@ -833,6 +828,7 @@ public class ConnectActivity extends Activity {
             return;
           }
           connectToRoom(roomId, false, false, 0, true);
+          WebrtcClient.getInstance().inviteCall(roomId);
         }
       };
 

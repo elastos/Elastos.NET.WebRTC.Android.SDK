@@ -6,7 +6,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 
-import org.elastos.carrier.webrtc.CarrierWebrtcClient;
+import org.elastos.carrier.webrtc.WebrtcClient;
 import org.elastos.carrier.webrtc.demo.rtccall.eos.CarrierHandlerImpl;
 import org.elastos.carrier.webrtc.demo.rtccall.ui.dashboard.DashboardFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -80,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void initWebrtc() {
         try {
-            CarrierWebrtcClient.initialize(this, Carrier.getInstance(), new CallHandlerImpl(),  null);
+            WebrtcClient.initialize(this, Carrier.getInstance(), new CallHandlerImpl(),  null);
             //
         }  catch (Exception e) {
             Log.e(TAG, "initWebrtc: error", e);
