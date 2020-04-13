@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-package org.elastos.carrier.webrtc.demo.apprtc;
+package org.elastos.carrier.webrtc.demo_apprtc;
 
 import android.Manifest;
 import android.annotation.TargetApi;
@@ -52,7 +52,8 @@ import com.google.zxing.integration.android.IntentResult;
 import org.elastos.carrier.ConnectionStatus;
 import org.elastos.carrier.FriendInfo;
 import org.elastos.carrier.webrtc.WebrtcClient;
-import org.elastos.carrier.webrtc.demo.apprtc.util.QRCodeUtils;
+import org.elastos.carrier.webrtc.demo_apprtc.apprtc.R;
+import org.elastos.carrier.webrtc.demo_apprtc.util.QRCodeUtils;
 import org.elastos.carrier.AbstractCarrierHandler;
 import org.elastos.carrier.Carrier;
 import org.elastos.carrier.exceptions.CarrierException;

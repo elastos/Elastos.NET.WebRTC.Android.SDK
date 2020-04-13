@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-package org.elastos.carrier.webrtc.demo.apprtc;
+package org.elastos.carrier.webrtc.demo_apprtc;
 
 import android.app.Activity;
 import android.app.Fragment;
@@ -20,6 +20,7 @@ import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import org.elastos.carrier.webrtc.demo_apprtc.apprtc.R;
 import org.webrtc.RendererCommon.ScalingType;
 
 /**

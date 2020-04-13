@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-package org.elastos.carrier.webrtc.demo.apprtc;
+package org.elastos.carrier.webrtc.demo_apprtc;
 
 import android.app.Activity;
 import android.app.AlertDialog;

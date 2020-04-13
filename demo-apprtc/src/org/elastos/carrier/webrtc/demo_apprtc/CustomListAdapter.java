@@ -1,4 +1,4 @@
-package org.elastos.carrier.webrtc.demo.apprtc;
+package org.elastos.carrier.webrtc.demo_apprtc;
 
 import android.content.Context;
 import android.graphics.Color;

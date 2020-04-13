@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-package org.elastos.carrier.webrtc.demo.apprtc;
+package org.elastos.carrier.webrtc.demo_apprtc;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -32,6 +32,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 
 import org.elastos.carrier.webrtc.WebrtcClient;
+import org.elastos.carrier.webrtc.demo_apprtc.apprtc.R;
 import org.elastos.carrier.webrtc.util.WebRTCAudioManager;
 import org.elastos.carrier.webrtc.util.WebRTCAudioManager.*;
 import org.webrtc.Logging;

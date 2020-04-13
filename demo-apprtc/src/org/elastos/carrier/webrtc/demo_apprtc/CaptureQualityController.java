@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-package org.elastos.carrier.webrtc.demo.apprtc;
+package org.elastos.carrier.webrtc.demo_apprtc;
 
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import org.elastos.carrier.webrtc.demo_apprtc.apprtc.R;
 import org.webrtc.CameraEnumerationAndroid.CaptureFormat;
 
 /**
