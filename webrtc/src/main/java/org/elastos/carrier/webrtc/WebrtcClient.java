@@ -328,6 +328,10 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
 
   @Override
   public void swapVideoRenderer(boolean isSwap) {
+    if (localVideoRenderer == null || remoteVideoRenderer == null) {
+      Log.w(TAG, "swapVideoRenderer: video renderer is null");
+      return;
+    }
     localProxyVideoSink.setTarget(isSwap ? remoteVideoRenderer : localVideoRenderer);
     remoteProxyVideoSink.setTarget(isSwap ? localVideoRenderer : remoteVideoRenderer);
     remoteVideoRenderer.setMirror(isSwap);

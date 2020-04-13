@@ -182,9 +182,6 @@ public class CarrierPeerConnectionClient{
     @Nullable
     private DataChannel dataChannel;
     private final boolean dataChannelEnabled;
-    // Enable RtcEventLog.
-    @Nullable
-    private RtcEventLog rtcEventLog;
     // Implements the WebRtcAudioRecordSamplesReadyCallback interface and writes
     // recorded audio samples to an output file.
     @Nullable private RecordedAudioToFileController saveRecordedAudioToFile;
@@ -354,7 +351,6 @@ public class CarrierPeerConnectionClient{
         try {
             createMediaConstraintsInternal();
             createPeerConnectionInternal();
-            maybeCreateAndStartRtcEventLog();
         } catch (Exception e) {
             reportError("Failed to create peer connection: " + e.getMessage());
             throw e;
@@ -643,18 +639,6 @@ public class CarrierPeerConnectionClient{
                 appContext.getDir(RTCEVENTLOG_OUTPUT_DIR_NAME, Context.MODE_PRIVATE), outputFileName);
     }
 
-    private void maybeCreateAndStartRtcEventLog() {
-        if (appContext == null || peerConnection == null) {
-            return;
-        }
-        if (!peerConnectionParameters.enableRtcEventLog) {
-            Log.d(TAG, "RtcEventLog is disabled.");
-            return;
-        }
-        rtcEventLog = new RtcEventLog(peerConnection);
-        rtcEventLog.start(createRtcEventLogOutputFile());
-    }
-
     private void closeInternal() {
         if (factory != null && peerConnectionParameters.aecDump) {
             factory.stopAecDump();
@@ -664,11 +648,6 @@ public class CarrierPeerConnectionClient{
         if (dataChannel != null) {
             dataChannel.dispose();
             dataChannel = null;
-        }
-        if (rtcEventLog != null) {
-            // RtcEventLog should stop before the peer connection is disposed.
-            rtcEventLog.stop();
-            rtcEventLog = null;
         }
         if (peerConnection != null) {
             peerConnection.dispose();

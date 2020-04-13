@@ -115,47 +115,4 @@ public interface Webrtc {
    */
   void disconnectFromCall();
 
-  /**
-   * Callback interface for messages delivered on signaling channel.
-   *
-   * <p>Methods are guaranteed to be invoked on the UI thread of |activity|.
-   */
-  interface SignalingEvents {
-    /**
-     * Callback fired once webrtc call invited by remote peer.
-     */
-    void onCallInvited(final WebrtcClient.SignalingParameters params);
-
-    /**
-     * Callback fired once webrtcClient.initialCall() has been invoked.
-     */
-    void onCallInitialized(final WebrtcClient.SignalingParameters params);
-
-    /**
-     * Callback fired once remote SDP is received.
-     */
-    void onRemoteDescription(final SessionDescription sdp);
-
-    /**
-     * Callback fired once remote Ice candidate is received.
-     */
-    void onRemoteIceCandidate(final IceCandidate candidate);
-
-    /**
-     * Callback fired once remote Ice candidate removals are received.
-     */
-    void onRemoteIceCandidatesRemoved(final IceCandidate[] candidates);
-
-    /**
-     * Callback fired once channel is closed.
-     */
-    void onChannelClose();
-
-    /**
-     * Callback fired once channel error happened.
-     */
-    void onChannelError(final String description);
-
-    void onCreateOffer();
-  }
 }

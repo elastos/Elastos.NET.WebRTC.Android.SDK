@@ -30,7 +30,7 @@ import org.webrtc.PeerConnection;
 import java.io.File;
 import java.io.IOException;
 
-public class RtcEventLog {
+class RtcEventLog {
   private static final String TAG = "RtcEventLog";
   private static final int OUTPUT_FILE_MAX_BYTES = 10_000_000;
   private final PeerConnection peerConnection;
