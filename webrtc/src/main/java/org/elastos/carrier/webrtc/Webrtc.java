@@ -22,8 +22,7 @@
 
 package org.elastos.carrier.webrtc;
 
-import org.webrtc.IceCandidate;
-import org.webrtc.SessionDescription;
+import org.elastos.carrier.webrtc.call.CallState;
 import org.webrtc.SurfaceViewRenderer;
 
 /**
@@ -34,7 +33,7 @@ public interface Webrtc {
   /**
    * Invite a peer to join the webrtc call, the peer can choose to accept the invitation or reject.
    */
-  void inviteCall(String peer) ;
+  void inviteCall(String peer);
 
   /**
    * The peer accept a webrtc call invite. Once accept the invite, the caller will send offer to the peer,
@@ -48,7 +47,19 @@ public interface Webrtc {
   void rejectCallInvite();
 
   /**
-   * set video renderer, this should be called before inviteCall or acceptCallInvite
+   * get current call state
+   * @return
+   */
+  CallState getCallState();
+
+  /**
+   * get remote user id where you are talking to
+   * @return
+   */
+  String getRemoteUserId();
+
+  /**
+   * set video renderer
    * @param localRenderer
    * @param remoteRenderer
    */
@@ -85,34 +96,9 @@ public interface Webrtc {
      */
   void setVideoEnable(boolean enable);
 
-    /**
-     * <p>this will release everything</p>
-     */
-  void destroy();
-
-  /**
-   * Send offer SDP to the other participant.
-   */
-  void sendOfferSdp(final SessionDescription sdp);
-
-  /**
-   * Send answer SDP to the other participant.
-   */
-  void sendAnswerSdp(final SessionDescription sdp);
-
-  /**
-   * Send Ice candidate to the other participant.
-   */
-  void sendLocalIceCandidate(final IceCandidate candidate);
-
-  /**
-   * Send removed ICE candidates to the other participant.
-   */
-  void sendLocalIceCandidateRemovals(final IceCandidate[] candidates);
-
   /**
    * Disconnect from call.
    */
-  void disconnectFromCall();
+  void disconnect();
 
 }

@@ -37,7 +37,7 @@ import androidx.annotation.Nullable;
  * WebRTCProximitySensor manages functions related to Bluetoth devices in the
  * AppRTC demo.
  */
-public class WebRTCBluetoothManager {
+class WebRTCBluetoothManager {
   private static final String TAG = "WebRTCBluetoothManager";
 
   // Timeout interval for starting or stopping audio to a Bluetooth SCO device.

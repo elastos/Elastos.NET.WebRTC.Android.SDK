@@ -73,7 +73,7 @@ public class ConnectActivity extends Activity {
   private static final int PERMISSION_REQUEST = 2;
   private static final int SCAN_REQUEST = 3;
   private static final int REMOVE_FAVORITE_INDEX = 0;
-  private static boolean commandLineRun;
+  private static boolean commandLineRun = false;
   private static final List<String> ONLINE_FRIENDS = new ArrayList<>();
 
   private ImageButton addFavoriteButton;
@@ -192,35 +192,13 @@ public class ConnectActivity extends Activity {
       @Override
       public void onFriendInviteRequest(Carrier carrier, String from, String data) {
         super.onFriendInviteRequest(carrier, from, data);
-        roomEditText.post(() -> {
-          Toast.makeText(ConnectActivity.this, "carrier friend invite onFriendInviteRequest from : " + from, Toast.LENGTH_LONG).show();
-          Log.e(TAG, "carrier friend invite  onFriendInviteRequest from: " + from + "\r\n" + data);
-
-          if (data != null && data.contains("invite")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
-
-            //启动进去CallActivity
-            JSONObject json = null;
-            JSONObject msg = null;
-            try {
-              json = new JSONObject(data);
-              String message = json.optString("msg");
-              msg = new JSONObject(message);
-              String type = msg.optString("type");
-
-              if ("invite".equalsIgnoreCase(type) && !TextUtils.isEmpty(from)) {
-                connectToRoom(from, false, false, 0, false);
-              }
-            } catch (JSONException e) {
-              e.printStackTrace();
-            }
-          }
-
-      });
       }
     });
 
     mQRCodeImage.setImageBitmap(QRCodeUtils.createQRCodeBitmap(address));
     mAdrress.setText(userId);
+
+    WebrtcClient.initialize(this, Carrier.getInstance(), new CallHandlerImpl(),  null);
 
     if (Build.VERSION.SDK_INT >= 23) {
       int REQUEST_CODE_CONTACT = 101;
@@ -234,8 +212,6 @@ public class ConnectActivity extends Activity {
         }
       }
     }
-
-    WebrtcClient.initialize(this, Carrier.getInstance(), new CallHandlerImpl(),  null);
   }
 
   @Override
@@ -371,9 +347,10 @@ public class ConnectActivity extends Activity {
           @Override
           public void run() {
             String id = Carrier.getIdFromAddress(result);
-            if (id==null)
-                id=result;
-             roomEditText.setText(id);
+            if (id==null) {
+              id=result;
+            }
+            roomEditText.setText(id);
             try {
               CarrierClient.getInstance(ConnectActivity.this).addFriend(result);
             } catch (CarrierException e) {
@@ -427,11 +404,7 @@ public class ConnectActivity extends Activity {
     // If an implicit VIEW intent is launching the app, go directly to that URL.
     final Intent intent = getIntent();
     if ("android.intent.action.VIEW".equals(intent.getAction()) && !commandLineRun) {
-      int runTimeMs = intent.getIntExtra(CallActivity.EXTRA_RUNTIME, 0);
-      boolean useValuesFromIntent =
-          intent.getBooleanExtra(CallActivity.EXTRA_USE_VALUES_FROM_INTENT, false);
-      String room = sharedPref.getString(keyprefRoom, "");
-      connectToRoom(room, true, useValuesFromIntent, runTimeMs, true);
+      startCallActivity(roomEditText.getText().toString());
     }
   }
 
@@ -538,13 +511,11 @@ public class ConnectActivity extends Activity {
   }
 
   @SuppressWarnings("StringSplitter")
-  public void connectToRoom(String roomId, boolean commandLineRun,
-      boolean useValuesFromIntent, int runTimeMs, boolean isCaller) {
-    ConnectActivity.commandLineRun = commandLineRun;
-
+  public void startCallActivity(String userId) {
     String roomUrl = sharedPref.getString(
         keyprefRoomServerUrl, getString(R.string.pref_room_server_url_default));
 
+    boolean useValuesFromIntent = true;
     // Video register enabled flag.
     boolean videoCallEnabled = sharedPrefGetBoolean(R.string.pref_videocall_key,
         CallActivity.EXTRA_VIDEO_CALL, R.string.pref_videocall_default, useValuesFromIntent);
@@ -720,7 +691,6 @@ public class ConnectActivity extends Activity {
         CallActivity.EXTRA_PROTOCOL, R.string.pref_data_protocol_default, useValuesFromIntent);
 
     // Start AppRTCMobile activity.
-    Log.d(TAG, "Connecting with" + roomId );
     if (validateUrl(roomUrl)) {
       Uri uri = Uri.parse(roomUrl);
       Intent intent = new Intent(this, CallActivity.class);
@@ -728,8 +698,7 @@ public class ConnectActivity extends Activity {
       intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
       intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
       intent.setData(uri);
-      intent.putExtra(CallActivity.EXTRA_IS_CALLER, isCaller);
-      intent.putExtra(CallActivity.EXTRA_ROOMID, roomId);
+      intent.putExtra(CallActivity.EXTRA_REMOTE_USER_ID, userId);
       intent.putExtra(CallActivity.EXTRA_VIDEO_CALL, videoCallEnabled);
       intent.putExtra(CallActivity.EXTRA_SCREENCAPTURE, useScreencapture);
       intent.putExtra(CallActivity.EXTRA_CAMERA2, useCamera2);
@@ -756,7 +725,6 @@ public class ConnectActivity extends Activity {
       intent.putExtra(CallActivity.EXTRA_TRACING, tracing);
       intent.putExtra(CallActivity.EXTRA_ENABLE_RTCEVENTLOG, rtcEventLogEnabled);
       intent.putExtra(CallActivity.EXTRA_CMDLINE, commandLineRun);
-      intent.putExtra(CallActivity.EXTRA_RUNTIME, runTimeMs);
       intent.putExtra(CallActivity.EXTRA_DATA_CHANNEL_ENABLED, dataChannelEnabled);
 
       if (dataChannelEnabled) {
@@ -823,13 +791,13 @@ public class ConnectActivity extends Activity {
       new AdapterView.OnItemClickListener() {
         @Override
         public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-          String roomId = ((TextView) view).getText().toString();
-          if (ONLINE_FRIENDS.isEmpty() || !ONLINE_FRIENDS.contains(roomId)) {
-            Toast.makeText(ConnectActivity.this, String.format("%s is offline.", roomId), Toast.LENGTH_LONG).show();
+          String userId = ((TextView) view).getText().toString();
+          if (ONLINE_FRIENDS.isEmpty() || !ONLINE_FRIENDS.contains(userId)) {
+            Toast.makeText(ConnectActivity.this, String.format("%s is offline.", userId), Toast.LENGTH_LONG).show();
             return;
           }
-          connectToRoom(roomId, false, false, 0, true);
-          WebrtcClient.getInstance().inviteCall(roomId);
+          startCallActivity(userId);
+          WebrtcClient.getInstance().inviteCall(userId);
         }
       };
 
@@ -847,7 +815,8 @@ public class ConnectActivity extends Activity {
   private final OnClickListener connectListener = new OnClickListener() {
     @Override
     public void onClick(View view) {
-      connectToRoom(roomEditText.getText().toString(), false, false, 0, true);
+      String userId = roomEditText.getText().toString();
+      startCallActivity(userId);
     }
   };
 }

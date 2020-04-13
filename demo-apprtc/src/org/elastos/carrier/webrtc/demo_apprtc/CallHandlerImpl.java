@@ -2,6 +2,7 @@ package org.elastos.carrier.webrtc.demo_apprtc;
 
 import android.util.Log;
 
+import org.elastos.carrier.webrtc.WebrtcClient;
 import org.elastos.carrier.webrtc.call.CallHandler;
 import org.elastos.carrier.webrtc.call.CallReason;
 
@@ -12,7 +13,13 @@ public class CallHandlerImpl implements CallHandler {
     @Override
     public void onInvite(String friendId) {
         Log.d(TAG, "onInvite: " + friendId);
-        ConnectActivity.INSTANCE.connectToRoom(friendId, false, false, 0, false);
+        try {
+            Thread.sleep(1000);
+            WebrtcClient.getInstance().acceptCallInvite();
+        } catch (Exception e) {
+            Log.e(TAG, "onInvite: ", e);
+        }
+        ConnectActivity.INSTANCE.startCallActivity(friendId);
     }
 
     @Override

@@ -16,7 +16,7 @@ import android.util.Log;
 /**
  * AppRTCUtils provides helper functions for managing thread safety.
  */
-public final class WebRTCUtils {
+final class WebRTCUtils {
   private WebRTCUtils() {}
 
   /** Helper method which throws an exception  when an assertion has failed. */

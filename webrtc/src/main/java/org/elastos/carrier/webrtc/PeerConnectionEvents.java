@@ -29,7 +29,7 @@ import org.webrtc.StatsReport;
 /**
  * Peer connection events.
  */
-public interface PeerConnectionEvents {
+interface PeerConnectionEvents {
     /**
      * Callback fired once local SDP is created and set.
      */

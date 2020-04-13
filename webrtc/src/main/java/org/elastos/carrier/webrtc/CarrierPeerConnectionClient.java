@@ -96,7 +96,7 @@ import org.webrtc.audio.JavaAudioDeviceModule.AudioTrackStateCallback;
  * All PeerConnectionEvents callbacks are invoked from the same looper thread.
  * This class is a singleton.
  */
-public class CarrierPeerConnectionClient{
+class CarrierPeerConnectionClient{
     public static final String VIDEO_TRACK_ID = "ARDAMSv0";
     public static final String AUDIO_TRACK_ID = "ARDAMSa0";
     public static final String VIDEO_TRACK_TYPE = "video";

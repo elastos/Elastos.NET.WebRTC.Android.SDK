@@ -12,10 +12,8 @@ package org.elastos.carrier.webrtc.demo_apprtc;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.FragmentTransaction;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -46,11 +44,9 @@ import java.util.Set;
  * and register view.
  */
 public class CallActivity extends Activity implements CallFragment.OnCallEvents {
-    private static final String TAG = "CallRTCClient";
+    private static final String TAG = "CallActivity";
 
-    public static final String EXTRA_IS_CALLER = "org.elastos.carrier.webrtc.demo.apprtc.IS_CALLER";
-    public static final String EXTRA_ROOMID = "org.elastos.carrier.webrtc.demo.apprtc.ROOMID";
-
+    public static final String EXTRA_REMOTE_USER_ID = "org.elastos.carrier.webrtc.demo.apprtc.EXTRA_REMOTE_USER_ID";
     public static final String EXTRA_VIDEO_CALL = "org.elastos.carrier.webrtc.demo.apprtc.VIDEO_CALL";
     public static final String EXTRA_SCREENCAPTURE = "org.elastos.carrier.webrtc.demo.apprtc.SCREENCAPTURE";
     public static final String EXTRA_CAMERA2 = "org.elastos.carrier.webrtc.demo.apprtc.CAMERA2";
@@ -105,32 +101,23 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
     private static final String[] MANDATORY_PERMISSIONS = {"android.permission.MODIFY_AUDIO_SETTINGS",
             "android.permission.RECORD_AUDIO", "android.permission.INTERNET"};
 
-    // Peer connection statistics callback period in ms.
-    private static final int STAT_CALLBACK_PERIOD = 1000;
-
     @Nullable
     private WebRTCAudioManager audioManager;
     @Nullable
-    private SurfaceViewRenderer pipRenderer;
+    private SurfaceViewRenderer localRenderer;
     @Nullable
-    private SurfaceViewRenderer fullscreenRenderer;
+    private SurfaceViewRenderer remoteRenderer;
     private Toast logToast;
     private boolean commandLineRun;
     private boolean activityRunning;
 
-    private boolean isCaller;
-    private String remoteUserId; //remote's carrier user id
-
     private boolean connected;
     private boolean isError;
     private boolean callControlFragmentVisible = true;
-    private long callStartedTimeMs;
     private boolean micEnabled = true;
     private boolean speakOn = false;
     private boolean videoOn = true;
     private boolean screencaptureEnabled;
-    private static Intent mediaProjectionPermissionResultData;
-    private static int mediaProjectionPermissionResultCode;
     // True if local view is in the fullscreen renderer.
     private boolean isSwappedFeeds;
 
@@ -166,15 +153,7 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
             return;
         }
 
-        isCaller = intent.getBooleanExtra(EXTRA_IS_CALLER, false);
-        remoteUserId = intent.getStringExtra(EXTRA_ROOMID);
-
-        //update peerConnectionPararmeters from intent.
-        updatePeerConnectionParametersFromIntent(intent);
-
         commandLineRun = intent.getBooleanExtra(EXTRA_CMDLINE, false);
-        int runTimeMs = intent.getIntExtra(EXTRA_RUNTIME, 0);
-
         Log.d(TAG, "VIDEO_FILE: '" + intent.getStringExtra(EXTRA_VIDEO_FILE_AS_CAMERA) + "'");
 
         connected = false;
@@ -190,24 +169,13 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
             }
         }
 
-        Log.d(TAG, "Callee User Id: " + remoteUserId);
-        if ((remoteUserId == null || remoteUserId.length() == 0)) {
-            logAndToast(getString(R.string.missing_url));
-            Log.e(TAG, "Incorrect Callee User Id in intent!");
-            setResult(RESULT_CANCELED);
-            finish();
-            return;
-        }
-
-        // WebrtcClient.getInstance().renderVideo(pipRenderer, fullscreenRenderer);
         startCall();
-
     }
 
     protected void initUIControls(Intent intent) {
         // Create UI controls.
-        pipRenderer = findViewById(R.id.pip_video_view);
-        fullscreenRenderer = findViewById(R.id.fullscreen_video_view);
+        localRenderer = findViewById(R.id.pip_video_view);
+        remoteRenderer = findViewById(R.id.fullscreen_video_view);
         callFragment = new CallFragment();
         hudFragment = new HudFragment();
 
@@ -220,25 +188,23 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
         };
 
         // Swap feeds on pip view click.
-        pipRenderer.setOnClickListener(new View.OnClickListener() {
+        localRenderer.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 setSwappedFeeds(!isSwappedFeeds);
             }
         });
 
-        fullscreenRenderer.setOnClickListener(listener);
+        remoteRenderer.setOnClickListener(listener);
 
         // Create video renderers.
-        pipRenderer.setScalingType(ScalingType.SCALE_ASPECT_FIT);
+        localRenderer.setScalingType(ScalingType.SCALE_ASPECT_FIT);
 
-        fullscreenRenderer.setScalingType(ScalingType.SCALE_ASPECT_FILL);
+        remoteRenderer.setScalingType(ScalingType.SCALE_ASPECT_FILL);
 
-        pipRenderer.setZOrderMediaOverlay(true);
-        pipRenderer.setEnableHardwareScaler(true /* enabled */);
-        fullscreenRenderer.setEnableHardwareScaler(false /* enabled */);
-        // Start with local feed in fullscreen and swap it to the pip when the register is connected.
-        // setSwappedFeeds(true /* isSwappedFeeds */);
+        localRenderer.setZOrderMediaOverlay(true);
+        localRenderer.setEnableHardwareScaler(true /* enabled */);
+        remoteRenderer.setEnableHardwareScaler(false /* enabled */);
 
         // Create CPU monitor
         if (CpuMonitor.isSupported()) {
@@ -276,11 +242,6 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode != CAPTURE_PERMISSION_REQUEST_CODE)
-            return;
-        mediaProjectionPermissionResultCode = resultCode;
-        mediaProjectionPermissionResultData = data;
-        // startCall();
     }
 
     // Activity interfaces
@@ -316,7 +277,7 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
     // CallFragment.OnCallEvents interface implementation.
     @Override
     public void onCallHangUp() {
-        WebrtcClient.getInstance().disconnectFromCall();
+        WebrtcClient.getInstance().disconnect();
         disconnect();
     }
 
@@ -327,7 +288,7 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
 
     @Override
     public void onVideoScalingSwitch(ScalingType scalingType) {
-        fullscreenRenderer.setScalingType(scalingType);
+        remoteRenderer.setScalingType(scalingType);
     }
 
     @Override
@@ -376,24 +337,8 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
     }
 
     private void startCall() {
-        callStartedTimeMs = System.currentTimeMillis();
-
-        // Start call connection.
-        logAndToast(getString(R.string.connecting_to, remoteUserId));
-        if (isCaller) {
-            // WebrtcClient.getInstance().inviteCall(remoteUserId);
-        } else {
-            try {
-                Thread.sleep(1000);
-                WebrtcClient.getInstance().acceptCallInvite();
-            } catch (Exception e) {
-                Log.e(TAG, "startCall: ", e);
-            }
-        }
-        WebrtcClient.getInstance().renderVideo(pipRenderer, fullscreenRenderer);
-
-        // webrtcClient.initialCall(isCaller);
-
+        // show video
+        WebrtcClient.getInstance().renderVideo(localRenderer, remoteRenderer);
         // Create and audio manager that will take care of audio routing,
         // audio modes, audio device enumeration etc.
         audioManager = WebRTCAudioManager.create(getApplicationContext());
@@ -420,13 +365,13 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
     public void disconnect() {
         try {
             activityRunning = false;
-            if (pipRenderer != null) {
-                pipRenderer.release();
-                pipRenderer = null;
+            if (localRenderer != null) {
+                localRenderer.release();
+                localRenderer = null;
             }
-            if (fullscreenRenderer != null) {
-                fullscreenRenderer.release();
-                fullscreenRenderer = null;
+            if (remoteRenderer != null) {
+                remoteRenderer.release();
+                remoteRenderer = null;
             }
             if (audioManager != null) {
                 audioManager.stop();
@@ -443,28 +388,6 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
         finish();
     }
 
-    private void disconnectWithErrorMessage(final String errorMessage) {
-        if (commandLineRun || !activityRunning) {
-            Log.e(TAG, "Critical error: " + errorMessage);
-            disconnect();
-        } else {
-            new AlertDialog.Builder(this)
-                    .setTitle(getText(R.string.channel_error_title))
-                    .setMessage(errorMessage)
-                    .setCancelable(false)
-                    .setNeutralButton(R.string.ok,
-                            new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int id) {
-                                    dialog.cancel();
-                                    disconnect();
-                                }
-                            })
-                    .create()
-                    .show();
-        }
-    }
-
     // Log |msg| and Toast about it.
     private void logAndToast(String msg) {
         Log.d(TAG, msg);
@@ -475,21 +398,9 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
         logToast.show();
     }
 
-    private void reportError(final String description) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (!isError) {
-                    isError = true;
-                    disconnectWithErrorMessage(description);
-                }
-            }
-        });
-    }
-
     private void setSwappedFeeds(boolean isSwappedFeeds) {
         Logging.d(TAG, "setSwappedFeeds: " + isSwappedFeeds);
-        if(fullscreenRenderer == null || pipRenderer == null){
+        if(remoteRenderer == null || localRenderer == null){
             initUIControls(getIntent());
         }
 
@@ -497,43 +408,4 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
         WebrtcClient.getInstance().swapVideoRenderer(isSwappedFeeds);
     }
 
-    private void updatePeerConnectionParametersFromIntent(Intent intent) {
-        boolean tracing = intent.getBooleanExtra(EXTRA_TRACING, false);
-
-        int videoWidth = intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0);
-        int videoHeight = intent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0);
-
-        screencaptureEnabled = intent.getBooleanExtra(EXTRA_SCREENCAPTURE, false);
-        // If capturing format is not specified for screencapture, use screen resolution.
-        if (screencaptureEnabled && videoWidth == 0 && videoHeight == 0) {
-            DisplayMetrics displayMetrics = getDisplayMetrics();
-            videoWidth = displayMetrics.widthPixels;
-            videoHeight = displayMetrics.heightPixels;
-        }
-        /*
-        DataChannelParameters dataChannelParameters = null;
-        if (intent.getBooleanExtra(EXTRA_DATA_CHANNEL_ENABLED, false)) {
-            dataChannelParameters = new DataChannelParameters(intent.getBooleanExtra(EXTRA_ORDERED, true),
-                    intent.getIntExtra(EXTRA_MAX_RETRANSMITS_MS, -1),
-                    intent.getIntExtra(EXTRA_MAX_RETRANSMITS, -1), intent.getStringExtra(EXTRA_PROTOCOL),
-                    intent.getBooleanExtra(EXTRA_NEGOTIATED, false), intent.getIntExtra(EXTRA_ID, -1));
-        }
-        */
-//        peerConnectionParameters =
-//                new PeerConnectionParameters(intent.getBooleanExtra(EXTRA_VIDEO_CALL, true),
-//                        tracing, videoWidth, videoHeight, intent.getIntExtra(EXTRA_VIDEO_FPS, 0),
-//                        intent.getIntExtra(EXTRA_VIDEO_BITRATE, 0), intent.getStringExtra(EXTRA_VIDEOCODEC),
-//                        intent.getBooleanExtra(EXTRA_HWCODEC_ENABLED, true),
-//                        intent.getBooleanExtra(EXTRA_FLEXFEC_ENABLED, false),
-//                        intent.getIntExtra(EXTRA_AUDIO_BITRATE, 0), intent.getStringExtra(EXTRA_AUDIOCODEC),
-//                        intent.getBooleanExtra(EXTRA_NOAUDIOPROCESSING_ENABLED, false),
-//                        intent.getBooleanExtra(EXTRA_AECDUMP_ENABLED, false),
-//                        intent.getBooleanExtra(EXTRA_SAVE_INPUT_AUDIO_TO_FILE_ENABLED, false),
-//                        intent.getBooleanExtra(EXTRA_OPENSLES_ENABLED, false),
-//                        intent.getBooleanExtra(EXTRA_DISABLE_BUILT_IN_AEC, false),
-//                        intent.getBooleanExtra(EXTRA_DISABLE_BUILT_IN_AGC, false),
-//                        intent.getBooleanExtra(EXTRA_DISABLE_BUILT_IN_NS, false),
-//                        intent.getBooleanExtra(EXTRA_DISABLE_WEBRTC_AGC_AND_HPF, false),
-//                        intent.getBooleanExtra(EXTRA_ENABLE_RTCEVENTLOG, false), null);
-    }
 }
