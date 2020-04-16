@@ -1,10 +1,25 @@
 package org.elastos.carrier.webrtc.call;
 
 public enum CallState {
+    /**
+     * init state
+     */
     INIT(0, "init"),
+    /**
+     * you are sending invite message
+     */
     INVITING(1, "inviting"),
+    /**
+     * remote user accepted invite
+     */
     CONNECTING(2, "connecting"),
+    /**
+     * someone is inviting you
+     */
     RINGING(3, "ringing"),
+    /**
+     * call connected
+     */
     ACTIVE(4, "active"),
     ;
 

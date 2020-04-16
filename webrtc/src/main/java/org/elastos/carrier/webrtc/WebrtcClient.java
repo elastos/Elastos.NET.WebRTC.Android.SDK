@@ -112,7 +112,7 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
     return INSTANCE;
   }
 
-  public static Webrtc getInstance() {
+  public static WebrtcClient getInstance() {
     if (INSTANCE == null) {
       throw new RuntimeException("call initialize method before getInstance");
     }
@@ -727,7 +727,7 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
   }
 
   // Converts a JSON candidate to a Java object.
-  IceCandidate toJavaCandidate(JSONObject json) throws JSONException {
+  private IceCandidate toJavaCandidate(JSONObject json) throws JSONException {
     return new IceCandidate(
             json.getString("id"), json.getInt("label"), json.getString("candidate"));
   }
@@ -736,7 +736,7 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
   /**
    * Struct holding the signaling parameters of an webrtc communication.
    */
-  public static class SignalingParameters {
+  private static class SignalingParameters {
     public final List<PeerConnection.IceServer> iceServers;
     public boolean initiator;
 

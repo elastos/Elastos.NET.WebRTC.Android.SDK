@@ -1,8 +1,17 @@
 package org.elastos.carrier.webrtc.call;
 
 public enum CallReason {
+    /**
+     * remote user reject you invite
+     */
     REJECT(-1, "reject call"),
+    /**
+     * normal disconnected
+     */
     NORMAL_HANGUP(0, "normal hangup"),
+    /**
+     * connect error
+     */
     ERROR(1, "error occurred when calling"),
     ;
 

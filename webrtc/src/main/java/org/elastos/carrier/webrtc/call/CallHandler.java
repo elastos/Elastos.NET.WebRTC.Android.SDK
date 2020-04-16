@@ -23,7 +23,7 @@ public interface CallHandler {
 
     /**
      * when remote hangup or reject invite
-     * @param reason
+     * @param reason {@link CallReason} the reason call ended
      */
     void onEndCall(CallReason reason);
 
@@ -39,7 +39,7 @@ public interface CallHandler {
 
     /**
      * webrtc connect error
-     * @param description
+     * @param description error message
      */
     void onConnectionError(String description);
 
