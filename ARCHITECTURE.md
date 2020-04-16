@@ -34,8 +34,7 @@ onInvite callback if someone is calling you.
     PeerConnectionParametersBuilder parameters = PeerConnectionParametersBuilder.builder().build;
     // implements org.elastos.carrier.webrtc.call.CallHandler
     CallHandlerImpl callHandler = new CallHandlerImpl();
-    // Create connection client from an Activity, generally in the onCreate() method.
-    // The first parameter is the CarrierChannelEvents, here the Activity (this) has already implemented CarrierChannelEvents interface.
+    // initialize WebrtcClient.
     WebrtcClient.initialize(context, Carrier.getInstance(), callHandler,  parameters);
 
 ```
@@ -46,6 +45,18 @@ onInvite callback if someone is calling you.
     // Send a call invite to a carrier User.
     WebrtcClient.getInstance().inviteCall(friendId);
 
+    // Render video wherever you want
+    WebrtcClient.getInstance().renderVideo(localRenderer, remoteRenderer);
+
+```
+
+### when you receive invite
+```
+
+    // accept invite
+    WebrtcClient.getInstance().acceptCallInvite();
+    // reject invite
+    WebrtcClient.getInstance().rejectCallInvite();
     // Render video wherever you want
     WebrtcClient.getInstance().renderVideo(localRenderer, remoteRenderer);
 
