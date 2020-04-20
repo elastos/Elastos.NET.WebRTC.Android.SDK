@@ -56,10 +56,8 @@ android {
 
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
+    api fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
 
-    //implementation 'org.elastos:carrier:5.4.2'
-    //implementation project(':carrier')
     implementation 'org.webrtc:google-webrtc:1.0.30039'
 
 
