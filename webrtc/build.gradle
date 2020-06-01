@@ -72,6 +72,8 @@ dependencies {
     implementation 'org.osgi:org.osgi.framework:1.9.0'
     implementation 'androidx.annotation:annotation:1.0.0'
 
+    api 'org.elastos:carrier:5.6.0'
+
     testImplementation 'junit:junit:4.12'
     testImplementation 'org.assertj:assertj-core:3.11.1'
     testImplementation 'org.mockito:mockito-core:1.9.5'
