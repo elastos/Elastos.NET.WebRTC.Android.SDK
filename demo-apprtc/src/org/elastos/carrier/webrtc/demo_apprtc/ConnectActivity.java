@@ -198,7 +198,7 @@ public class ConnectActivity extends Activity {
     mQRCodeImage.setImageBitmap(QRCodeUtils.createQRCodeBitmap(address));
     mAdrress.setText(userId);
 
-    WebrtcClient.initialize(this, Carrier.getInstance(), new CallHandlerImpl(),  null);
+    WebrtcClient.initialize(this, CarrierClient.getInstance(this).getCarrier(), new CallHandlerImpl(),  null);
 
     if (Build.VERSION.SDK_INT >= 23) {
       int REQUEST_CODE_CONTACT = 101;

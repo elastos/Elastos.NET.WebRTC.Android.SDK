@@ -35,6 +35,7 @@ import org.elastos.carrier.PresenceStatus;
 import org.elastos.carrier.UserInfo;
 import org.elastos.carrier.exceptions.CarrierException;
 
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -97,8 +98,7 @@ public class CarrierClient {
 		CarrierOptions options = new CarrierOptions(basePath);
 
 		try {
-			Carrier.initializeInstance(options, carrierHandler);
-			carrier = Carrier.getInstance();
+			carrier = Carrier.createInstance(options, carrierHandler);
 			carrier.start(0);
 			Log.i(TAG, "Carrier node is ready now");
 
@@ -124,10 +124,10 @@ public class CarrierClient {
 		}
 
 		@Override
-		public void onFriendMessage(Carrier carrier, String from, byte[] message, boolean isOffline) {
+		public void onFriendMessage(Carrier carrier, String from, byte[] message, Date timestamp, boolean isOffline) {
 			for (CarrierHandler carrierHandler : carrierHandlers) {
 				if(carrierHandler!=null) {
-					carrierHandler.onFriendMessage(carrier, from, message, isOffline);
+					carrierHandler.onFriendMessage(carrier, from, message, timestamp, isOffline);
 					Log.d(TAG, "carrier onFriendMessage(): from: " + from + ", message:" + message + ".");
 				}
 			}
