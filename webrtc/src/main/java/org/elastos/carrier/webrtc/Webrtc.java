@@ -34,17 +34,17 @@ interface Webrtc {
    * Invite a peer to join the webrtc call, the remote peer can choose to accept the invitation or reject.
    * @param peer EOS user id you want to call
    */
-  void inviteCall(String peer);
+  void makeCall(String peer);
 
   /**
    * To accept a webrtc call invite.
    */
-  void acceptCallInvite() ;
+  void answerCall() ;
 
   /**
    * To reject the webrtc call invite.
    */
-  void rejectCallInvite();
+  void rejectCall();
 
   /**
    * get current call state
