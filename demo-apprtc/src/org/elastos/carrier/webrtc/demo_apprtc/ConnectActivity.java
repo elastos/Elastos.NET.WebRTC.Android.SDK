@@ -57,6 +57,7 @@ import org.elastos.carrier.webrtc.demo_apprtc.util.QRCodeUtils;
 import org.elastos.carrier.AbstractCarrierHandler;
 import org.elastos.carrier.Carrier;
 import org.elastos.carrier.exceptions.CarrierException;
+import org.elastos.carrier.webrtc.exception.WebrtcException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -797,7 +798,10 @@ public class ConnectActivity extends Activity {
             return;
           }
           startCallActivity(userId);
-          WebrtcClient.getInstance().makeCall(userId);
+          try {
+            WebrtcClient.getInstance().makeCall(userId);
+          } catch (WebrtcException e) {
+          }
         }
       };
 

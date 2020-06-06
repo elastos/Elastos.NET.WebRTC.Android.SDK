@@ -23,6 +23,7 @@
 package org.elastos.carrier.webrtc;
 
 import org.elastos.carrier.webrtc.call.CallState;
+import org.elastos.carrier.webrtc.exception.WebrtcException;
 import org.webrtc.SurfaceViewRenderer;
 
 /**
@@ -34,17 +35,17 @@ interface Webrtc {
    * Invite a peer to join the webrtc call, the remote peer can choose to accept the invitation or reject.
    * @param peer EOS user id you want to call
    */
-  void makeCall(String peer);
+  void makeCall(String peer) throws WebrtcException;
 
   /**
    * To accept a webrtc call invite.
    */
-  void answerCall() ;
+  void answerCall()  throws WebrtcException;
 
   /**
    * To reject the webrtc call invite.
    */
-  void rejectCall();
+  void rejectCall()  throws WebrtcException;
 
   /**
    * get current call state
@@ -56,7 +57,7 @@ interface Webrtc {
    * get remote user id you are talking to
    * @return {@link String} remote user id
    */
-  String getRemoteUserId();
+  String getPeerAddress();
 
   /**
    * set video renderer, render video to you app

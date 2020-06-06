@@ -38,6 +38,7 @@ import org.elastos.carrier.exceptions.CarrierException;
 import org.elastos.carrier.webrtc.call.CallHandler;
 import org.elastos.carrier.webrtc.call.CallReason;
 import org.elastos.carrier.webrtc.call.CallState;
+import org.elastos.carrier.webrtc.exception.WebrtcException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -59,6 +60,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.elastos.carrier.webrtc.exception.WebrtcException;
+
 /**
  * Initial the Carrier Webrtc Client instance for webrtc call using carrier network.
  * <p>To use: create an instance of this object (registering a message handler) and
@@ -72,6 +75,7 @@ import java.util.List;
  */
 public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnectionEvents {
     private static final String TAG = "WebrtcClient";
+
     private static WebrtcClient INSTANCE;
     private final Handler handler;
     private boolean initiator;
@@ -92,27 +96,34 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
     private List<VideoSink> remoteSinks = Arrays.asList(new ProxyVideoSink[]{remoteProxyVideoSink});
     private SurfaceViewRenderer localVideoRenderer;
     private SurfaceViewRenderer remoteVideoRenderer;
-    private WebrtcClient(Context context, Carrier carrier, CallHandler callHandler, CarrierPeerConnectionClient.PeerConnectionParameters peerConnectionParameters) {
+
+    private WebrtcClient(Context context,
+                         Carrier carrier,
+                         CallHandler callHandler,
+                         CarrierPeerConnectionClient.PeerConnectionParameters peerConnectionParameters)
+            throws WebrtcException {
         super(carrier);
+
         try {
             registerExtension();
             this.currentUserId = carrier.getUserId();
         } catch (CarrierException e) {
-            Log.e(TAG, "CarrierPeerConnectionClient: register carrier extension error", e);
+            throw new WebrtcException("Carrier extension registered error.");
         }
+
         this.carrier = carrier;
         this.context = context;
         this.callHandler = callHandler;
         this.friendInviteResponseHandler = new CarrierMessageObserver();
         this.callState = CallState.INIT;
-        if (peerConnectionParameters != null) {
-            this.peerConnectionParameters = peerConnectionParameters;
-        } else {
+        this.peerConnectionParameters = peerConnectionParameters;
+
+        if (this.peerConnectionParameters != null)
             this.peerConnectionParameters = PeerConnectionParametersBuilder.builder().build();
-        }
+
         final HandlerThread handlerThread = new HandlerThread(TAG);
         handlerThread.start();
-        handler = new Handler(handlerThread.getLooper());
+        this.handler = new Handler(handlerThread.getLooper());
     }
 
     public static WebrtcClient createInstance(@NonNull Context context,
@@ -120,18 +131,19 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
                                               @Nullable CallHandler callHandler,
                                               @Nullable CarrierPeerConnectionClient.PeerConnectionParameters peerConnectionParameters) {
         synchronized (WebrtcClient.class) {
-            if (INSTANCE == null) {
-                INSTANCE = new WebrtcClient(context, carrier, callHandler, peerConnectionParameters);
-                Log.d(TAG, "initialize: success");
+            try {
+                if (INSTANCE == null) {
+                    INSTANCE = new WebrtcClient(context, carrier, callHandler, peerConnectionParameters);
+                    Log.d(TAG, "initialize: success");
+                }
+            } catch (WebrtcException e) {
+                Log.e(TAG, "Create webrtc client error " + e.getMessage());
             }
         }
         return INSTANCE;
     }
 
     public static WebrtcClient getInstance() {
-        if (INSTANCE == null) {
-            throw new RuntimeException("call initialize method before getInstance");
-        }
         return INSTANCE;
     }
 
@@ -148,43 +160,68 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
      * Make call to remote peer. And remote peer could choose to accept this
      * call inviation, or hangup (reject) the calll invatation.
      *
-     * @param peer The remote peer to which the call is going to make with.
+     * @param peerAddress The remote peer to which the call is going to make with.
      */
-    public void makeCall(String peer) {
-        Log.d(TAG, "inviteCall: " + peer);
-        this.initiator = true;
-        this.remoteUserId = peer;
-        this.setCallState(CallState.INVITING);
-        sendInvite();
-    }
+    public void makeCall(String peerAddress) throws WebrtcException {
+        if (peerAddress == null) {
+            throw new IllegalArgumentException("Peer address empty");
+        }
 
+        this.initiator = true;
+        this.remoteUserId = peerAddress;
+        this.setCallState(CallState.INVITING);
+
+        try {
+            String message = new JSONObject()
+                .put("type", "invite")
+                .put("remoteUserId", remoteUserId)
+                .toString();
+            send(message);
+            Log.d(TAG, "Making call to " + remoteUserId + "succeeded");
+
+        } catch (JSONException e) {
+            throw new WebrtcException("Making webrtc call error " + e.getMessage());
+        }
+    }
 
     /**
      * Answer the call invitation.
      */
-    public void answerCall() {
+    public void answerCall() throws WebrtcException {
         this.initiator = false;
         this.setCallState(CallState.CONNECTING);
-        acceptInvite();
-    }
 
-    /**
-     * Hangup/reject the call inviation.
-     */
-    public void rejectCall() {
         try {
-            JSONObject json = new JSONObject();
-            jsonPut(json, "type", "reject");
-            jsonPut(json, "remoteUserId", remoteUserId);
-            send(json.toString());
-            Log.d(TAG, "rejectCallInvite() from " + currentUserId + ", to: " + remoteUserId);
+            String message = new JSONObject()
+                    .put("type", "acceptInvite")
+                    .put("remoteUserId", remoteUserId)
+                    .toString();
+            send(message);
+            Log.d(TAG, "Answer call invivation  from " + remoteUserId + " to " + currentUserId);
 
-        } catch (Exception e) {
-            Log.e(TAG, "rejectCallInvite: ", e);
+        } catch (JSONException e) {
+            throw new WebrtcException("Answer webrtc call error: " + e.getMessage());
         }
     }
 
-    @Override
+    /**
+     * Hangup/reject the call invitation.
+     */
+    public void rejectCall() throws WebrtcException {
+        try {
+            String message = new JSONObject()
+                .put("type", "reject")
+                .put("remoteUserId", remoteUserId)
+                .toString();
+
+            send(message);
+            Log.d(TAG, "Reject call invitation from " + remoteUserId + " to " + currentUserId);
+
+        } catch (JSONException e) {
+            throw new WebrtcException("Reject call invitation error: " + e.getMessage());
+        }
+    }
+
     public CallState getCallState() {
         return this.callState;
     }
@@ -198,7 +235,7 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
      *
      * @return {@link String} remote peer address.
      */
-    public String getRemoteUserId() {
+    public String getPeerAddress() {
         return this.remoteUserId;
     }
 
@@ -315,21 +352,6 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
     /**
      * send invite message to callee.
      */
-    private void sendInvite() {
-        Log.d(TAG, "sendInvite to : " + remoteUserId);
-        if (remoteUserId == null) {
-            throw new IllegalStateException("Webrtc has not been invited, please call Webrtc.inviteCall(String peer) firstly.");
-        }
-        try {
-            JSONObject json = new JSONObject();
-            jsonPut(json, "type", "invite");
-            jsonPut(json, "remoteUserId", remoteUserId);
-            send(json.toString());
-            Log.d(TAG, "inviteCall() from caller: " + currentUserId + " to " + remoteUserId);
-        } catch (Exception e) {
-            Log.e(TAG, "sendInvite: ", e);
-        }
-    }
 
     private void sendBye() {
         try {
@@ -832,7 +854,4 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
             Log.e(TAG, "carrier friend invite  onReceived from: " + from);
         }
     }
-    /**
-     * end implements PeerConnectionEvents
-     */
 }
