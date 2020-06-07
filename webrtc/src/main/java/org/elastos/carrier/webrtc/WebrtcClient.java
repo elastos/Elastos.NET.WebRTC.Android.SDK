@@ -193,9 +193,9 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
 
         try {
             String message = new JSONObject()
-                    .put("type", "acceptInvite")
-                    .put("remoteUserId", remoteUserId)
-                    .toString();
+                .put("type", "acceptInvite")
+                .put("remoteUserId", remoteUserId)
+                .toString();
             send(message);
             Log.d(TAG, "Answer call invivation  from " + remoteUserId + " to " + currentUserId);
 
@@ -830,13 +830,13 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
      * Struct holding the signaling parameters of an webrtc communication.
      */
     private static class SignalingParameters {
-        public final List<PeerConnection.IceServer> iceServers;
-        public final String remoteUserId;
-        public final SessionDescription offerSdp;
-        public final List<IceCandidate> iceCandidates;
-        public boolean initiator;
+        final List<PeerConnection.IceServer> iceServers;
+        final String remoteUserId;
+        final SessionDescription offerSdp;
+        final List<IceCandidate> iceCandidates;
+        boolean initiator;
 
-        public SignalingParameters(List<PeerConnection.IceServer> iceServers, boolean initiator,
+        SignalingParameters(List<PeerConnection.IceServer> iceServers, boolean initiator,
                                    String remoteUserId, SessionDescription offerSdp,
                                    List<IceCandidate> iceCandidates) {
             this.iceServers = iceServers;
