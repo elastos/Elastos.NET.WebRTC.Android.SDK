@@ -23,9 +23,9 @@
 package org.elastos.carrier.webrtc.exception;
 
 public class WebrtcException extends Exception {
-	private static final long serialVersionUID = 559610221817300994L;
+    private static final long serialVersionUID = 559610221817300994L;
 
-	public WebrtcException() {
+    public WebrtcException() {
         super();
     }
 

@@ -60,8 +60,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.elastos.carrier.webrtc.exception.WebrtcException;
-
 /**
  * Initial the Carrier Webrtc Client instance for webrtc call using carrier network.
  * <p>To use: create an instance of this object (registering a message handler) and
@@ -103,24 +101,20 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
                          CarrierPeerConnectionClient.PeerConnectionParameters peerConnectionParameters)
             throws WebrtcException {
         super(carrier);
-
         try {
             registerExtension();
             this.currentUserId = carrier.getUserId();
         } catch (CarrierException e) {
             throw new WebrtcException("Carrier extension registered error.");
         }
-
         this.carrier = carrier;
         this.context = context;
         this.callHandler = callHandler;
         this.friendInviteResponseHandler = new CarrierMessageObserver();
         this.callState = CallState.INIT;
         this.peerConnectionParameters = peerConnectionParameters;
-
         if (this.peerConnectionParameters != null)
             this.peerConnectionParameters = PeerConnectionParametersBuilder.builder().build();
-
         final HandlerThread handlerThread = new HandlerThread(TAG);
         handlerThread.start();
         this.handler = new Handler(handlerThread.getLooper());
@@ -166,16 +160,14 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
         if (peerAddress == null) {
             throw new IllegalArgumentException("Peer address empty");
         }
-
         this.initiator = true;
         this.remoteUserId = peerAddress;
         this.setCallState(CallState.INVITING);
-
         try {
             String message = new JSONObject()
-                .put("type", "invite")
-                .put("remoteUserId", remoteUserId)
-                .toString();
+                    .put("type", "invite")
+                    .put("remoteUserId", remoteUserId)
+                    .toString();
             send(message);
             Log.d(TAG, "Making call to " + remoteUserId + "succeeded");
 
@@ -190,12 +182,11 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
     public void answerCall() throws WebrtcException {
         this.initiator = false;
         this.setCallState(CallState.CONNECTING);
-
         try {
             String message = new JSONObject()
-                .put("type", "acceptInvite")
-                .put("remoteUserId", remoteUserId)
-                .toString();
+                    .put("type", "acceptInvite")
+                    .put("remoteUserId", remoteUserId)
+                    .toString();
             send(message);
             Log.d(TAG, "Answer call invivation  from " + remoteUserId + " to " + currentUserId);
 
@@ -210,10 +201,9 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
     public void rejectCall() throws WebrtcException {
         try {
             String message = new JSONObject()
-                .put("type", "reject")
-                .put("remoteUserId", remoteUserId)
-                .toString();
-
+                    .put("type", "reject")
+                    .put("remoteUserId", remoteUserId)
+                    .toString();
             send(message);
             Log.d(TAG, "Reject call invitation from " + remoteUserId + " to " + currentUserId);
 
@@ -837,8 +827,8 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
         boolean initiator;
 
         SignalingParameters(List<PeerConnection.IceServer> iceServers, boolean initiator,
-                                   String remoteUserId, SessionDescription offerSdp,
-                                   List<IceCandidate> iceCandidates) {
+                            String remoteUserId, SessionDescription offerSdp,
+                            List<IceCandidate> iceCandidates) {
             this.iceServers = iceServers;
             this.initiator = initiator;
             this.remoteUserId = remoteUserId;

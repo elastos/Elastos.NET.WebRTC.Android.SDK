@@ -29,7 +29,6 @@ public enum CallReason {
                 return reason;
             }
         }
-
         return null;
     }
 
