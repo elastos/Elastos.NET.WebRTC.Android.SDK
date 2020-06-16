@@ -26,8 +26,6 @@ import android.media.AudioFormat;
 import android.os.Environment;
 import android.util.Log;
 
-import androidx.annotation.Nullable;
-
 import org.webrtc.audio.JavaAudioDeviceModule;
 import org.webrtc.audio.JavaAudioDeviceModule.SamplesReadyCallback;
 
@@ -42,19 +40,17 @@ import java.util.concurrent.ExecutorService;
  * Implements the AudioRecordSamplesReadyCallback interface and writes
  * recorded raw audio samples to an output file.
  */
-public class RecordedAudioToFileController implements SamplesReadyCallback {
+class RecordedAudioToFileController implements SamplesReadyCallback {
     private static final String TAG = "RecordedAudioToFile";
     private static final long MAX_FILE_SIZE_IN_BYTES = 58348800L;
 
     private final Object lock = new Object();
     private final ExecutorService executor;
-    @Nullable
     private OutputStream rawAudioFileOutputStream;
     private boolean isRunning;
     private long fileSizeInBytes;
 
-    public RecordedAudioToFileController(ExecutorService executor) {
-        Log.d(TAG, "ctor");
+    RecordedAudioToFileController(ExecutorService executor) {
         this.executor = executor;
     }
 
@@ -63,7 +59,6 @@ public class RecordedAudioToFileController implements SamplesReadyCallback {
      * construction.
      */
     public boolean start() {
-        Log.d(TAG, "start");
         if (!isExternalStorageWritable()) {
             Log.e(TAG, "Writing to external media is not possible");
             return false;
@@ -79,7 +74,6 @@ public class RecordedAudioToFileController implements SamplesReadyCallback {
      * construction.
      */
     public void stop() {
-        Log.d(TAG, "stop");
         synchronized (lock) {
             isRunning = false;
             if (rawAudioFileOutputStream != null) {
@@ -94,13 +88,8 @@ public class RecordedAudioToFileController implements SamplesReadyCallback {
         }
     }
 
-    // Checks if external storage is available for read and write.
     private boolean isExternalStorageWritable() {
-        String state = Environment.getExternalStorageState();
-        if (Environment.MEDIA_MOUNTED.equals(state)) {
-            return true;
-        }
-        return false;
+        return Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState());
     }
 
     // Utilizes audio parameters to create a file name which contains sufficient

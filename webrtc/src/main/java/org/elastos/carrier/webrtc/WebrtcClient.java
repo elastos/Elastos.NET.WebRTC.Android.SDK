@@ -71,7 +71,7 @@ import java.util.List;
  * Messages to other party (with local Ice candidates and answer SDP) can
  * be sent after Carrier connection is established.
  */
-public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnectionEvents {
+public class WebrtcClient extends CarrierExtension implements PeerConnectionEvents {
     private static final String TAG = "WebrtcClient";
 
     private static WebrtcClient INSTANCE;
@@ -112,9 +112,11 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
         this.callHandler = callHandler;
         this.friendInviteResponseHandler = new CarrierMessageObserver();
         this.callState = CallState.INIT;
-        this.peerConnectionParameters = peerConnectionParameters;
-        if (this.peerConnectionParameters != null)
+        if (peerConnectionParameters != null) {
+            this.peerConnectionParameters = peerConnectionParameters;
+        } else {
             this.peerConnectionParameters = PeerConnectionParametersBuilder.builder().build();
+        }
         final HandlerThread handlerThread = new HandlerThread(TAG);
         handlerThread.start();
         this.handler = new Handler(handlerThread.getLooper());
@@ -158,21 +160,26 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
      */
     public void makeCall(String peerAddress) throws WebrtcException {
         if (peerAddress == null) {
-            throw new IllegalArgumentException("Peer address empty");
+            throw new IllegalArgumentException("Invalid remote address");
         }
+        if (peerAddress.equals(currentUserId)) {
+            throw new IllegalArgumentException("PeerAddress is current node address");
+        }
+
         this.initiator = true;
         this.remoteUserId = peerAddress;
         this.setCallState(CallState.INVITING);
+
         try {
-            String message = new JSONObject()
+            String data = new JSONObject()
                     .put("type", "invite")
                     .put("remoteUserId", remoteUserId)
                     .toString();
-            send(message);
-            Log.d(TAG, "Making call to " + remoteUserId + "succeeded");
+            send(data);
+            Log.d(TAG, "Send command to making call to " + remoteUserId + "succeeded");
 
         } catch (JSONException e) {
-            throw new WebrtcException("Making webrtc call error " + e.getMessage());
+            throw new WebrtcException("Send command to make webrtc call error " + e.getMessage());
         }
     }
 
@@ -182,16 +189,17 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
     public void answerCall() throws WebrtcException {
         this.initiator = false;
         this.setCallState(CallState.CONNECTING);
+
         try {
-            String message = new JSONObject()
+            String data = new JSONObject()
                     .put("type", "acceptInvite")
                     .put("remoteUserId", remoteUserId)
                     .toString();
-            send(message);
-            Log.d(TAG, "Answer call invivation  from " + remoteUserId + " to " + currentUserId);
+            send(data);
+            Log.d(TAG, "Send command to answer call invitation from " + remoteUserId);
 
         } catch (JSONException e) {
-            throw new WebrtcException("Answer webrtc call error: " + e.getMessage());
+            throw new WebrtcException("Sending command to answer webrtc call error: " + e.getMessage());
         }
     }
 
@@ -200,15 +208,15 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
      */
     public void rejectCall() throws WebrtcException {
         try {
-            String message = new JSONObject()
+            String data = new JSONObject()
                     .put("type", "reject")
                     .put("remoteUserId", remoteUserId)
                     .toString();
-            send(message);
-            Log.d(TAG, "Reject call invitation from " + remoteUserId + " to " + currentUserId);
+            send(data);
+            Log.d(TAG, "Send command to reject invitation from " + remoteUserId);
 
         } catch (JSONException e) {
-            throw new WebrtcException("Reject call invitation error: " + e.getMessage());
+            throw new WebrtcException("Sending command to reject invitation error: " + e.getMessage());
         }
     }
 
@@ -229,17 +237,30 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
         return this.remoteUserId;
     }
 
-    @Override
-    public void disconnect() {
+    public void hangupCall() throws WebrtcException {
         this.setCallState(CallState.INIT);
-        sendBye();
+
+        try {
+            String data = new JSONObject()
+                    .put("type", "bye")
+                    .put("remoteUserId", remoteUserId)
+                    .toString();
+            send(data);
+            Log.d(TAG, "Sending command to hangup the call with " + remoteUserId);
+
+        } catch (JSONException e) {
+            throw new WebrtcException("Sending command to hangup the call error: " + e.getMessage());
+        }
+
         disconnectFromCallInternal();
         handler.getLooper().quit();
-        Log.d(TAG, "disconnect() from callee: " + currentUserId + " to " + remoteUserId);
+        Log.d(TAG, "Disconnect the call with" + remoteUserId);
     }
 
-    @Override
-    public void renderVideo(@NonNull SurfaceViewRenderer localRenderer, @NonNull SurfaceViewRenderer remoteRenderer) {
+    public void renderVideo(SurfaceViewRenderer localRenderer, SurfaceViewRenderer remoteRenderer) {
+        if (localRenderer == null || remoteRenderer == null)
+            throw new IllegalArgumentException("Invalid video render");
+
         this.localVideoRenderer = localRenderer;
         this.remoteVideoRenderer = remoteRenderer;
         if (this.eglBase == null) {
@@ -250,52 +271,31 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
         swapVideoRenderer(false);
     }
 
-    @Override
     public void swapVideoRenderer(boolean isSwap) {
-        if (localVideoRenderer == null || remoteVideoRenderer == null) {
-            Log.w(TAG, "swapVideoRenderer: video renderer is null");
-            return;
-        }
         localProxyVideoSink.setTarget(isSwap ? remoteVideoRenderer : localVideoRenderer);
         remoteProxyVideoSink.setTarget(isSwap ? localVideoRenderer : remoteVideoRenderer);
         remoteVideoRenderer.setMirror(isSwap);
         localVideoRenderer.setMirror(!isSwap);
     }
 
-    @Override
     public void switchCamera() {
-        if (carrierPeerConnectionClient == null) {
-            Log.w(TAG, "switchCamera: carrierPeerConnectionClient is null");
-            return;
-        }
-        carrierPeerConnectionClient.switchCamera();
+        if (carrierPeerConnectionClient != null)
+            carrierPeerConnectionClient.switchCamera();
     }
 
-    @Override
     public void setResolution(int width, int height, int fps) {
-        if (carrierPeerConnectionClient == null) {
-            Log.w(TAG, "switchCamera: carrierPeerConnectionClient is null");
-            return;
-        }
-        carrierPeerConnectionClient.changeCaptureFormat(width, height, fps);
+        if (carrierPeerConnectionClient != null)
+            carrierPeerConnectionClient.changeCaptureFormat(width, height, fps);
     }
 
-    @Override
     public void setAudioEnable(boolean enable) {
-        if (carrierPeerConnectionClient == null) {
-            Log.w(TAG, "switchCamera: carrierPeerConnectionClient is null");
-            return;
-        }
-        carrierPeerConnectionClient.setAudioEnabled(enable);
+        if (carrierPeerConnectionClient != null)
+            carrierPeerConnectionClient.setAudioEnabled(enable);
     }
 
-    @Override
     public void setVideoEnable(boolean enable) {
-        if (carrierPeerConnectionClient == null) {
-            Log.w(TAG, "switchCamera: carrierPeerConnectionClient is null");
-            return;
-        }
-        carrierPeerConnectionClient.setVideoEnabled(enable);
+        if (carrierPeerConnectionClient != null)
+            carrierPeerConnectionClient.setVideoEnabled(enable);
     }
 
     @Override
@@ -313,7 +313,7 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
     @Override
     protected void onFriendInvite(Carrier carrier, String from, String data) {
         Log.e(TAG, "carrier friend invite  onFriendInviteRequest from: " + from);
-        if (data != null && data.contains("msg")) { //通过添加好友的消息回执绕过carrier message 1024字符的限制
+        if (data != null && data.contains("msg")) {
             this.remoteUserId = from;
             onCarrierMessage(data, from);
             Log.d(TAG, "Get the carrier message: " + data);
@@ -339,45 +339,6 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
         initialCallInternal();
     }
 
-    /**
-     * send invite message to callee.
-     */
-
-    private void sendBye() {
-        try {
-            JSONObject json = new JSONObject();
-            jsonPut(json, "type", "bye");
-            jsonPut(json, "remoteUserId", remoteUserId);
-            send(json.toString());
-            Log.d(TAG, "send bye from " + currentUserId + ", to: " + remoteUserId);
-
-        } catch (Exception e) {
-            Log.e(TAG, "sendBye: ", e);
-        }
-    }
-
-    /**
-     * accept invite message to caller.
-     */
-    private void acceptInvite() {
-        Log.d(TAG, "acceptInvite from : " + remoteUserId);
-        try {
-            JSONObject json = new JSONObject();
-            jsonPut(json, "type", "acceptInvite");
-            jsonPut(json, "remoteUserId", remoteUserId);
-            send(json.toString());
-            Log.d(TAG, "acceptCallInvite() from callee: " + currentUserId + " to " + remoteUserId);
-
-        } catch (Exception e) {
-            Log.e(TAG, "acceptInvite: ", e);
-        }
-    }
-
-    /**
-     * Initial
-     *
-     * @return
-     */
     private List<PeerConnection.IceServer> getIceServers() {
         TurnServerInfo turnServerInfo = null;
         try {
@@ -727,33 +688,22 @@ public class WebrtcClient extends CarrierExtension implements Webrtc, PeerConnec
         }
     }
 
-    //send message
     private void send(String message) {
-        // checkIfCalledOnValidThread();
-        JSONObject json = new JSONObject();
         try {
-            json.put("cmd", "send");
-            json.put("msg", message);
-            json.put("remoteUserId", remoteUserId);
-            message = json.toString();
-            Log.d(TAG, "C->Call: " + message);
-            if (remoteUserId.equals(currentUserId)) {
-                return; //can not send message to self through carrier network.
-            }
-            sendMessageByInvite(remoteUserId, message);
+            String data = new JSONObject()
+                    .put("cmd", "send")
+                    .put("msg", message)
+                    .put("remoteUserId", remoteUserId)
+                    .toString();
+
+            Log.d(TAG, "Calling control command : " + data);
+            inviteFriend(remoteUserId, data, friendInviteResponseHandler);
 
         } catch (JSONException e) {
             Log.e(TAG, "send: Carrier send JSON error: " + e.getMessage());
         } catch (CarrierException e) {
             e.printStackTrace();
             Log.e(TAG, "send: carrier send message error: " + e.getMessage());
-        }
-
-    }
-
-    private void sendMessageByInvite(String fid, String message) throws CarrierException {
-        if (fid != null && !fid.equals(currentUserId)) {
-            inviteFriend(fid, message, friendInviteResponseHandler);
         }
     }
 
