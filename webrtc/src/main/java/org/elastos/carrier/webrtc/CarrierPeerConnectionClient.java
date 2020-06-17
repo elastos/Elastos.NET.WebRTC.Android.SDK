@@ -296,11 +296,10 @@ class CarrierPeerConnectionClient {
             Matcher codecMatcher = codecPattern.matcher(lines[i]);
             if (codecMatcher.matches()) {
                 Log.d(TAG, "Found " + codec + " " + lines[i]);
-                if (isVideoCodec) {
+                if (isVideoCodec)
                     lines[i] += "; " + VIDEO_CODEC_PARAM_START_BITRATE + "=" + bitrateKbps;
-                } else {
+                else
                     lines[i] += "; " + AUDIO_CODEC_PARAM_BITRATE + "=" + (bitrateKbps * 1000);
-                }
                 Log.d(TAG, "Update remote SDP line: " + lines[i]);
                 sdpFormatUpdated = true;
                 break;
@@ -312,13 +311,10 @@ class CarrierPeerConnectionClient {
             // Append new a=fmtp line if no such line exist for a codec.
             if (!sdpFormatUpdated && i == rtpmapLineIndex) {
                 String bitrateSet;
-                if (isVideoCodec) {
-                    bitrateSet =
-                            "a=fmtp:" + codecRtpMap + " " + VIDEO_CODEC_PARAM_START_BITRATE + "=" + bitrateKbps;
-                } else {
-                    bitrateSet = "a=fmtp:" + codecRtpMap + " " + AUDIO_CODEC_PARAM_BITRATE + "="
-                            + (bitrateKbps * 1000);
-                }
+                if (isVideoCodec)
+                    bitrateSet = "a=fmtp:" + codecRtpMap + " " + VIDEO_CODEC_PARAM_START_BITRATE + "=" + bitrateKbps;
+                else
+                    bitrateSet = "a=fmtp:" + codecRtpMap + " " + AUDIO_CODEC_PARAM_BITRATE + "=" + (bitrateKbps * 1000);
                 Log.d(TAG, "Add remote SDP line: " + bitrateSet);
                 newSdpDescription.append(bitrateSet).append("\r\n");
             }
@@ -332,9 +328,8 @@ class CarrierPeerConnectionClient {
     private static int findMediaDescriptionLine(boolean isAudio, String[] sdpLines) {
         final String mediaDescription = isAudio ? "m=audio " : "m=video ";
         for (int i = 0; i < sdpLines.length; ++i) {
-            if (sdpLines[i].startsWith(mediaDescription)) {
+            if (sdpLines[i].startsWith(mediaDescription))
                 return i;
-            }
         }
         return -1;
     }
@@ -342,16 +337,14 @@ class CarrierPeerConnectionClient {
     private static String joinString(
             Iterable<? extends CharSequence> s, String delimiter, boolean delimiterAtEnd) {
         Iterator<? extends CharSequence> iter = s.iterator();
-        if (!iter.hasNext()) {
+        if (!iter.hasNext())
             return "";
-        }
         StringBuilder buffer = new StringBuilder(iter.next());
         while (iter.hasNext()) {
             buffer.append(delimiter).append(iter.next());
         }
-        if (delimiterAtEnd) {
+        if (delimiterAtEnd)
             buffer.append(delimiter);
-        }
         return buffer.toString();
     }
 
@@ -391,18 +384,16 @@ class CarrierPeerConnectionClient {
         final Pattern codecPattern = Pattern.compile("^a=rtpmap:(\\d+) " + codec + "(/\\d+)+[\r]?$");
         for (String line : lines) {
             Matcher codecMatcher = codecPattern.matcher(line);
-            if (codecMatcher.matches()) {
+            if (codecMatcher.matches())
                 codecPayloadTypes.add(codecMatcher.group(1));
-            }
         }
         if (codecPayloadTypes.isEmpty()) {
             Log.w(TAG, "No payload types with name " + codec);
             return sdpDescription;
         }
         final String newMLine = movePayloadTypesToFront(codecPayloadTypes, lines[mLineIndex]);
-        if (newMLine == null) {
+        if (newMLine == null)
             return sdpDescription;
-        }
         Log.d(TAG, "Change media description from: " + lines[mLineIndex] + " to " + newMLine);
         lines[mLineIndex] = newMLine;
         return joinString(Arrays.asList(lines), "\r\n", true /* delimiterAtEnd */);
@@ -420,17 +411,15 @@ class CarrierPeerConnectionClient {
      * This function should only be called once.
      */
     public void createPeerConnectionFactory(PeerConnectionFactory.Options options) {
-        if (factory != null) {
+        if (factory != null)
             throw new IllegalStateException("PeerConnectionFactory has already been constructed");
-        }
         createPeerConnectionFactoryInternal(options);
     }
 
     public void createPeerConnection(Context context, final VideoSink localRender, final VideoSink remoteSink,
                                      final VideoCapturer videoCapturer) {
-        if (peerConnectionParameters.videoCallEnabled && videoCapturer == null) {
+        if (peerConnectionParameters.videoCallEnabled && videoCapturer == null)
             Log.w(TAG, "Video register enabled but no video capturer provided.");
-        }
         createPeerConnection(context,
                 localRender, Collections.singletonList(remoteSink), videoCapturer);
     }
@@ -488,9 +477,8 @@ class CarrierPeerConnectionClient {
         }
         final AudioDeviceModule adm = createJavaAudioDevice();
         // Create peer connection factory.
-        if (options != null) {
+        if (options != null)
             Log.d(TAG, "Factory networkIgnoreMask option: " + options.networkIgnoreMask);
-        }
         final boolean enableH264HighProfile =
                 VIDEO_CODEC_H264_HIGH.equals(peerConnectionParameters.videoCodec);
         final VideoEncoderFactory encoderFactory;
@@ -515,10 +503,9 @@ class CarrierPeerConnectionClient {
 
     AudioDeviceModule createJavaAudioDevice() {
         // Enable/disable OpenSL ES playback.
-        if (!peerConnectionParameters.useOpenSLES) {
+        if (!peerConnectionParameters.useOpenSLES)
             Log.w(TAG, "External OpenSLES ADM not implemented yet.");
             // TODO(magjed): Add support for external OpenSLES ADM.
-        }
         // Set audio record error callbacks.
         AudioRecordErrorCallback audioRecordErrorCallback = new AudioRecordErrorCallback() {
             @Override
@@ -607,9 +594,8 @@ class CarrierPeerConnectionClient {
                 videoHeight = HD_VIDEO_HEIGHT;
             }
             // If fps is not specified, default to 30.
-            if (videoFps == 0) {
+            if (videoFps == 0)
                 videoFps = 30;
-            }
             Logging.d(TAG, "Capturing format: " + videoWidth + "x" + videoHeight + "@" + videoFps);
         }
         // Create audio constraints.
@@ -681,9 +667,8 @@ class CarrierPeerConnectionClient {
             }
         }
         peerConnection.addTrack(createAudioTrack(), mediaStreamLabels);
-        if (isVideoCallEnabled()) {
+        if (isVideoCallEnabled())
             findVideoSender();
-        }
         if (peerConnectionParameters.aecDump) {
             try {
                 ParcelFileDescriptor aecDumpFileDescriptor =
@@ -697,9 +682,8 @@ class CarrierPeerConnectionClient {
             }
         }
         if (saveRecordedAudioToFile != null) {
-            if (saveRecordedAudioToFile.start()) {
+            if (saveRecordedAudioToFile.start())
                 Log.d(TAG, "Recording input audio to file is activated");
-            }
         }
         Log.d(TAG, "Peer connection created.");
     }
@@ -713,9 +697,8 @@ class CarrierPeerConnectionClient {
     }
 
     private void closeInternal() {
-        if (factory != null && peerConnectionParameters.aecDump) {
+        if (factory != null && peerConnectionParameters.aecDump)
             factory.stopAecDump();
-        }
         Log.d(TAG, "Closing peer connection.");
         statsTimer.cancel();
         if (dataChannel != null) {
@@ -792,18 +775,16 @@ class CarrierPeerConnectionClient {
 
     @SuppressWarnings("deprecation") // TODO(sakal): getStats is deprecated.
     private void getStats() {
-        if (peerConnection == null || isError) {
+        if (peerConnection == null || isError)
             return;
-        }
         boolean success = peerConnection.getStats(new StatsObserver() {
             @Override
             public void onComplete(final StatsReport[] reports) {
                 events.onPeerConnectionStatsReady(reports);
             }
         }, null);
-        if (!success) {
+        if (!success)
             Log.e(TAG, "getStats() returns false!");
-        }
     }
 
     public void enableStatsEvents(boolean enable, int periodMs) {
@@ -826,21 +807,18 @@ class CarrierPeerConnectionClient {
     public void setAudioEnabled(final boolean enable) {
         executor.execute(() -> {
             enableAudio = enable;
-            if (localAudioTrack != null) {
+            if (localAudioTrack != null)
                 localAudioTrack.setEnabled(enableAudio);
-            }
         });
     }
 
     public void setVideoEnabled(final boolean enable) {
         executor.execute(() -> {
             renderVideo = enable;
-            if (localVideoTrack != null) {
+            if (localVideoTrack != null)
                 localVideoTrack.setEnabled(renderVideo);
-            }
-            if (remoteVideoTrack != null) {
+            if (remoteVideoTrack != null)
                 remoteVideoTrack.setEnabled(renderVideo);
-            }
         });
     }
 
@@ -867,46 +845,37 @@ class CarrierPeerConnectionClient {
     public void addRemoteIceCandidate(final IceCandidate candidate) {
         executor.execute(() -> {
             if (peerConnection != null && !isError) {
-                if (queuedRemoteCandidates != null) {
+                if (queuedRemoteCandidates != null)
                     queuedRemoteCandidates.add(candidate);
-                } else {
+                else
                     peerConnection.addIceCandidate(candidate);
-                }
             }
         });
     }
 
     public void removeRemoteIceCandidates(final IceCandidate[] candidates) {
         executor.execute(() -> {
-            if (peerConnection == null || isError) {
+            if (peerConnection == null || isError)
                 return;
-            }
             // Drain the queued remote candidates if there is any so that
             // they are processed in the proper order.
             drainCandidates();
-            if (candidates != null && candidates.length > 0) {
+            if (candidates != null && candidates.length > 0)
                 peerConnection.removeIceCandidates(candidates);
-            }
         });
     }
 
     public void setRemoteDescription(final SessionDescription sdp) {
         executor.execute(() -> {
-            if (peerConnection == null || isError) {
+            if (peerConnection == null || isError)
                 return;
-            }
             String sdpDescription = sdp.description;
-            if (preferIsac) {
+            if (preferIsac)
                 sdpDescription = preferCodec(sdpDescription, AUDIO_CODEC_ISAC, true);
-            }
-            if (isVideoCallEnabled()) {
-                sdpDescription =
-                        preferCodec(sdpDescription, getSdpVideoCodecName(peerConnectionParameters), false);
-            }
-            if (peerConnectionParameters.audioStartBitrate > 0) {
-                sdpDescription = setStartBitrate(
-                        AUDIO_CODEC_OPUS, false, sdpDescription, peerConnectionParameters.audioStartBitrate);
-            }
+            if (isVideoCallEnabled())
+                sdpDescription = preferCodec(sdpDescription, getSdpVideoCodecName(peerConnectionParameters), false);
+            if (peerConnectionParameters.audioStartBitrate > 0)
+                sdpDescription = setStartBitrate(AUDIO_CODEC_OPUS, false, sdpDescription, peerConnectionParameters.audioStartBitrate);
             Log.d(TAG, "Set remote SDP.");
             SessionDescription sdpRemote = new SessionDescription(sdp.type, sdpDescription);
             peerConnection.setRemoteDescription(sdpObserver, sdpRemote);
@@ -938,9 +907,8 @@ class CarrierPeerConnectionClient {
 
     public void setVideoMaxBitrate(@Nullable final Integer maxBitrateKbps) {
         executor.execute(() -> {
-            if (peerConnection == null || localVideoSender == null || isError) {
+            if (peerConnection == null || localVideoSender == null || isError)
                 return;
-            }
             Log.d(TAG, "Requested max video bitrate: " + maxBitrateKbps);
             if (localVideoSender == null) {
                 Log.w(TAG, "Sender is not ready.");
@@ -955,9 +923,8 @@ class CarrierPeerConnectionClient {
                 // Null value means no limit.
                 encoding.maxBitrateBps = maxBitrateKbps == null ? null : maxBitrateKbps * BPS_IN_KBPS;
             }
-            if (!localVideoSender.setParameters(parameters)) {
+            if (!localVideoSender.setParameters(parameters))
                 Log.e(TAG, "RtpSender.setParameters failed.");
-            }
             Log.d(TAG, "Configured max video bitrate to: " + maxBitrateKbps);
         });
     }
@@ -1010,9 +977,8 @@ class CarrierPeerConnectionClient {
     VideoTrack getRemoteVideoTrack() {
         for (RtpTransceiver transceiver : peerConnection.getTransceivers()) {
             MediaStreamTrack track = transceiver.getReceiver().track();
-            if (track instanceof VideoTrack) {
+            if (track instanceof VideoTrack)
                 return (VideoTrack) track;
-            }
         }
         return null;
     }
@@ -1161,13 +1127,12 @@ class CarrierPeerConnectionClient {
         public void onIceConnectionChange(final PeerConnection.IceConnectionState newState) {
             executor.execute(() -> {
                 Log.d(TAG, "IceConnectionState: " + newState);
-                if (newState == IceConnectionState.CONNECTED) {
+                if (newState == IceConnectionState.CONNECTED)
                     events.onIceConnected();
-                } else if (newState == IceConnectionState.DISCONNECTED) {
+                else if (newState == IceConnectionState.DISCONNECTED)
                     events.onIceDisconnected();
-                } else if (newState == IceConnectionState.FAILED) {
+                else if (newState == IceConnectionState.FAILED)
                     reportError("ICE connection failed.");
-                }
             });
         }
 
@@ -1175,13 +1140,12 @@ class CarrierPeerConnectionClient {
         public void onConnectionChange(final PeerConnection.PeerConnectionState newState) {
             executor.execute(() -> {
                 Log.d(TAG, "PeerConnectionState: " + newState);
-                if (newState == PeerConnectionState.CONNECTED) {
+                if (newState == PeerConnectionState.CONNECTED)
                     events.onConnected();
-                } else if (newState == PeerConnectionState.DISCONNECTED) {
+                else if (newState == PeerConnectionState.DISCONNECTED)
                     events.onDisconnected();
-                } else if (newState == PeerConnectionState.FAILED) {
+                else if (newState == PeerConnectionState.FAILED)
                     reportError("DTLS connection failed.");
-                }
             });
         }
 
@@ -1260,13 +1224,11 @@ class CarrierPeerConnectionClient {
                 return;
             }
             String sdpDescription = origSdp.description;
-            if (preferIsac) {
+            if (preferIsac)
                 sdpDescription = preferCodec(sdpDescription, AUDIO_CODEC_ISAC, true);
-            }
-            if (isVideoCallEnabled()) {
+            if (isVideoCallEnabled())
                 sdpDescription =
                         preferCodec(sdpDescription, getSdpVideoCodecName(peerConnectionParameters), false);
-            }
             final SessionDescription sdp = new SessionDescription(origSdp.type, sdpDescription);
             localSdp = sdp;
             executor.execute(() -> {
@@ -1280,9 +1242,8 @@ class CarrierPeerConnectionClient {
         @Override
         public void onSetSuccess() {
             executor.execute(() -> {
-                if (peerConnection == null || isError) {
+                if (peerConnection == null || isError)
                     return;
-                }
                 if (isInitiator) {
                     // For offering peer connection we first create offer and set
                     // local SDP, then after receiving answer set remote SDP.

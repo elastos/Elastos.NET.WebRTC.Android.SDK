@@ -24,9 +24,8 @@ final class WebRTCUtils {
      * Helper method which throws an exception  when an assertion has failed.
      */
     public static void assertIsTrue(boolean condition) {
-        if (!condition) {
+        if (!condition)
             throw new AssertionError("Expected condition to be true");
-        }
     }
 
     /**

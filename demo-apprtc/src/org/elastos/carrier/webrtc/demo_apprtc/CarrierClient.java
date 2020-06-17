@@ -54,25 +54,22 @@ public class CarrierClient {
 
 
 	public static CarrierClient getInstance(Context context) {
-		if (carrierClient == null) {
+		if (carrierClient == null)
 			carrierClient = new CarrierClient(context);
-		}
 
 		return carrierClient;
 	}
 
 	public void addFriend(String userId) throws CarrierException {
-		if (!carrier.isFriend(userId)) {
+		if (!carrier.isFriend(userId))
 			carrier.addFriend(userId, "hello");
-		}
 	}
 
 	public void sendMessageByInvite(String fid, String message) throws CarrierException {
-		if (friendInviteResponseHandler==null){
+		if (friendInviteResponseHandler==null)
 			throw CarrierException.fromErrorCode(-1, "FriendInviteResponseHandler not initialized.");
-		}else if(fid!=null && !fid.equals(carrier.getUserId())){
+		else if(fid!=null && !fid.equals(carrier.getUserId()))
 			carrier.inviteFriend(fid, message, friendInviteResponseHandler);
-		}
 	}
 
 	/**
@@ -118,9 +115,8 @@ public class CarrierClient {
 		}
 
 		public void addHandler(CarrierHandler handler) {
-			if (!this.carrierHandlers.contains(handler)) {
+			if (!this.carrierHandlers.contains(handler))
 				this.carrierHandlers.add(handler);
-			}
 		}
 
 		@Override
@@ -164,9 +160,8 @@ public class CarrierClient {
 		@Override
 		public void onFriendAdded(Carrier carrier, FriendInfo info) {
 			for (CarrierHandler carrierHandler : carrierHandlers) {
-				if(carrierHandler!=null) {
+				if(carrierHandler!=null)
 					carrierHandler.onFriendAdded(carrier, info);
-				}
 			}
 		}
 
@@ -188,72 +183,64 @@ public class CarrierClient {
 		@Override
 		public void onIdle(Carrier carrier) {
 			for (CarrierHandler carrierHandler : carrierHandlers) {
-				if(carrierHandler!=null) {
+				if(carrierHandler!=null)
 					carrierHandler.onIdle(carrier);
-				}
 			}
 		}
 
 		@Override
 		public void onSelfInfoChanged(Carrier carrier, UserInfo info) {
 			for (CarrierHandler carrierHandler : carrierHandlers) {
-				if(carrierHandler!=null) {
+				if(carrierHandler!=null)
 					carrierHandler.onSelfInfoChanged(carrier, info);
-				}
 			}
 		}
 
 		@Override
 		public void onFriends(Carrier carrier, List<FriendInfo> friends) {
 			for (CarrierHandler carrierHandler : carrierHandlers) {
-				if(carrierHandler!=null) {
+				if(carrierHandler!=null)
 					carrierHandler.onFriends(carrier, friends);
-				}
 			}
 		}
 
 		@Override
 		public void onFriendConnection(Carrier carrier, String friendId, ConnectionStatus status) {
 			for (CarrierHandler carrierHandler : carrierHandlers) {
-				if(carrierHandler!=null) {
+				if(carrierHandler!=null)
 					carrierHandler.onFriendConnection(carrier, friendId, status);
-				}
 			}
 		}
 
 		@Override
 		public void onFriendInfoChanged(Carrier carrier, String friendId, FriendInfo info) {
 			for (CarrierHandler carrierHandler : carrierHandlers) {
-				if(carrierHandler!=null) {
+				if(carrierHandler!=null)
 					carrierHandler.onFriendInfoChanged(carrier, friendId, info);
-				}
 			}
 		}
 
 		@Override
 		public void onFriendPresence(Carrier carrier, String friendId, PresenceStatus presence) {
 			for (CarrierHandler carrierHandler : carrierHandlers) {
-				if(carrierHandler!=null) {
+				if(carrierHandler!=null)
 					carrierHandler.onFriendPresence(carrier, friendId, presence);
-				}
 			}
 		}
 
 		@Override
 		public void onFriendRemoved(Carrier carrier, String friendId) {
 			for (CarrierHandler carrierHandler : carrierHandlers) {
-				if(carrierHandler!=null) {
+				if(carrierHandler!=null)
 					carrierHandler.onFriendRemoved(carrier, friendId);
-				}
 			}
 		}
 
 		@Override
 		public void onGroupInvite(Carrier carrier, String from, byte[] cookie) {
 			for (CarrierHandler carrierHandler : carrierHandlers) {
-				if(carrierHandler!=null) {
+				if(carrierHandler!=null)
 					carrierHandler.onGroupInvite(carrier, from, cookie);
-				}
 			}
 		}
 	}

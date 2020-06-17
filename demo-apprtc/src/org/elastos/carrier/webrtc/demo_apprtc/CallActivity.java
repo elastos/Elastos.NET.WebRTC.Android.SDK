@@ -235,9 +235,8 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
     @TargetApi(19)
     private static int getSystemUiVisibility() {
         int flags = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
             flags |= View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
-        }
         return flags;
     }
 
@@ -250,27 +249,24 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
     public void onStop() {
         super.onStop();
         activityRunning = false;
-        if (cpuMonitor != null) {
+        if (cpuMonitor != null)
             cpuMonitor.pause();
-        }
     }
 
     @Override
     public void onStart() {
         super.onStart();
         activityRunning = true;
-        if (cpuMonitor != null) {
+        if (cpuMonitor != null)
             cpuMonitor.resume();
-        }
     }
 
     @Override
     protected void onDestroy() {
         Thread.setDefaultUncaughtExceptionHandler(null);
         disconnect();
-        if (logToast != null) {
+        if (logToast != null)
             logToast.cancel();
-        }
         activityRunning = false;
         super.onDestroy();
     }
@@ -323,9 +319,8 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
 
     // Helper functions.
     private void toggleCallControlFragmentVisibility() {
-        if (!connected || !callFragment.isAdded()) {
+        if (!connected || !callFragment.isAdded())
             return;
-        }
         // Show/hide register control fragment
         callControlFragmentVisible = !callControlFragmentVisible;
         FragmentTransaction ft = getFragmentManager().beginTransaction();
@@ -381,11 +376,10 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
                 audioManager.stop();
                 audioManager = null;
             }
-            if (connected && !isError) {
+            if (connected && !isError)
                 setResult(RESULT_OK);
-            } else {
+            else
                 setResult(RESULT_CANCELED);
-            }
         } catch (Exception e) {
             Log.e(TAG, "disconnect: ", e);
         }
@@ -395,18 +389,16 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
     // Log |msg| and Toast about it.
     private void logAndToast(String msg) {
         Log.d(TAG, msg);
-        if (logToast != null) {
+        if (logToast != null)
             logToast.cancel();
-        }
         logToast = Toast.makeText(this, msg, Toast.LENGTH_SHORT);
         logToast.show();
     }
 
     private void setSwappedFeeds(boolean isSwappedFeeds) {
         Logging.d(TAG, "setSwappedFeeds: " + isSwappedFeeds);
-        if(remoteRenderer == null || localRenderer == null){
+        if(remoteRenderer == null || localRenderer == null)
             initUIControls(getIntent());
-        }
 
         this.isSwappedFeeds = isSwappedFeeds;
         WebrtcClient.getInstance().swapVideoRenderer(isSwappedFeeds);

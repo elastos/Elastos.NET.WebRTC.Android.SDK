@@ -25,9 +25,8 @@ public enum CallReason {
 
     public static CallReason valueOf(int value) {
         for (CallReason reason : values()) {
-            if (reason.getValue() == value) {
+            if (reason.getValue() == value)
                 return reason;
-            }
         }
         return null;
     }

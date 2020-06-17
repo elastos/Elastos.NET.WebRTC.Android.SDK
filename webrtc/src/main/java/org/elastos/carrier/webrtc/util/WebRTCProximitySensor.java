@@ -65,10 +65,8 @@ class WebRTCProximitySensor implements SensorEventListener {
     public boolean start() {
         threadChecker.checkIsOnValidThread();
         Log.d(TAG, "start" + WebRTCUtils.getThreadInfo());
-        if (!initDefaultSensor()) {
-            // Proximity sensor is not supported on this device.
+        if (!initDefaultSensor()) // Proximity sensor is not supported on this device.
             return false;
-        }
         sensorManager.registerListener(this, proximitySensor, SensorManager.SENSOR_DELAY_NORMAL);
         return true;
     }
@@ -79,9 +77,8 @@ class WebRTCProximitySensor implements SensorEventListener {
     public void stop() {
         threadChecker.checkIsOnValidThread();
         Log.d(TAG, "stop" + WebRTCUtils.getThreadInfo());
-        if (proximitySensor == null) {
+        if (proximitySensor == null)
             return;
-        }
         sensorManager.unregisterListener(this, proximitySensor);
     }
 
@@ -97,9 +94,8 @@ class WebRTCProximitySensor implements SensorEventListener {
     public final void onAccuracyChanged(Sensor sensor, int accuracy) {
         threadChecker.checkIsOnValidThread();
         WebRTCUtils.assertIsTrue(sensor.getType() == Sensor.TYPE_PROXIMITY);
-        if (accuracy == SensorManager.SENSOR_STATUS_UNRELIABLE) {
+        if (accuracy == SensorManager.SENSOR_STATUS_UNRELIABLE)
             Log.e(TAG, "The values returned by this sensor cannot be trusted");
-        }
     }
 
     @Override
@@ -118,9 +114,8 @@ class WebRTCProximitySensor implements SensorEventListener {
         }
         // Report about new state to listening client. Client can then register
         // sensorReportsNearState() to query the current state (NEAR or FAR).
-        if (onSensorStateListener != null) {
+        if (onSensorStateListener != null)
             onSensorStateListener.run();
-        }
         Log.d(TAG, "onSensorChanged" + WebRTCUtils.getThreadInfo() + ": "
                 + "accuracy=" + event.accuracy + ", timestamp=" + event.timestamp + ", distance="
                 + event.values[0]);
@@ -132,13 +127,11 @@ class WebRTCProximitySensor implements SensorEventListener {
      * cases.
      */
     private boolean initDefaultSensor() {
-        if (proximitySensor != null) {
+        if (proximitySensor != null)
             return true;
-        }
         proximitySensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
-        if (proximitySensor == null) {
+        if (proximitySensor == null)
             return false;
-        }
         logProximitySensorInfo();
         return true;
     }
@@ -147,9 +140,8 @@ class WebRTCProximitySensor implements SensorEventListener {
      * Helper method for logging information about the proximity sensor.
      */
     private void logProximitySensorInfo() {
-        if (proximitySensor == null) {
+        if (proximitySensor == null)
             return;
-        }
         StringBuilder info = new StringBuilder("Proximity sensor: ");
         info.append("name=").append(proximitySensor.getName());
         info.append(", vendor: ").append(proximitySensor.getVendor());
@@ -157,10 +149,8 @@ class WebRTCProximitySensor implements SensorEventListener {
         info.append(", resolution: ").append(proximitySensor.getResolution());
         info.append(", max range: ").append(proximitySensor.getMaximumRange());
         info.append(", min delay: ").append(proximitySensor.getMinDelay());
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
-            // Added in API level 20.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) // Added in API level 20.
             info.append(", type: ").append(proximitySensor.getStringType());
-        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             // Added in API level 21.
             info.append(", max delay: ").append(proximitySensor.getMaxDelay());

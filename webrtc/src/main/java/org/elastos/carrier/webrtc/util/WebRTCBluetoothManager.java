@@ -163,15 +163,13 @@ class WebRTCBluetoothManager {
     public void stop() {
         ThreadUtils.checkIsOnMainThread();
         Log.d(TAG, "stop: BT state=" + bluetoothState);
-        if (bluetoothAdapter == null) {
+        if (bluetoothAdapter == null)
             return;
-        }
         // Stop BT SCO connection with remote device if needed.
         stopScoAudio();
         // Close down remaining BT resources.
-        if (bluetoothState == State.UNINITIALIZED) {
+        if (bluetoothState == State.UNINITIALIZED)
             return;
-        }
         unregisterReceiver(bluetoothHeadsetReceiver);
         cancelTimer();
         if (bluetoothHeadset != null) {
@@ -232,9 +230,8 @@ class WebRTCBluetoothManager {
         ThreadUtils.checkIsOnMainThread();
         Log.d(TAG, "stopScoAudio: BT state=" + bluetoothState + ", "
                 + "SCO is on: " + isScoOn());
-        if (bluetoothState != State.SCO_CONNECTING && bluetoothState != State.SCO_CONNECTED) {
+        if (bluetoothState != State.SCO_CONNECTING && bluetoothState != State.SCO_CONNECTED)
             return;
-        }
         cancelTimer();
         audioManager.stopBluetoothSco();
         audioManager.setBluetoothScoOn(false);
@@ -251,9 +248,8 @@ class WebRTCBluetoothManager {
      * device if available.
      */
     public void updateDevice() {
-        if (bluetoothState == State.UNINITIALIZED || bluetoothHeadset == null) {
+        if (bluetoothState == State.UNINITIALIZED || bluetoothHeadset == null)
             return;
-        }
         Log.d(TAG, "updateDevice");
         // Get connected devices for the headset profile. Returns the set of
         // devices which are in state STATE_CONNECTED. The BluetoothDevice class
@@ -354,15 +350,13 @@ class WebRTCBluetoothManager {
      */
     private void bluetoothTimeout() {
         ThreadUtils.checkIsOnMainThread();
-        if (bluetoothState == State.UNINITIALIZED || bluetoothHeadset == null) {
+        if (bluetoothState == State.UNINITIALIZED || bluetoothHeadset == null)
             return;
-        }
         Log.d(TAG, "bluetoothTimeout: BT state=" + bluetoothState + ", "
                 + "attempts: " + scoConnectionAttempts + ", "
                 + "SCO is on: " + isScoOn());
-        if (bluetoothState != State.SCO_CONNECTING) {
+        if (bluetoothState != State.SCO_CONNECTING)
             return;
-        }
         // Bluetooth SCO should be connecting; check the latest result.
         boolean scoConnected = false;
         List<BluetoothDevice> devices = bluetoothHeadset.getConnectedDevices();
@@ -371,9 +365,8 @@ class WebRTCBluetoothManager {
             if (bluetoothHeadset.isAudioConnected(bluetoothDevice)) {
                 Log.d(TAG, "SCO connected with " + bluetoothDevice.getName());
                 scoConnected = true;
-            } else {
+            } else
                 Log.d(TAG, "SCO is not connected with " + bluetoothDevice.getName());
-            }
         }
         if (scoConnected) {
             // We thought BT had timed out, but it's actually on; updating state.
@@ -455,9 +448,8 @@ class WebRTCBluetoothManager {
         // Once we have the profile proxy object, we can use it to monitor the state of the
         // connection and perform other operations that are relevant to the headset profile.
         public void onServiceConnected(int profile, BluetoothProfile proxy) {
-            if (profile != BluetoothProfile.HEADSET || bluetoothState == State.UNINITIALIZED) {
+            if (profile != BluetoothProfile.HEADSET || bluetoothState == State.UNINITIALIZED)
                 return;
-            }
             Log.d(TAG, "BluetoothServiceListener.onServiceConnected: BT state=" + bluetoothState);
             // Android only supports one connected Bluetooth Headset at a time.
             bluetoothHeadset = (BluetoothHeadset) proxy;
@@ -468,9 +460,8 @@ class WebRTCBluetoothManager {
         @Override
         /** Notifies the client when the proxy object has been disconnected from the service. */
         public void onServiceDisconnected(int profile) {
-            if (profile != BluetoothProfile.HEADSET || bluetoothState == State.UNINITIALIZED) {
+            if (profile != BluetoothProfile.HEADSET || bluetoothState == State.UNINITIALIZED)
                 return;
-            }
             Log.d(TAG, "BluetoothServiceListener.onServiceDisconnected: BT state=" + bluetoothState);
             stopScoAudio();
             bluetoothHeadset = null;
@@ -486,9 +477,8 @@ class WebRTCBluetoothManager {
     private class BluetoothHeadsetBroadcastReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (bluetoothState == State.UNINITIALIZED) {
+            if (bluetoothState == State.UNINITIALIZED)
                 return;
-            }
             final String action = intent.getAction();
             // Change in connection state of the Headset profile. Note that the
             // change does not tell us anything about whether we're streaming

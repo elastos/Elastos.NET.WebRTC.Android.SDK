@@ -112,11 +112,10 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
         this.callHandler = callHandler;
         this.friendInviteResponseHandler = new CarrierMessageObserver();
         this.callState = CallState.INIT;
-        if (peerConnectionParameters != null) {
+        if (peerConnectionParameters != null)
             this.peerConnectionParameters = peerConnectionParameters;
-        } else {
+        else
             this.peerConnectionParameters = PeerConnectionParametersBuilder.builder().build();
-        }
         final HandlerThread handlerThread = new HandlerThread(TAG);
         handlerThread.start();
         this.handler = new Handler(handlerThread.getLooper());
@@ -159,12 +158,10 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
      * @param peerAddress The remote peer to which the call is going to make with.
      */
     public void makeCall(String peerAddress) throws WebrtcException {
-        if (peerAddress == null) {
+        if (peerAddress == null)
             throw new IllegalArgumentException("Invalid remote address");
-        }
-        if (peerAddress.equals(currentUserId)) {
+        if (peerAddress.equals(currentUserId))
             throw new IllegalArgumentException("PeerAddress is current node address");
-        }
 
         this.initiator = true;
         this.remoteUserId = peerAddress;
@@ -263,9 +260,8 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
 
         this.localVideoRenderer = localRenderer;
         this.remoteVideoRenderer = remoteRenderer;
-        if (this.eglBase == null) {
+        if (this.eglBase == null)
             this.eglBase = EglBase.create();
-        }
         this.localVideoRenderer.init(eglBase.getEglBaseContext(), null);
         this.remoteVideoRenderer.init(eglBase.getEglBaseContext(), null);
         swapVideoRenderer(false);
@@ -357,9 +353,8 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
     // Disconnect from call and send bye messages - runs on a local looper thread.
     private void disconnectFromCallInternal() {
         Log.d(TAG, "Disconnect. Connection state: " + connectionState);
-        if (connectionState == ConnectionState.CONNECTED) {
+        if (connectionState == ConnectionState.CONNECTED)
             Log.d(TAG, "Closing call.");
-        }
         this.setCallState(CallState.INIT);
         connectionState = ConnectionState.CLOSED;
         release();
@@ -435,10 +430,8 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
             }
             send(json.toString());
             Log.d(TAG, "sendLocalIceCandidate() from " + currentUserId + ", to: " + remoteUserId);
-        } else {
-            // Call receiver sends ice candidates to peer.
+        } else // Call receiver sends ice candidates to peer.
             send(json.toString());
-        }
     }
 
     // Send removed Ice candidates to the other participant.
@@ -457,17 +450,14 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
                 return;
             }
             send(json.toString());
-        } else {
-            // Call receiver sends ice candidates to peer.
+        } else // Call receiver sends ice candidates to peer.
             send(json.toString());
-        }
         Log.d(TAG, "sendLocalIceCandidateRemovals() from " + currentUserId + ", to: " + remoteUserId);
     }
 
     private void initialWebrtc() {
-        if (eglBase == null) {
+        if (eglBase == null)
             eglBase = EglBase.create();
-        }
         // Create peer connection client.
         carrierPeerConnectionClient = new CarrierPeerConnectionClient(
                 context, getIceServers(), eglBase, peerConnectionParameters, this);
@@ -481,18 +471,16 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
             initialCall();
             carrierPeerConnectionClient.setRemoteDescription(sdp);
             carrierPeerConnectionClient.createAnswer();
-        } else {
+        } else
             Log.e(TAG, "handleOffer: Received offer for register receiver: ");
-        }
     }
 
     private void handleAnswer(SessionDescription sdp) {
         Log.d(TAG, "handleAnswer: ");
-        if (initiator) {
+        if (initiator)
             carrierPeerConnectionClient.setRemoteDescription(sdp);
-        } else {
+        else
             Log.e(TAG, "handleAnswer: Received answer for register initiator: ");
-        }
     }
 
     private void handleInvite(String from) {
@@ -532,18 +520,15 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
         try {
             JSONObject json = new JSONObject(msg);
             String msgText = json.optString("msg", "");
-            if (TextUtils.isEmpty(msgText)) {
-                // events.onCreateOffer();
+            if (TextUtils.isEmpty(msgText)) // events.onCreateOffer();
                 return;
-            }
             String errorText = json.optString("error");
             if (msgText.length() > 0) {
                 json = new JSONObject(msgText);
                 String type = json.optString("type");
-                if (type.equals("candidate")) {
-                    // events.onRemoteIceCandidate(toJavaCandidate(json));
+                if (type.equals("candidate")) // events.onRemoteIceCandidate(toJavaCandidate(json));
                     carrierPeerConnectionClient.addRemoteIceCandidate(toJavaCandidate(json));
-                } else if (type.equals("remove-candidates")) {
+                else if (type.equals("remove-candidates")) {
                     JSONArray candidateArray = json.getJSONArray("candidates");
                     IceCandidate[] candidates = new IceCandidate[candidateArray.length()];
                     for (int i = 0; i < candidateArray.length(); ++i) {
@@ -559,24 +544,22 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
                     SessionDescription sdp = new SessionDescription(
                             SessionDescription.Type.fromCanonicalForm(type), json.getString("sdp"));
                     handleOffer(sdp);
-                } else if (type.equals("bye")) {
+                } else if (type.equals("bye"))
                     handleBye();
-                } else if (type.equals("reject")) {
+                else if (type.equals("reject"))
                     handleReject();
-                } else if (type.equals("invite")) {
+                else if (type.equals("invite")) {
                     Log.d(TAG, "onCarrierMessage: invite-message -> " + msg);
                     handleInvite(from);
-                } else if (type.equals("acceptInvite")) {
+                } else if (type.equals("acceptInvite"))
                     handleAcceptInvite(from);
-                } else {
+                else
                     Log.w(TAG, "onCarrierMessage: Unexpected Carrier message: " + msg);
-                }
             } else {
-                if (errorText != null && errorText.length() > 0) {
+                if (errorText != null && errorText.length() > 0)
                     Log.w(TAG, "onCarrierMessage: Carrier error message: " + errorText);
-                } else {
+                else
                     Log.w(TAG, "onCarrierMessage: Unexpected Carrier message: " + msg);
-                }
             }
         } catch (JSONException e) {
             Log.e(TAG, "onCarrierMessage: error -> " + msg);
@@ -585,9 +568,8 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
 
     private void initialCallInternal() {
         VideoCapturer videoCapturer = null;
-        if (peerConnectionParameters.videoCallEnabled) {
+        if (peerConnectionParameters.videoCallEnabled)
             videoCapturer = createVideoCapturer();
-        }
         carrierPeerConnectionClient.createPeerConnection(context,
                 localProxyVideoSink, remoteSinks, videoCapturer);
         if (signalingParameters.offerSdp != null) {
@@ -635,9 +617,8 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
             if (enumerator.isFrontFacing(deviceName)) {
                 Logging.d(TAG, "Creating front facing camera capturer.");
                 VideoCapturer videoCapturer = enumerator.createCapturer(deviceName, null);
-                if (videoCapturer != null) {
+                if (videoCapturer != null)
                     return videoCapturer;
-                }
             }
         }
         // Front facing camera not found, try something else
@@ -646,9 +627,8 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
             if (!enumerator.isFrontFacing(deviceName)) {
                 Logging.d(TAG, "Creating other camera capturer.");
                 VideoCapturer videoCapturer = enumerator.createCapturer(deviceName, null);
-                if (videoCapturer != null) {
+                if (videoCapturer != null)
                     return videoCapturer;
-                }
             }
         }
         return null;
@@ -683,9 +663,8 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
     // Helper method for debugging purposes. Ensures that Carrier method is
     // called on a looper thread.
     private void checkIfCalledOnValidThread() {
-        if (Thread.currentThread() != handler.getLooper().getThread()) {
+        if (Thread.currentThread() != handler.getLooper().getThread())
             throw new IllegalStateException("Carrier method is not called on valid thread");
-        }
     }
 
     private void send(String message) {
@@ -712,11 +691,10 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
      */
     @Override
     public void onLocalDescription(SessionDescription sdp) {
-        if (initiator) {
+        if (initiator)
             sendOfferSdp(sdp);
-        } else {
+        else
             sendAnswerSdp(sdp);
-        }
     }
 
     @Override

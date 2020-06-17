@@ -181,15 +181,12 @@ public class HudFragment extends Fragment {
     hudViewVideoRecv.setText(videoRecvStat.toString());
 
     if (videoCallEnabled) {
-      if (fps != null) {
+      if (fps != null)
         encoderStat.append("Fps:  ").append(fps).append("\n");
-      }
-      if (targetBitrate != null) {
+      if (targetBitrate != null)
         encoderStat.append("Target BR: ").append(targetBitrate).append("\n");
-      }
-      if (actualBitrate != null) {
+      if (actualBitrate != null)
         encoderStat.append("Actual BR: ").append(actualBitrate).append("\n");
-      }
     }
 
     if (cpuMonitor != null) {

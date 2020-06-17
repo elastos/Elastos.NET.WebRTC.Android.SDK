@@ -36,9 +36,8 @@ public class CallHandlerImpl implements CallHandler {
     public void onEndCall(CallReason reason) {
         Log.d(TAG, "onEndCall: " + reason);
         try {
-            if (CallActivity.INSTANCE != null) {
+            if (CallActivity.INSTANCE != null)
                 CallActivity.INSTANCE.disconnect();
-            }
         } catch (Exception e) {
             Log.e(TAG, "onEndCall: ", e);
         }

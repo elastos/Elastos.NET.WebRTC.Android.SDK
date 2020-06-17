@@ -243,19 +243,15 @@ public class SettingsActivity extends Activity implements OnSharedPreferenceChan
         || key.equals(keyprefNegotiated)
         || key.equals(keyprefEnabledRtcEventLog)) {
       updateSummaryB(sharedPreferences, key);
-    } else if (key.equals(keyprefSpeakerphone)) {
+    } else if (key.equals(keyprefSpeakerphone))
       updateSummaryList(sharedPreferences, key);
-    }
     // clang-format on
-    if (key.equals(keyprefMaxVideoBitrateType)) {
+    if (key.equals(keyprefMaxVideoBitrateType))
       setVideoBitrateEnable(sharedPreferences);
-    }
-    if (key.equals(keyprefStartAudioBitrateType)) {
+    if (key.equals(keyprefStartAudioBitrateType))
       setAudioBitrateEnable(sharedPreferences);
-    }
-    if (key.equals(keyprefEnableDataChannel)) {
+    if (key.equals(keyprefEnableDataChannel))
       setDataChannelEnable(sharedPreferences);
-    }
   }
 
   private void updateSummary(SharedPreferences sharedPreferences, String key) {
@@ -287,11 +283,10 @@ public class SettingsActivity extends Activity implements OnSharedPreferenceChan
     String bitrateTypeDefault = getString(R.string.pref_maxvideobitrate_default);
     String bitrateType =
         sharedPreferences.getString(keyprefMaxVideoBitrateType, bitrateTypeDefault);
-    if (bitrateType.equals(bitrateTypeDefault)) {
+    if (bitrateType.equals(bitrateTypeDefault))
       bitratePreferenceValue.setEnabled(false);
-    } else {
+    else
       bitratePreferenceValue.setEnabled(true);
-    }
   }
 
   private void setAudioBitrateEnable(SharedPreferences sharedPreferences) {
@@ -300,11 +295,10 @@ public class SettingsActivity extends Activity implements OnSharedPreferenceChan
     String bitrateTypeDefault = getString(R.string.pref_startaudiobitrate_default);
     String bitrateType =
         sharedPreferences.getString(keyprefStartAudioBitrateType, bitrateTypeDefault);
-    if (bitrateType.equals(bitrateTypeDefault)) {
+    if (bitrateType.equals(bitrateTypeDefault))
       bitratePreferenceValue.setEnabled(false);
-    } else {
+    else
       bitratePreferenceValue.setEnabled(true);
-    }
   }
 
   private void setDataChannelEnable(SharedPreferences sharedPreferences) {

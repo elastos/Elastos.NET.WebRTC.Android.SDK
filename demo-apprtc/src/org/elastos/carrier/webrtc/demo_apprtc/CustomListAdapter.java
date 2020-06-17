@@ -28,18 +28,16 @@ public class CustomListAdapter<T> extends ArrayAdapter {
     public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
         View view = super.getView(position, convertView, parent);
         String id = (String) getItem(position);
-        if (this.onlineList.contains(id)) {
+        if (this.onlineList.contains(id))
             ((TextView) view).setTextColor(Color.GREEN);
-        } else {
+        else
             ((TextView) view).setTextColor(Color.WHITE);
-        }
         return super.getView(position, convertView, parent);
     }
 
     public void addOnline(String id) {
-        if (!this.onlineList.contains(id)) {
+        if (!this.onlineList.contains(id))
             this.onlineList.add(id);
-        }
     }
 
     public void removeOnline(String id) {

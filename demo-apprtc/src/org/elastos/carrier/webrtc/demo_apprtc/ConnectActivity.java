@@ -150,9 +150,8 @@ public class ConnectActivity extends Activity {
     } catch (CarrierException e) {
       e.printStackTrace();
     }
-    if (CarrierClient.getInstance(this).getCarrier().isReady()) {
+    if (CarrierClient.getInstance(this).getCarrier().isReady())
       mAdrress.append("\n service ready!!!");
-    }
     CarrierClient.getInstance(this).addCarrierHandler(new AbstractCarrierHandler() {
       @Override
       public void onReady(Carrier carrier) {
@@ -235,9 +234,8 @@ public class ConnectActivity extends Activity {
       for (int i = 0; i < menuItems.length; i++) {
         menu.add(Menu.NONE, i, i, menuItems[i]);
       }
-    } else {
+    } else
       super.onCreateContextMenu(menu, v, menuInfo);
-    }
   }
 
   @Override
@@ -263,9 +261,8 @@ public class ConnectActivity extends Activity {
     }  else if (item.getItemId() == R.id.addfriend) {
       showCamera();
       return true;
-    } else {
+    } else
       return super.onOptionsItemSelected(item);
-    }
   }
 
   public void showCamera() {
@@ -293,10 +290,9 @@ public class ConnectActivity extends Activity {
                 }
               })
               .show();
-    } else {
+    } else
       ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA},
               SCAN_REQUEST);
-    }
   }
 
   @Override
@@ -348,9 +344,8 @@ public class ConnectActivity extends Activity {
           @Override
           public void run() {
             String id = Carrier.getIdFromAddress(result);
-            if (id==null) {
+            if (id==null)
               id=result;
-            }
             roomEditText.setText(id);
             try {
               CarrierClient.getInstance(ConnectActivity.this).addFriend(result);
@@ -394,19 +389,16 @@ public class ConnectActivity extends Activity {
                   onPermissionsGranted();
                 })
             .show();
-      } else {
-        // All permissions granted.
+      } else // All permissions granted.
         onPermissionsGranted();
-      }
     }
   }
 
   private void onPermissionsGranted() {
     // If an implicit VIEW intent is launching the app, go directly to that URL.
     final Intent intent = getIntent();
-    if ("android.intent.action.VIEW".equals(intent.getAction()) && !commandLineRun) {
+    if ("android.intent.action.VIEW".equals(intent.getAction()) && !commandLineRun)
       startCallActivity(roomEditText.getText().toString());
-    }
   }
 
   @TargetApi(Build.VERSION_CODES.M)
@@ -418,18 +410,16 @@ public class ConnectActivity extends Activity {
     }
 
     String[] missingPermissions = getMissingPermissions();
-    if (missingPermissions.length != 0) {
+    if (missingPermissions.length != 0)
       requestPermissions(missingPermissions, PERMISSION_REQUEST);
-    } else {
+    else
       onPermissionsGranted();
-    }
   }
 
   @TargetApi(Build.VERSION_CODES.M)
   private String[] getMissingPermissions() {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M)
       return new String[0];
-    }
 
     PackageInfo info;
     try {
@@ -446,9 +436,8 @@ public class ConnectActivity extends Activity {
 
     ArrayList<String> missingPermissions = new ArrayList<>();
     for (int i = 0; i < info.requestedPermissions.length; i++) {
-      if ((info.requestedPermissionsFlags[i] & PackageInfo.REQUESTED_PERMISSION_GRANTED) == 0) {
+      if ((info.requestedPermissionsFlags[i] & PackageInfo.REQUESTED_PERMISSION_GRANTED) == 0)
         missingPermissions.add(info.requestedPermissions[i]);
-      }
     }
     Log.d(TAG, "Missing permissions: " + missingPermissions);
 
@@ -464,9 +453,8 @@ public class ConnectActivity extends Activity {
     String defaultValue = getString(defaultId);
     if (useFromIntent) {
       String value = getIntent().getStringExtra(intentName);
-      if (value != null) {
+      if (value != null)
         return value;
-      }
       return defaultValue;
     } else {
       String attributeName = getString(attributeId);
@@ -481,9 +469,9 @@ public class ConnectActivity extends Activity {
   private boolean sharedPrefGetBoolean(
       int attributeId, String intentName, int defaultId, boolean useFromIntent) {
     boolean defaultValue = Boolean.parseBoolean(getString(defaultId));
-    if (useFromIntent) {
+    if (useFromIntent)
       return getIntent().getBooleanExtra(intentName, defaultValue);
-    } else {
+    else {
       String attributeName = getString(attributeId);
       return sharedPref.getBoolean(attributeName, defaultValue);
     }
@@ -610,9 +598,8 @@ public class ConnectActivity extends Activity {
 
     // Get camera fps from settings.
     int cameraFps = 0;
-    if (useValuesFromIntent) {
+    if (useValuesFromIntent)
       cameraFps = getIntent().getIntExtra(CallActivity.EXTRA_VIDEO_FPS, 0);
-    }
     if (cameraFps == 0) {
       String fps = sharedPref.getString(keyprefFps, getString(R.string.pref_fps_default));
       String[] fpsValues = fps.split("[ x]+");

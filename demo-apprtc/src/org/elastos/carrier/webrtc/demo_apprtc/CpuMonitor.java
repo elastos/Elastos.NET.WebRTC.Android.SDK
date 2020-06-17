@@ -125,9 +125,8 @@ public class CpuMonitor {
     private int circBufferIndex;
 
     public MovingAverage(int size) {
-      if (size <= 0) {
+      if (size <= 0)
         throw new AssertionError("Size value in MovingAverage ctor should be positive.");
-      }
       this.size = size;
       circBuffer = new double[size];
     }
@@ -144,9 +143,8 @@ public class CpuMonitor {
       circBuffer[circBufferIndex++] = value;
       currentValue = value;
       sum += value;
-      if (circBufferIndex >= size) {
+      if (circBufferIndex >= size)
         circBufferIndex = 0;
-      }
     }
 
     public double getCurrent() {
@@ -164,9 +162,8 @@ public class CpuMonitor {
   }
 
   public CpuMonitor(Context context) {
-    if (!isSupported()) {
+    if (!isSupported())
       throw new RuntimeException("CpuMonitor is not supported on this Android version.");
-    }
 
     Log.d(TAG, "CpuMonitor ctor.");
     appContext = context.getApplicationContext();
@@ -295,10 +292,9 @@ public class CpuMonitor {
 
     int batteryLevel = 0;
     int batteryScale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 100);
-    if (batteryScale > 0) {
+    if (batteryScale > 0)
       batteryLevel =
           (int) (100f * intent.getIntExtra(BatteryManager.EXTRA_LEVEL, 0) / batteryScale);
-    }
     return batteryLevel;
   }
 
@@ -315,12 +311,10 @@ public class CpuMonitor {
     long cpuFreqCurSum = 0;
     long cpuFreqMaxSum = 0;
 
-    if (!initialized) {
+    if (!initialized)
       init();
-    }
-    if (cpusPresent == 0) {
+    if (cpusPresent == 0)
       return false;
-    }
 
     actualCpusPresent = 0;
     for (int i = 0; i < cpusPresent; i++) {
@@ -345,13 +339,10 @@ public class CpuMonitor {
       }
 
       long cpuFreqCur = readFreqFromFile(curPath[i]);
-      if (cpuFreqCur == 0 && lastSeenMaxFreq == 0) {
-        // No current frequency information for this CPU core - ignore it.
+      if (cpuFreqCur == 0 && lastSeenMaxFreq == 0) // No current frequency information for this CPU core - ignore it.
         continue;
-      }
-      if (cpuFreqCur > 0) {
+      if (cpuFreqCur > 0)
         actualCpusPresent++;
-      }
       cpuFreqCurSum += cpuFreqCur;
 
       /* Here, lastSeenMaxFreq might come from
@@ -361,9 +352,8 @@ public class CpuMonitor {
        * 4. hypothetically from the pre-loop dummy.
        */
       cpuFreqMaxSum += lastSeenMaxFreq;
-      if (lastSeenMaxFreq > 0) {
+      if (lastSeenMaxFreq > 0)
         curFreqScales[i] = (double) cpuFreqCur / lastSeenMaxFreq;
-      }
     }
 
     if (cpuFreqCurSum == 0 || cpuFreqMaxSum == 0) {
@@ -379,23 +369,20 @@ public class CpuMonitor {
      * invocations.
      */
     double currentFrequencyScale = cpuFreqCurSum / (double) cpuFreqMaxSum;
-    if (frequencyScale.getCurrent() > 0) {
+    if (frequencyScale.getCurrent() > 0)
       currentFrequencyScale = (frequencyScale.getCurrent() + currentFrequencyScale) * 0.5;
-    }
 
     ProcStat procStat = readProcStat();
-    if (procStat == null) {
+    if (procStat == null)
       return false;
-    }
 
     long diffUserTime = procStat.userTime - lastProcStat.userTime;
     long diffSystemTime = procStat.systemTime - lastProcStat.systemTime;
     long diffIdleTime = procStat.idleTime - lastProcStat.idleTime;
     long allTime = diffUserTime + diffSystemTime + diffIdleTime;
 
-    if (currentFrequencyScale == 0 || allTime == 0) {
+    if (currentFrequencyScale == 0 || allTime == 0)
       return false;
-    }
 
     // Update statistics.
     frequencyScale.addValue(currentFrequencyScale);
@@ -445,9 +432,8 @@ public class CpuMonitor {
       stat.append(doubleToPercent(curFreqScales[i])).append(" ");
     }
     stat.append("). Battery: ").append(getBatteryLevel());
-    if (cpuOveruse) {
+    if (cpuOveruse)
       stat.append(". Overuse.");
-    }
     return stat.toString();
   }
 

@@ -33,9 +33,8 @@ public enum CallState {
 
     public static CallState valueOf(int value) {
         for (CallState state : values()) {
-            if (state.getValue() == value) {
+            if (state.getValue() == value)
                 return state;
-            }
         }
         return null;
     }

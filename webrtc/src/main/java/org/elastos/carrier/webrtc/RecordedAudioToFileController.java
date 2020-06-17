@@ -118,9 +118,8 @@ class RecordedAudioToFileController implements SamplesReadyCallback {
         }
         synchronized (lock) {
             // Abort early if stop() has been called.
-            if (!isRunning) {
+            if (!isRunning)
                 return;
-            }
             // Open a new file for the first callback only since it allows us to add audio parameters to
             // the file name.
             if (rawAudioFileOutputStream == null) {

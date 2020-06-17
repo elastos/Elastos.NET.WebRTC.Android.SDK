@@ -187,11 +187,10 @@ public class WebRTCAudioManager {
         // Request audio playout focus (without ducking) and install listener for changes in focus.
         int result = audioManager.requestAudioFocus(audioFocusChangeListener,
                 AudioManager.STREAM_VOICE_CALL, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
-        if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+        if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED)
             Log.d(TAG, "Audio focus request granted for VOICE_CALL streams");
-        } else {
+        else
             Log.e(TAG, "Audio focus request failed");
-        }
         // Start by setting MODE_IN_COMMUNICATION as default audio mode. It is
         // required to be in this mode when playout and/or recording starts for
         // best possible VoIP performance.
@@ -280,11 +279,10 @@ public class WebRTCAudioManager {
                 defaultAudioDevice = defaultDevice;
                 break;
             case EARPIECE:
-                if (hasEarpiece()) {
+                if (hasEarpiece())
                     defaultAudioDevice = defaultDevice;
-                } else {
+                else
                     defaultAudioDevice = AudioDevice.SPEAKER_PHONE;
-                }
                 break;
             default:
                 Log.e(TAG, "Invalid default audio device selection");
@@ -299,9 +297,8 @@ public class WebRTCAudioManager {
      */
     public void selectAudioDevice(AudioDevice device) {
         ThreadUtils.checkIsOnMainThread();
-        if (!audioDevices.contains(device)) {
+        if (!audioDevices.contains(device))
             Log.e(TAG, "Can not select " + device + " from available " + audioDevices);
-        }
         userSelectedAudioDevice = device;
         updateAudioDeviceState();
     }
@@ -341,9 +338,8 @@ public class WebRTCAudioManager {
      */
     private void setSpeakerphoneOn(boolean on) {
         boolean wasOn = audioManager.isSpeakerphoneOn();
-        if (wasOn == on) {
+        if (wasOn == on)
             return;
-        }
         audioManager.setSpeakerphoneOn(on);
     }
 
@@ -352,9 +348,8 @@ public class WebRTCAudioManager {
      */
     private void setMicrophoneMute(boolean on) {
         boolean wasMuted = audioManager.isMicrophoneMute();
-        if (wasMuted == on) {
+        if (wasMuted == on)
             return;
-        }
         audioManager.setMicrophoneMute(on);
     }
 
@@ -374,9 +369,9 @@ public class WebRTCAudioManager {
      */
     @Deprecated
     private boolean hasWiredHeadset() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M)
             return audioManager.isWiredHeadsetOn();
-        } else {
+        else {
             final AudioDeviceInfo[] devices = audioManager.getDevices(AudioManager.GET_DEVICES_ALL);
             for (AudioDeviceInfo device : devices) {
                 final int type = device.getType();
@@ -427,9 +422,8 @@ public class WebRTCAudioManager {
             // No wired headset, hence the audio-device list can contain speaker
             // phone (on a tablet), or speaker phone and earpiece (on mobile phone).
             newAudioDevices.add(AudioDevice.SPEAKER_PHONE);
-            if (hasEarpiece()) {
+            if (hasEarpiece())
                 newAudioDevices.add(AudioDevice.EARPIECE);
-            }
         }
         // Store state which is set to true if the device list has changed.
         boolean audioDeviceSetUpdated = !audioDevices.equals(newAudioDevices);

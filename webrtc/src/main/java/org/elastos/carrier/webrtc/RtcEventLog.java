@@ -37,9 +37,8 @@ class RtcEventLog {
     private RtcEventLogState state = RtcEventLogState.INACTIVE;
 
     public RtcEventLog(PeerConnection peerConnection) {
-        if (peerConnection == null) {
+        if (peerConnection == null)
             throw new NullPointerException("The peer connection is null.");
-        }
         this.peerConnection = peerConnection;
     }
 
