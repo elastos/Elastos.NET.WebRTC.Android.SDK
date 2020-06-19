@@ -7,6 +7,7 @@ public interface CallHandler {
 
     /**
      * fired when receive invite from your friends
+     *
      * @param friendId who is calling you
      */
     void onInvite(String friendId);
@@ -23,6 +24,7 @@ public interface CallHandler {
 
     /**
      * when remote hangup or reject invite
+     *
      * @param reason {@link CallReason} the reason call ended
      */
     void onEndCall(CallReason reason);
@@ -39,6 +41,7 @@ public interface CallHandler {
 
     /**
      * webrtc connect error
+     *
      * @param description error message
      */
     void onConnectionError(String description);

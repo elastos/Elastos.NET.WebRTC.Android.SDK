@@ -14,7 +14,6 @@ class ProxyVideoSink implements VideoSink {
             Logging.d(TAG, "Dropping frame in proxy because target is null.");
             return;
         }
-
         target.onFrame(frame);
     }
 

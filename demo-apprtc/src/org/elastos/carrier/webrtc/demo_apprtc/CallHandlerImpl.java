@@ -15,7 +15,7 @@ public class CallHandlerImpl implements CallHandler {
         Log.d(TAG, "onInvite: " + friendId);
         try {
             Thread.sleep(1000);
-            WebrtcClient.getInstance().acceptCallInvite();
+            WebrtcClient.getInstance().answerCall();
         } catch (Exception e) {
             Log.e(TAG, "onInvite: ", e);
         }

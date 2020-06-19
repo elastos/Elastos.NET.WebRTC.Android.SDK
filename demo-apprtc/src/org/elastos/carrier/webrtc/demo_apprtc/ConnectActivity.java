@@ -57,6 +57,7 @@ import org.elastos.carrier.webrtc.demo_apprtc.util.QRCodeUtils;
 import org.elastos.carrier.AbstractCarrierHandler;
 import org.elastos.carrier.Carrier;
 import org.elastos.carrier.exceptions.CarrierException;
+import org.elastos.carrier.webrtc.exception.WebrtcException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -198,7 +199,7 @@ public class ConnectActivity extends Activity {
     mQRCodeImage.setImageBitmap(QRCodeUtils.createQRCodeBitmap(address));
     mAdrress.setText(userId);
 
-    WebrtcClient.initialize(this, CarrierClient.getInstance(this).getCarrier(), new CallHandlerImpl(),  null);
+    WebrtcClient.createInstance(this, CarrierClient.getInstance(this).getCarrier(), new CallHandlerImpl(),  null);
 
     if (Build.VERSION.SDK_INT >= 23) {
       int REQUEST_CODE_CONTACT = 101;
@@ -797,7 +798,10 @@ public class ConnectActivity extends Activity {
             return;
           }
           startCallActivity(userId);
-          WebrtcClient.getInstance().inviteCall(userId);
+          try {
+            WebrtcClient.getInstance().makeCall(userId);
+          } catch (WebrtcException e) {
+          }
         }
       };
 

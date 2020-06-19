@@ -22,7 +22,8 @@ public class PeerConnectionParametersBuilder {
     boolean disableWebRtcAGCAndHPF = false;
     boolean enableRtcEventLog = false;
 
-    private PeerConnectionParametersBuilder() {}
+    private PeerConnectionParametersBuilder() {
+    }
 
     public static PeerConnectionParametersBuilder builder() {
         return new PeerConnectionParametersBuilder();

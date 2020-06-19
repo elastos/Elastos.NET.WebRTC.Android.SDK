@@ -37,7 +37,6 @@ public enum CallState {
                 return state;
             }
         }
-
         return null;
     }
 

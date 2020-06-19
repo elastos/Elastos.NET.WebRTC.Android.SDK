@@ -31,6 +31,7 @@ import androidx.annotation.Nullable;
 
 import org.elastos.carrier.webrtc.WebrtcClient;
 import org.elastos.carrier.webrtc.demo_apprtc.apprtc.R;
+import org.elastos.carrier.webrtc.exception.WebrtcException;
 import org.elastos.carrier.webrtc.util.WebRTCAudioManager;
 import org.elastos.carrier.webrtc.util.WebRTCAudioManager.*;
 import org.webrtc.Logging;
@@ -277,7 +278,10 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
     // CallFragment.OnCallEvents interface implementation.
     @Override
     public void onCallHangUp() {
-        WebrtcClient.getInstance().disconnect();
+        try {
+            WebrtcClient.getInstance().hangupCall();
+        } catch (WebrtcException e) {
+        }
         disconnect();
     }
 
