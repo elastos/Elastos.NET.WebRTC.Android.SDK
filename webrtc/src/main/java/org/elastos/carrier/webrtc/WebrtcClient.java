@@ -195,7 +195,7 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
                     .put("type", "acceptInvite")
                     .put("remoteUserId", remoteUserId)
                     .toString();
-            send(data);
+//            send(data);
             Log.d(TAG, "Send command to answer call invitation from " + remoteUserId);
 
         } catch (JSONException e) {
@@ -313,7 +313,7 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
     @Override
     protected void onFriendInvite(Carrier carrier, String from, String data) {
         Log.e(TAG, "carrier friend invite  onFriendInviteRequest from: " + from);
-        if (data != null && data.contains("msg")) {
+        if (data != null && (data.contains("msg") ||  data.contains("type"))) {
             this.remoteUserId = from;
             onCarrierMessage(data, from);
             Log.d(TAG, "Get the carrier message: " + data);
@@ -534,7 +534,8 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
             String msgText = json.optString("msg", "");
             if (TextUtils.isEmpty(msgText)) {
                 // events.onCreateOffer();
-                return;
+                msgText = msg;
+//                return;
             }
             String errorText = json.optString("error");
             if (msgText.length() > 0) {
@@ -556,6 +557,8 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
                             SessionDescription.Type.fromCanonicalForm(type), json.getString("sdp"));
                     handleAnswer(sdp);
                 } else if (type.equals("offer")) {
+                    Log.d(TAG, "onCarrierMessage: offer-message -> " + msg);
+                    handleInvite(from);
                     SessionDescription sdp = new SessionDescription(
                             SessionDescription.Type.fromCanonicalForm(type), json.getString("sdp"));
                     handleOffer(sdp);
@@ -695,9 +698,9 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
                     .put("msg", message)
                     .put("remoteUserId", remoteUserId)
                     .toString();
-
-            Log.d(TAG, "Calling control command : " + data);
-            inviteFriend(remoteUserId, data, friendInviteResponseHandler);
+            // no wrap
+            Log.d(TAG, "Calling control command : " + message);
+            inviteFriend(remoteUserId, message, friendInviteResponseHandler);
 
         } catch (JSONException e) {
             Log.e(TAG, "send: Carrier send JSON error: " + e.getMessage());
