@@ -43,7 +43,7 @@ onInvite callback if someone is calling you.
 ```
 
     // Send a call invite to a carrier User.
-    WebrtcClient.getInstance().inviteCall(friendId);
+    WebrtcClient.getInstance().makeCall(friendId);
 
     // Render video wherever you want
     WebrtcClient.getInstance().renderVideo(localRenderer, remoteRenderer);
@@ -54,9 +54,9 @@ onInvite callback if someone is calling you.
 ```
 
     // accept invite
-    WebrtcClient.getInstance().acceptCallInvite();
+    WebrtcClient.getInstance().answerCall();
     // reject invite
-    WebrtcClient.getInstance().rejectCallInvite();
+    WebrtcClient.getInstance().rejectCall();
     // Render video wherever you want
     WebrtcClient.getInstance().renderVideo(localRenderer, remoteRenderer);
 
@@ -77,7 +77,7 @@ In the previous we initialized WebrtcClient, has the "this" parameter,
        * fired when receive invite from your friends
        * @param friendId who is calling you
        */
-      void onInvite(String friendId);
+      void onInvite(String friendId, boolean audio, boolean video);
 
       /**
        * when your friend accept you invite
