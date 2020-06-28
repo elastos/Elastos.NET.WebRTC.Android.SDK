@@ -278,10 +278,8 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
     // CallFragment.OnCallEvents interface implementation.
     @Override
     public void onCallHangUp() {
-        try {
-            WebrtcClient.getInstance().hangupCall();
-        } catch (WebrtcException e) {
-        }
+        WebrtcClient.getInstance().hangupCall();
+
         disconnect();
     }
 

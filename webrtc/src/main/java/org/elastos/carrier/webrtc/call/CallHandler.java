@@ -9,8 +9,10 @@ public interface CallHandler {
      * fired when receive invite from your friends
      *
      * @param friendId who is calling you
+     * @param audio is audio enabled
+     * @param video is video enabled
      */
-    void onInvite(String friendId);
+    void onInvite(String friendId, boolean audio, boolean video);
 
     /**
      * when your friend accept you invite

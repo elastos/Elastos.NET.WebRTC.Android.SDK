@@ -25,6 +25,7 @@ package org.elastos.carrier.webrtc;
 import android.content.Context;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.telecom.Call;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -94,6 +95,7 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
     private List<VideoSink> remoteSinks = Arrays.asList(new ProxyVideoSink[]{remoteProxyVideoSink});
     private SurfaceViewRenderer localVideoRenderer;
     private SurfaceViewRenderer remoteVideoRenderer;
+    private SessionDescription remoteSdp;
 
     private WebrtcClient(Context context,
                          Carrier carrier,
@@ -168,56 +170,33 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
 
         this.initiator = true;
         this.remoteUserId = peerAddress;
-        this.setCallState(CallState.INVITING);
 
-        try {
-            String data = new JSONObject()
-                    .put("type", "invite")
-                    .put("remoteUserId", remoteUserId)
-                    .toString();
-            send(data);
-            Log.d(TAG, "Send command to making call to " + remoteUserId + "succeeded");
-
-        } catch (JSONException e) {
-            throw new WebrtcException("Send command to make webrtc call error " + e.getMessage());
-        }
+        // make call, just send offer to remote peer
+        this.setCallState(CallState.CONNECTING);
+        initialCall();
+        // create offer
+        carrierPeerConnectionClient.createOffer();
     }
 
     /**
-     * Answer the call invitation.
+     * Answer the call.
      */
-    public void answerCall() throws WebrtcException {
+    public void answerCall() {
         this.initiator = false;
         this.setCallState(CallState.CONNECTING);
 
-        try {
-            String data = new JSONObject()
-                    .put("type", "acceptInvite")
-                    .put("remoteUserId", remoteUserId)
-                    .toString();
-//            send(data);
-            Log.d(TAG, "Send command to answer call invitation from " + remoteUserId);
-
-        } catch (JSONException e) {
-            throw new WebrtcException("Sending command to answer webrtc call error: " + e.getMessage());
-        }
+        initialCall();
+        // set remote sdp
+        carrierPeerConnectionClient.setRemoteDescription(remoteSdp);
+        // create answer
+        carrierPeerConnectionClient.createAnswer();
     }
 
     /**
      * Hangup/reject the call invitation.
      */
     public void rejectCall() throws WebrtcException {
-        try {
-            String data = new JSONObject()
-                    .put("type", "reject")
-                    .put("remoteUserId", remoteUserId)
-                    .toString();
-            send(data);
-            Log.d(TAG, "Send command to reject invitation from " + remoteUserId);
-
-        } catch (JSONException e) {
-            throw new WebrtcException("Sending command to reject invitation error: " + e.getMessage());
-        }
+        sendBye(CallReason.REJECT);
     }
 
     public CallState getCallState() {
@@ -237,20 +216,10 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
         return this.remoteUserId;
     }
 
-    public void hangupCall() throws WebrtcException {
+    public void hangupCall() {
         this.setCallState(CallState.INIT);
 
-        try {
-            String data = new JSONObject()
-                    .put("type", "bye")
-                    .put("remoteUserId", remoteUserId)
-                    .toString();
-            send(data);
-            Log.d(TAG, "Sending command to hangup the call with " + remoteUserId);
-
-        } catch (JSONException e) {
-            throw new WebrtcException("Sending command to hangup the call error: " + e.getMessage());
-        }
+        sendBye(CallReason.NORMAL_HANGUP);
 
         disconnectFromCallInternal();
         handler.getLooper().quit();
@@ -404,62 +373,45 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
             Log.e(TAG, "sendOfferSdp: Sending offer SDP in non connected state.");
             return;
         }
-        JSONObject json = new JSONObject();
-        jsonPut(json, "sdp", sdp.description);
-        jsonPut(json, "type", "offer");
-        send(json.toString());
+
+        sendOffer(sdp, true, peerConnectionParameters.videoCallEnabled);
         Log.d(TAG, "sendOfferSdp() from " + currentUserId + ", to: " + remoteUserId);
     }
 
     // Send local answer SDP to the other participant.
     private void sendAnswerSdp(final SessionDescription sdp) {
-        JSONObject json = new JSONObject();
-        jsonPut(json, "sdp", sdp.description);
-        jsonPut(json, "type", "answer");
-        send(json.toString());
+        sendAnswer(sdp);
         Log.d(TAG, "sendAnswerSdp() from " + currentUserId + ", to: " + remoteUserId);
     }
 
     // Send Ice candidate to the other participant.
     private void sendLocalIceCandidate(final IceCandidate candidate) {
-        JSONObject json = new JSONObject();
-        jsonPut(json, "type", "candidate");
-        jsonPut(json, "label", candidate.sdpMLineIndex);
-        jsonPut(json, "id", candidate.sdpMid);
-        jsonPut(json, "candidate", candidate.sdp);
         if (initiator) {
             // Call initiator sends ice candidates to peer.
             if (connectionState != ConnectionState.CONNECTED && connectionState != ConnectionState.NEW) {
                 Log.e(TAG, "sendLocalIceCandidate: Sending ICE candidate in non connected state.");
                 return;
             }
-            send(json.toString());
+            sendCandidate(candidate);
             Log.d(TAG, "sendLocalIceCandidate() from " + currentUserId + ", to: " + remoteUserId);
         } else {
             // Call receiver sends ice candidates to peer.
-            send(json.toString());
+            sendCandidate(candidate);
         }
     }
 
     // Send removed Ice candidates to the other participant.
     private void sendLocalIceCandidateRemovals(final IceCandidate[] candidates) {
-        JSONObject json = new JSONObject();
-        jsonPut(json, "type", "remove-candidates");
-        JSONArray jsonArray = new JSONArray();
-        for (final IceCandidate candidate : candidates) {
-            jsonArray.put(toJsonCandidate(candidate));
-        }
-        jsonPut(json, "candidates", jsonArray);
         if (initiator) {
             // Call initiator sends ice candidates to peer.
             if (connectionState != ConnectionState.CONNECTED && connectionState != ConnectionState.NEW) {
                 Log.e(TAG, "sendLocalIceCandidateRemovals: Sending ICE candidate removals in non connected state.");
                 return;
             }
-            send(json.toString());
+            sendRemovalCandidates(candidates);
         } else {
             // Call receiver sends ice candidates to peer.
-            send(json.toString());
+            sendRemovalCandidates(candidates);
         }
         Log.d(TAG, "sendLocalIceCandidateRemovals() from " + currentUserId + ", to: " + remoteUserId);
     }
@@ -475,47 +427,110 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
         carrierPeerConnectionClient.createPeerConnectionFactory(options);
     }
 
-    private void handleOffer(SessionDescription sdp) {
+    private void handleOffer(JSONObject json) {
         Log.d(TAG, "handleOffer: ");
-        if (!initiator) {
-            initialCall();
-            carrierPeerConnectionClient.setRemoteDescription(sdp);
-            carrierPeerConnectionClient.createAnswer();
-        } else {
-            Log.e(TAG, "handleOffer: Received offer for register receiver: ");
+        if (json == null) {
+            Log.e(TAG, "handleOffer: error, json message is null");
+            return;
         }
-    }
-
-    private void handleAnswer(SessionDescription sdp) {
-        Log.d(TAG, "handleAnswer: ");
-        if (initiator) {
-            carrierPeerConnectionClient.setRemoteDescription(sdp);
-        } else {
-            Log.e(TAG, "handleAnswer: Received answer for register initiator: ");
+        String sdpStr = json.optString(MessageKey.sdp.name(), "");
+        SessionDescription sdp = new SessionDescription(
+                SessionDescription.Type.fromCanonicalForm("offer"), sdpStr
+        );
+        // save remote sdp
+        remoteSdp = sdp;
+        JSONArray options = json.optJSONArray(MessageKey.options.name());
+        boolean audio = false;
+        boolean video = false;
+        if (options != null && options.length() > 0) {
+            for (int i = 0; i < options.length(); i++) {
+                String o = options.optString(i, "");
+                if ("audio".equalsIgnoreCase(o)) {
+                    audio = true;
+                }
+                if ("video".equalsIgnoreCase(o)) {
+                    video = true;
+                }
+            }
         }
-    }
-
-    private void handleInvite(String from) {
-        Log.d(TAG, "handleInvite: " + from);
-        this.remoteUserId = from;
         this.setCallState(CallState.RINGING);
-        signalingParameters = new SignalingParameters(getIceServers(), false, from, null, null);
-        callHandler.onInvite(from);
+        signalingParameters = new SignalingParameters(getIceServers(), false, remoteUserId, null, null);
+        // emit user callback
+        callHandler.onInvite(remoteUserId, audio, video);
     }
 
-    private void handleAcceptInvite(String from) {
-        Log.d(TAG, "handleAcceptInvite: ");
-        this.setCallState(CallState.CONNECTING);
-        initialCall();
-        carrierPeerConnectionClient.createOffer();
+    private void handleAnswer(JSONObject json) {
+        Log.d(TAG, "handleAnswer: ");
+        if (json == null) {
+            Log.e(TAG, "handleAnswer: error, json message is null");
+            return;
+        }
+        String sdpStr = json.optString(MessageKey.sdp.name(), "");
+        SessionDescription sdp = new SessionDescription(
+                SessionDescription.Type.fromCanonicalForm("answer"), sdpStr
+        );
+        remoteSdp = sdp;
+        // set remote sdp
+        carrierPeerConnectionClient.setRemoteDescription(sdp);
         callHandler.onAnswer();
     }
 
-    private void handleBye() {
-        Log.d(TAG, "handleBye: ");
+    private void handleCandidate(JSONObject json) {
+        if (json == null) {
+            Log.e(TAG, "handleCandidate: handle candidate error, json message is null");
+            return;
+        }
+
+        try {
+            // handle candidate from json message
+            JSONArray array = json.optJSONArray(MessageKey.candidates.name());
+            if (array != null && array.length() > 0) {
+                for (int i = 0; i < array.length(); i++) {
+                    JSONObject cJson = array.optJSONObject(i);
+                    carrierPeerConnectionClient.addRemoteIceCandidate(toJavaCandidate(cJson));
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "handleCandidate: ", e);
+        }
+    }
+
+    private void handleCandidateRemoval(JSONObject json) {
+        if (json == null) {
+            Log.e(TAG, "handleCandidateRemoval: handle candidate-removal error, json message is null");
+            return;
+        }
+
+        try {
+            // handle candidate removal from json message
+            JSONArray array = json.optJSONArray(MessageKey.candidates.name());
+            if (array != null && array.length() > 0) {
+                IceCandidate[] candidates = new IceCandidate[array.length()];
+                for (int i = 0; i < array.length(); i++) {
+                    JSONObject cJson = array.optJSONObject(i);
+                    candidates[i] = toJavaCandidate(cJson);
+                }
+                carrierPeerConnectionClient.removeRemoteIceCandidates(candidates);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "handleCandidate: ", e);
+        }
+    }
+
+    private void handleBye(JSONObject json) {
+        CallReason callReason = null;
+        if (json != null) {
+            int reason = json.optInt(MessageKey.reason.name());
+            callReason = CallReason.valueOf(reason);
+            Log.d(TAG, "handleBye: reason -> " + callReason);
+        }
+        if (callReason == null) {
+            callReason = CallReason.NORMAL_HANGUP;
+        }
+        Log.d(TAG, "handleBye: " + callReason);
         this.setCallState(CallState.INIT);
         disconnectFromCallInternal();
-        callHandler.onEndCall(CallReason.NORMAL_HANGUP);
+        callHandler.onEndCall(callReason);
     }
 
     private void handleReject() {
@@ -530,56 +545,31 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
     // (passed to Carrier client constructor).
     private void onCarrierMessage(final String msg, String from) {
         try {
+            Log.d(TAG, "onCarrierMessage: " + msg);
             JSONObject json = new JSONObject(msg);
-            String msgText = json.optString("msg", "");
-            if (TextUtils.isEmpty(msgText)) {
-                // events.onCreateOffer();
-                msgText = msg;
-//                return;
+            String type = json.optString(MessageKey.type.name(), "");
+            MessageType messageType = MessageType.getType(type);
+            if (messageType == null) {
+                Log.e(TAG, "onCarrierMessage: handle call message error, type is null -> " + msg);
+                return;
             }
-            String errorText = json.optString("error");
-            if (msgText.length() > 0) {
-                json = new JSONObject(msgText);
-                String type = json.optString("type");
-                if (type.equals("candidate")) {
-                    // events.onRemoteIceCandidate(toJavaCandidate(json));
-                    carrierPeerConnectionClient.addRemoteIceCandidate(toJavaCandidate(json));
-                } else if (type.equals("remove-candidates")) {
-                    JSONArray candidateArray = json.getJSONArray("candidates");
-                    IceCandidate[] candidates = new IceCandidate[candidateArray.length()];
-                    for (int i = 0; i < candidateArray.length(); ++i) {
-                        candidates[i] = toJavaCandidate(candidateArray.getJSONObject(i));
-                    }
-                    // events.onRemoteIceCandidatesRemoved(candidates);
-                    carrierPeerConnectionClient.removeRemoteIceCandidates(candidates);
-                } else if (type.equals("answer")) {
-                    SessionDescription sdp = new SessionDescription(
-                            SessionDescription.Type.fromCanonicalForm(type), json.getString("sdp"));
-                    handleAnswer(sdp);
-                } else if (type.equals("offer")) {
-                    Log.d(TAG, "onCarrierMessage: offer-message -> " + msg);
-                    handleInvite(from);
-                    SessionDescription sdp = new SessionDescription(
-                            SessionDescription.Type.fromCanonicalForm(type), json.getString("sdp"));
-                    handleOffer(sdp);
-                } else if (type.equals("bye")) {
-                    handleBye();
-                } else if (type.equals("reject")) {
-                    handleReject();
-                } else if (type.equals("invite")) {
-                    Log.d(TAG, "onCarrierMessage: invite-message -> " + msg);
-                    handleInvite(from);
-                } else if (type.equals("acceptInvite")) {
-                    handleAcceptInvite(from);
-                } else {
-                    Log.w(TAG, "onCarrierMessage: Unexpected Carrier message: " + msg);
-                }
-            } else {
-                if (errorText != null && errorText.length() > 0) {
-                    Log.w(TAG, "onCarrierMessage: Carrier error message: " + errorText);
-                } else {
-                    Log.w(TAG, "onCarrierMessage: Unexpected Carrier message: " + msg);
-                }
+            Log.d(TAG, "onCarrierMessage: handle message -> " + messageType);
+            switch (messageType) {
+                case OFFER:
+                    handleOffer(json);
+                    break;
+                case ANSWER:
+                    handleAnswer(json);
+                    break;
+                case CANDIDATE:
+                    handleCandidate(json);
+                    break;
+                case REMOVAL_CANDIDATES:
+                    handleCandidateRemoval(json);
+                    break;
+                case BYE:
+                    handleBye(json);
+                    break;
             }
         } catch (JSONException e) {
             Log.e(TAG, "onCarrierMessage: error -> " + msg);
@@ -671,16 +661,16 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
     // Converts a Java candidate to a JSONObject.
     private JSONObject toJsonCandidate(final IceCandidate candidate) {
         JSONObject json = new JSONObject();
-        jsonPut(json, "label", candidate.sdpMLineIndex);
-        jsonPut(json, "id", candidate.sdpMid);
-        jsonPut(json, "candidate", candidate.sdp);
+        jsonPut(json, "sdpMLineIndex", candidate.sdpMLineIndex);
+        jsonPut(json, "sdpMid", candidate.sdpMid);
+        jsonPut(json, "sdp", candidate.sdp);
         return json;
     }
 
     // Converts a JSON candidate to a Java object.
     private IceCandidate toJavaCandidate(JSONObject json) throws JSONException {
         return new IceCandidate(
-                json.getString("id"), json.getInt("label"), json.getString("candidate"));
+                json.getString("sdpMid"), json.getInt("sdpMLineIndex"), json.getString("sdp"));
     }
 
     // Helper method for debugging purposes. Ensures that Carrier method is
@@ -708,6 +698,135 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
             e.printStackTrace();
             Log.e(TAG, "send: carrier send message error: " + e.getMessage());
         }
+    }
+
+    /**
+     * send offer sdp to remote peer
+     * @param sdp offer sdp
+     * @param audio enable audio
+     * @param video enable video
+     */
+    private void sendOffer(SessionDescription sdp, boolean audio, boolean video) {
+        if (sdp == null) {
+            Log.e(TAG, "send offer error, offer sdp is null");
+            return;
+        }
+        JSONObject json = new JSONObject();
+        // offer type
+        jsonPut(json, MessageKey.type.name(), MessageType.OFFER.getValue());
+        // offer sdp
+        jsonPut(json, MessageKey.sdp.name(), sdp.description);
+        // offer options
+        JSONArray options = new JSONArray();
+        if (audio) {
+            options.put("audio");
+        }
+        if (video) {
+            options.put("video");
+        }
+        jsonPut(json, MessageKey.options.name(), options);
+
+        // send json message
+        send(json.toString());
+    }
+
+    /**
+     * send answer sdp to remote peer
+     * @param sdp answer sdp
+     */
+    private void sendAnswer(SessionDescription sdp) {
+        if (sdp == null) {
+            Log.e(TAG, "send answer error, answer sdp is null");
+            return;
+        }
+        JSONObject json = new JSONObject();
+        // answer type
+        jsonPut(json, MessageKey.type.name(), MessageType.ANSWER.getValue());
+        // answer sdp
+        jsonPut(json, MessageKey.sdp.name(), sdp.description);
+
+        // send json message
+        send(json.toString());
+    }
+
+    /**
+     * send candidate to remote peer
+     * @param candidate ice candidate
+     */
+    private void sendCandidate(IceCandidate candidate) {
+        if (candidate == null) {
+            Log.e(TAG, "send IceCandidate error, candidate is null");
+            return;
+        }
+        JSONObject json = new JSONObject();
+        // candidate type
+        jsonPut(json, MessageKey.type.name(), MessageType.CANDIDATE.getValue());
+        // candidate array
+        JSONArray array = new JSONArray();
+        array.put(toJsonCandidate(candidate));
+        jsonPut(json, MessageKey.candidates.name(), array);
+
+        // send json message
+        send(json.toString());
+    }
+
+    /**
+     * send candidates to remote peer
+     * @param candidates ice candidates
+     */
+    private void sendCandidates(IceCandidate[] candidates) {
+        if (candidates == null || candidates.length <= 0) {
+            Log.e(TAG, "send IceCandidates error, candidates is empty");
+            return;
+        }
+        JSONObject json = new JSONObject();
+        // candidate type
+        jsonPut(json, MessageKey.type.name(), MessageType.CANDIDATE.getValue());
+        // candidate array
+        JSONArray array = new JSONArray();
+        for (IceCandidate candidate : candidates) {
+            array.put(toJsonCandidate(candidate));
+        }
+        jsonPut(json, MessageKey.candidates.name(), array);
+
+        // send json message
+        send(json.toString());
+    }
+
+    /**
+     * send ice candidates removal message to remote peer
+     * @param candidates removal ice candidates
+     */
+    private void sendRemovalCandidates(IceCandidate[] candidates) {
+        if (candidates == null || candidates.length <= 0) {
+            Log.e(TAG, "send removal IceCandidates error, candidates is empty");
+            return;
+        }
+
+        JSONObject json = new JSONObject();
+        // candidate type
+        jsonPut(json, MessageKey.type.name(), MessageType.REMOVAL_CANDIDATES.getValue());
+        // candidate array
+        JSONArray array = new JSONArray();
+        for (IceCandidate candidate : candidates) {
+            array.put(toJsonCandidate(candidate));
+        }
+        jsonPut(json, MessageKey.candidates.name(), array);
+
+        // send json message
+        send(json.toString());
+    }
+
+    /**
+     * send bye message to remote peer
+     * @param reason bye reason
+     */
+    private void sendBye(CallReason reason) {
+        JSONObject json = new JSONObject();
+        jsonPut(json, MessageKey.type.name(), MessageType.BYE.getValue());
+        jsonPut(json, MessageKey.reason.name(), reason.getValue());
+
+        send(json.toString());
     }
 
     /**
@@ -768,6 +887,42 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
     }
 
     private enum ConnectionState {NEW, CONNECTED, CLOSED, ERROR}
+
+    /**
+     * call message keys
+     */
+    private enum MessageKey {type, sdp, candidates, options, reason}
+
+    /**
+     * call message types
+     */
+    private enum MessageType {
+        OFFER("offer"),
+        ANSWER("answer"),
+        CANDIDATE("candidate"),
+        REMOVAL_CANDIDATES("removal-candidates"),
+        BYE("bye"),
+        ;
+
+        private String value;
+
+        MessageType(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        public static MessageType getType(String value) {
+            for (MessageType type : values()) {
+                if (type.getValue().equalsIgnoreCase(value)) {
+                    return type;
+                }
+            }
+            return null;
+        }
+    }
 
     /**
      * Struct holding the signaling parameters of an webrtc communication.
