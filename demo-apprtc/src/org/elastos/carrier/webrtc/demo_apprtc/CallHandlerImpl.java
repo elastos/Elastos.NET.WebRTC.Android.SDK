@@ -13,12 +13,14 @@ public class CallHandlerImpl implements CallHandler {
     @Override
     public void onInvite(String friendId, boolean audio, boolean video) {
         Log.d(TAG, "onInvite: " + friendId);
+        /*
         try {
             Thread.sleep(1000);
             WebrtcClient.getInstance().answerCall();
         } catch (Exception e) {
             Log.e(TAG, "onInvite: ", e);
         }
+        */
         ConnectActivity.INSTANCE.startCallActivity(friendId);
     }
 

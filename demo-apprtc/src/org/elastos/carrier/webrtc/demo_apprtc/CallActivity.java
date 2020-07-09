@@ -44,7 +44,7 @@ import java.util.Set;
  * Activity for peer connection register setup, register waiting
  * and register view.
  */
-public class CallActivity extends Activity implements CallFragment.OnCallEvents {
+public class CallActivity extends Activity implements CallFragment.OnCallEvents, CallInviteFragment.OnInviteCallEvents {
     private static final String TAG = "CallActivity";
 
     public static final String EXTRA_REMOTE_USER_ID = "org.elastos.carrier.webrtc.demo.apprtc.EXTRA_REMOTE_USER_ID";
@@ -124,6 +124,7 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
 
     // Controls
     private CallFragment callFragment;
+    private CallInviteFragment callInviteFragment;
     private HudFragment hudFragment;
     private CpuMonitor cpuMonitor;
 
@@ -179,6 +180,7 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
         remoteRenderer = findViewById(R.id.fullscreen_video_view);
         callFragment = new CallFragment();
         hudFragment = new HudFragment();
+        callInviteFragment = new CallInviteFragment();
 
         // Show/hide register control fragment on view click.
         View.OnClickListener listener = new View.OnClickListener() {
@@ -216,10 +218,13 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
         // Send intent arguments to fragments.
         callFragment.setArguments(intent.getExtras());
         hudFragment.setArguments(intent.getExtras());
+        callInviteFragment.setArguments(intent.getExtras());
         // Activate register and HUD fragments and start the register.
         FragmentTransaction ft = getFragmentManager().beginTransaction();
         ft.add(R.id.call_fragment_container, callFragment);
+        ft.add(R.id.call_fragment_container, callInviteFragment);
         ft.add(R.id.hud_fragment_container, hudFragment);
+        ft.hide(callFragment);
         ft.commit();
     }
 
@@ -317,6 +322,28 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents 
         videoOn = !videoOn;
         WebrtcClient.getInstance().setVideoEnable(videoOn);
         return videoOn;
+    }
+
+    @Override
+    public void onRejectCall() {
+        try {
+            WebrtcClient.getInstance().rejectCall();
+            finish();
+        } catch (Exception e) {
+            Log.e(TAG, "onRejectCall: ", e);
+        }
+    }
+
+    @Override
+    public void onAcceptCall() {
+        WebrtcClient.getInstance().answerCall();
+
+        connected = true;
+        FragmentTransaction ft = getFragmentManager().beginTransaction();
+        ft.hide(callInviteFragment);
+        ft.show(callFragment);
+        ft.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE);
+        ft.commit();
     }
 
     // Helper functions.
