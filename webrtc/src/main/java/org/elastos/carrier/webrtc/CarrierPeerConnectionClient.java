@@ -29,6 +29,7 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
+import org.elastos.carrier.webrtc.call.CallHandler;
 import org.webrtc.AudioSource;
 import org.webrtc.AudioTrack;
 import org.webrtc.CameraVideoCapturer;
@@ -97,7 +98,7 @@ import java.util.regex.Pattern;
  * All PeerConnectionEvents callbacks are invoked from the same looper thread.
  * This class is a singleton.
  */
-class CarrierPeerConnectionClient {
+public class CarrierPeerConnectionClient {
     public static final String VIDEO_TRACK_ID = "ARDAMSv0";
     public static final String AUDIO_TRACK_ID = "ARDAMSa0";
     public static final String VIDEO_TRACK_TYPE = "video";
@@ -161,6 +162,7 @@ class CarrierPeerConnectionClient {
     private int videoFps;
     private MediaConstraints audioConstraints;
     private MediaConstraints sdpMediaConstraints;
+    private CallHandler callHandler;
     // Queued remote ICE candidates are consumed only after both local and
     // remote descriptions are set. Similarly local ICE candidates are sent to
     // remote peer after both local and remote description are set.
@@ -195,15 +197,19 @@ class CarrierPeerConnectionClient {
     @Nullable
     private List<PeerConnection.IceServer> iceServers;
 
-    public CarrierPeerConnectionClient(Context context, List<PeerConnection.IceServer> iceServers, EglBase eglBase,
-                                       PeerConnectionParameters peerConnectionParameters, PeerConnectionEvents events) {
+    public CarrierPeerConnectionClient(Context context, List<PeerConnection.IceServer> iceServers,
+                                       EglBase eglBase,
+                                       PeerConnectionParameters peerConnectionParameters,
+                                       PeerConnectionEvents events,
+                                       CallHandler callHandler) {
         super();
         this.rootEglBase = eglBase;
         this.appContext = context;
         this.peerConnectionParameters = peerConnectionParameters;
         this.events = events;
-        this.dataChannelEnabled = false;
+        this.dataChannelEnabled = (peerConnectionParameters.dataChannelParameters != null);
         this.iceServers = iceServers;
+        this.callHandler = callHandler;
         final String fieldTrials = getFieldTrials(peerConnectionParameters);
         Log.d(TAG, "Initialize WebRTC. Field trials: " + fieldTrials);
         PeerConnectionFactory.initialize(
@@ -656,6 +662,7 @@ class CarrierPeerConnectionClient {
         rtcConfig.sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN;
         peerConnection = factory.createPeerConnection(rtcConfig, pcObserver);
         if (dataChannelEnabled) {
+            Log.d(TAG, "createPeerConnectionInternal: create data channel");
             DataChannel.Init init = new DataChannel.Init();
             init.ordered = peerConnectionParameters.dataChannelParameters.ordered;
             init.negotiated = peerConnectionParameters.dataChannelParameters.negotiated;
@@ -664,6 +671,34 @@ class CarrierPeerConnectionClient {
             init.id = peerConnectionParameters.dataChannelParameters.id;
             init.protocol = peerConnectionParameters.dataChannelParameters.protocol;
             dataChannel = peerConnection.createDataChannel("Carrier webrtc data", init);
+            dataChannel.registerObserver(new DataChannel.Observer() {
+                @Override
+                public void onBufferedAmountChange(long previousAmount) {
+                    try {
+                        Log.d(TAG, "Data channel buffered amount changed(created): " + dataChannel.label() + ": " + dataChannel.state());
+                    } catch (Exception e) {
+                        Log.e(TAG, "onBufferedAmountChange(created): ", e);
+                    }
+                }
+
+                @Override
+                public void onStateChange() {
+                    try {
+                        Log.d(TAG, "Data channel state changed(created): " + dataChannel.label() + ": " + dataChannel.state());
+                    } catch (Exception e) {
+                        Log.e(TAG, "onStateChange(created): ", e);
+                    }
+                }
+
+                @Override
+                public void onMessage(final DataChannel.Buffer buffer) {
+                    if (callHandler != null) {
+                        callHandler.onMessage(buffer.data, buffer.binary);
+                    }
+                    Log.d(TAG, "onMessage(created): binary = " + buffer.binary);
+                }
+            });
+            Log.d(TAG, "createPeerConnectionInternal: data channel state -> " + dataChannel.state());
         }
         isInitiator = false;
         // Set INFO libjingle logging.
@@ -1061,6 +1096,12 @@ class CarrierPeerConnectionClient {
         videoSource.adaptOutputFormat(width, height, framerate);
     }
 
+    void sendMessage(DataChannel.Buffer buffer) {
+        if (dataChannelEnabled && dataChannel != null) {
+            dataChannel.send(buffer);
+        }
+    }
+
     /**
      * Peer connection parameters.
      */
@@ -1107,7 +1148,7 @@ class CarrierPeerConnectionClient {
         public final boolean disableBuiltInNS;
         public final boolean disableWebRtcAGCAndHPF;
         public final boolean enableRtcEventLog;
-        private final DataChannelParameters dataChannelParameters;
+        public final DataChannelParameters dataChannelParameters;
 
         public PeerConnectionParameters(boolean videoCallEnabled, boolean tracing,
                                         int videoWidth, int videoHeight, int videoFps, int videoMaxBitrate, String videoCodec,
@@ -1181,6 +1222,7 @@ class CarrierPeerConnectionClient {
                     events.onDisconnected();
                 } else if (newState == PeerConnectionState.FAILED) {
                     reportError("DTLS connection failed.");
+                    events.onPeerConnectionError(newState.toString());
                 }
             });
         }
@@ -1210,31 +1252,37 @@ class CarrierPeerConnectionClient {
 
         @Override
         public void onDataChannel(final DataChannel dc) {
-            Log.d(TAG, "New Data channel " + dc.label());
-            if (!dataChannelEnabled)
+            dataChannel = dc;
+            Log.d(TAG, "New Data channel: label = " + dc.label() + "; id = " + dc.id());
+            if (!dataChannelEnabled) {
                 return;
+            }
+
             dc.registerObserver(new DataChannel.Observer() {
                 @Override
                 public void onBufferedAmountChange(long previousAmount) {
-                    Log.d(TAG, "Data channel buffered amount changed: " + dc.label() + ": " + dc.state());
+                    try {
+                        Log.d(TAG, "Data channel buffered amount changed: " + dc.label() + ": " + dc.state());
+                    } catch (Exception e) {
+                        Log.e(TAG, "onBufferedAmountChange: ", e);
+                    }
                 }
 
                 @Override
                 public void onStateChange() {
-                    Log.d(TAG, "Data channel state changed: " + dc.label() + ": " + dc.state());
+                    try {
+                        Log.d(TAG, "Data channel state changed: " + dc.label() + ": " + dc.state());
+                    } catch (Exception e) {
+                        Log.e(TAG, "onStateChange: ", e);
+                    }
                 }
 
                 @Override
                 public void onMessage(final DataChannel.Buffer buffer) {
-                    if (buffer.binary) {
-                        Log.d(TAG, "Received binary msg over " + dc);
-                        return;
+                    if (callHandler != null) {
+                        callHandler.onMessage(buffer.data, buffer.binary);
                     }
-                    ByteBuffer data = buffer.data;
-                    final byte[] bytes = new byte[data.capacity()];
-                    data.get(bytes);
-                    String strData = new String(bytes, Charset.forName("UTF-8"));
-                    Log.d(TAG, "Got msg: " + strData + " over " + dc);
+                    Log.d(TAG, "onMessage: binary = " + buffer.binary);
                 }
             });
         }

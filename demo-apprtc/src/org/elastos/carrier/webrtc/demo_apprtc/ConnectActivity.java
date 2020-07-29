@@ -51,8 +51,12 @@ import com.google.zxing.integration.android.IntentResult;
 
 import org.elastos.carrier.ConnectionStatus;
 import org.elastos.carrier.FriendInfo;
+import org.elastos.carrier.UserInfo;
+import org.elastos.carrier.webrtc.CarrierPeerConnectionClient;
+import org.elastos.carrier.webrtc.PeerConnectionParametersBuilder;
 import org.elastos.carrier.webrtc.WebrtcClient;
 import org.elastos.carrier.webrtc.demo_apprtc.apprtc.R;
+import org.elastos.carrier.webrtc.demo_apprtc.model.User;
 import org.elastos.carrier.webrtc.demo_apprtc.util.QRCodeUtils;
 import org.elastos.carrier.AbstractCarrierHandler;
 import org.elastos.carrier.Carrier;
@@ -77,8 +81,6 @@ public class ConnectActivity extends Activity {
   private static boolean commandLineRun = false;
   private static final List<String> ONLINE_FRIENDS = new ArrayList<>();
 
-  private ImageButton addFavoriteButton;
-  private EditText roomEditText;
   private ListView roomListView;
   private SharedPreferences sharedPref;
   private String keyprefResolution;
@@ -90,10 +92,8 @@ public class ConnectActivity extends Activity {
   private String keyprefRoomServerUrl;
   private String keyprefRoom;
   private String keyprefRoomList;
-  private ArrayList<String> roomList;
-  private CustomListAdapter<String> adapter;
-  private ImageView mQRCodeImage;
-  private TextView mAdrress;
+  private ArrayList<User> roomList;
+  private CustomListAdapter<User> adapter;
   public static ConnectActivity INSTANCE;
 
   @Override
@@ -116,90 +116,55 @@ public class ConnectActivity extends Activity {
 
     setContentView(R.layout.activity_connect);
 
-    roomEditText = findViewById(R.id.room_edittext);
-    roomEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-      @Override
-      public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
-        if (i == EditorInfo.IME_ACTION_DONE) {
-          addFavoriteButton.performClick();
-          return true;
-        }
-        return false;
-      }
-    });
-    roomEditText.requestFocus();
-
     roomListView = findViewById(R.id.room_listview);
     roomListView.setEmptyView(findViewById(android.R.id.empty));
     roomListView.setOnItemClickListener(roomListClickListener);
     registerForContextMenu(roomListView);
-    ImageButton connectButton = findViewById(R.id.connect_button);
-    connectButton.setOnClickListener(connectListener);
-    mQRCodeImage = findViewById(R.id.myaddressqrcode);
-    mAdrress = findViewById(R.id.myaddress);
-    addFavoriteButton = findViewById(R.id.add_favorite_button);
-    addFavoriteButton.setOnClickListener(addFavoriteListener);
 
     requestPermissions();
 
-    String userId = null;
-    String address = null;
-    try {
-        address = CarrierClient.getInstance(this).getCarrier().getAddress();
-      userId = CarrierClient.getInstance(this).getCarrier().getUserId();
-    } catch (CarrierException e) {
-      e.printStackTrace();
-    }
-    if (CarrierClient.getInstance(this).getCarrier().isReady()) {
-      mAdrress.append("\n service ready!!!");
-    }
     CarrierClient.getInstance(this).addCarrierHandler(new AbstractCarrierHandler() {
       @Override
       public void onReady(Carrier carrier) {
-        mAdrress.post(()->{
-          mAdrress.append("\n service ready" );
-        });
       }
 
       @Override
       public void onFriendConnection(Carrier carrier, String friendId, ConnectionStatus status) {
-        super.onFriendConnection(carrier, friendId, status);
         Log.d(TAG, "onFriendConnection: " + friendId);
         switch (status) {
           case Connected:
-            ONLINE_FRIENDS.add(friendId);
-            adapter.addOnline(friendId);
+            addOnlineFriend(friendId);
             break;
           case Disconnected:
-            ONLINE_FRIENDS.remove(friendId);
-            adapter.removeOnline(friendId);
+            removeOnlineFriend(friendId);
             break;
           default:
             break;
         }
-
-        runOnUiThread(() -> adapter.notifyDataSetChanged());
       }
 
       @Override
       public void onFriendAdded(Carrier carrier, FriendInfo info) {
-        super.onFriendAdded(carrier, info);
-        Log.d(TAG, "onFriendAdded: " + info.getUserId());
-        roomEditText.post(() -> {
-          roomEditText.setText(info.getUserId());
-        });
+        Log.d(TAG, "onFriendAdded: " + info);
+        // add favorite
+        saveFriend(info.getUserId(), (info.getName() == null || "".equals(info.getName().trim())) ? "Unknown" : info.getName());
       }
 
       @Override
-      public void onFriendInviteRequest(Carrier carrier, String from, String data) {
-        super.onFriendInviteRequest(carrier, from, data);
+      public void onFriendRequest(Carrier carrier, String userId, UserInfo info, String hello) {
+        Log.d(TAG, "onFriendRequest: " + info);
+        saveFriend(info.getUserId(), (info.getName() == null || "".equals(info.getName().trim())) ? "Unknown" : info.getName());
       }
     });
 
-    mQRCodeImage.setImageBitmap(QRCodeUtils.createQRCodeBitmap(address));
-    mAdrress.setText(userId);
-
-    WebrtcClient.createInstance(this, CarrierClient.getInstance(this).getCarrier(), new CallHandlerImpl(),  null);
+    CarrierPeerConnectionClient.DataChannelParameters dataChannelParameters =
+            new CarrierPeerConnectionClient.DataChannelParameters(true, -1, -1, "", false, 3);
+    CarrierPeerConnectionClient.PeerConnectionParameters peerConnectionParameters =
+            PeerConnectionParametersBuilder
+            .builder()
+            .dataChannelParameter(dataChannelParameters)
+            .build();
+    WebrtcClient.createInstance(this, CarrierClient.getInstance(this).getCarrier(), new CallHandlerImpl(),  peerConnectionParameters);
 
     if (Build.VERSION.SDK_INT >= 23) {
       int REQUEST_CODE_CONTACT = 101;
@@ -213,6 +178,18 @@ public class ConnectActivity extends Activity {
         }
       }
     }
+  }
+
+  public void addOnlineFriend(String friendId) {
+    ONLINE_FRIENDS.add(friendId);
+
+    refreshFriendList();
+  }
+
+  public void removeOnlineFriend(String friendId) {
+    ONLINE_FRIENDS.remove(friendId);
+
+    refreshFriendList();
   }
 
   @Override
@@ -230,7 +207,7 @@ public class ConnectActivity extends Activity {
   public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
     if (v.getId() == R.id.room_listview) {
       AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
-      menu.setHeaderTitle(roomList.get(info.position));
+      menu.setHeaderTitle(roomList.get(info.position).getId());
       String[] menuItems = getResources().getStringArray(R.array.roomListContextMenu);
       for (int i = 0; i < menuItems.length; i++) {
         menu.add(Menu.NONE, i, i, menuItems[i]);
@@ -260,74 +237,55 @@ public class ConnectActivity extends Activity {
       Intent intent = new Intent(this, SettingsActivity.class);
       startActivity(intent);
       return true;
-    }  else if (item.getItemId() == R.id.addfriend) {
-      showCamera();
+    } else if (item.getItemId() == R.id.action_info) {
+      Intent intent = new Intent(this, InfoActivity.class);
+      startActivity(intent);
       return true;
     } else {
       return super.onOptionsItemSelected(item);
     }
   }
 
-  public void showCamera() {
-    if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-            != PackageManager.PERMISSION_GRANTED) {
-      requestCameraPermission();
-    } else {
-      IntentIntegrator integrator = new IntentIntegrator(ConnectActivity.this);
-      integrator.setOrientationLocked(true);
-      integrator.initiateScan();
-    }
-  }
-
-  private void requestCameraPermission() {
-    if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-            Manifest.permission.CAMERA)) {
-      Snackbar.make(roomEditText, "获取摄像头权限",
-              Snackbar.LENGTH_INDEFINITE)
-              .setAction("OK", new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                  ActivityCompat.requestPermissions(ConnectActivity.this,
-                          new String[]{Manifest.permission.CAMERA},
-                          SCAN_REQUEST);
-                }
-              })
-              .show();
-    } else {
-      ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA},
-              SCAN_REQUEST);
-    }
-  }
-
   @Override
   public void onPause() {
     super.onPause();
-    String room = roomEditText.getText().toString();
-    String roomListJson = new JSONArray(roomList).toString();
-    SharedPreferences.Editor editor = sharedPref.edit();
-    editor.putString(keyprefRoom, room);
-    editor.putString(keyprefRoomList, roomListJson);
-    editor.commit();
+    if (roomList != null && !roomList.isEmpty()) {
+      try {
+        JSONArray array = new JSONArray();
+        for (User u : roomList) {
+          array.put(createJsonUser(u.getId(), u.getName()));
+        }
+        String roomListJson = array.toString();
+        Log.d(TAG, "onPause: save json -> " + roomListJson);
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putString(keyprefRoomList, roomListJson);
+        editor.commit();
+      } catch (Exception e) {
+
+      }
+    }
   }
 
   @Override
   public void onResume() {
     super.onResume();
-    String room = sharedPref.getString(keyprefRoom, "");
-    roomEditText.setText(room);
+    Log.d(TAG, "onResume: ");
     roomList = new ArrayList<>();
     String roomListJson = sharedPref.getString(keyprefRoomList, null);
-    if (roomListJson != null) {
+    Log.d(TAG, "onResume: read json -> " + roomListJson);
+    if (roomListJson != null && !"[null]".equalsIgnoreCase(roomListJson) && !"[]".equalsIgnoreCase(roomListJson)) {
       try {
         JSONArray jsonArray = new JSONArray(roomListJson);
         for (int i = 0; i < jsonArray.length(); i++) {
-          roomList.add(jsonArray.get(i).toString());
+          JSONObject uJson = jsonArray.getJSONObject(i);
+          User u = new User(uJson.getString("id"), uJson.getString("name"));
+          roomList.add(u);
         }
       } catch (JSONException e) {
         Log.e(TAG, "Failed to load room list: " + e.toString());
       }
     }
-    adapter = new CustomListAdapter<>(this, android.R.layout.simple_list_item_1, roomList);
+    adapter = new CustomListAdapter<User>(this, android.R.layout.simple_list_item_1, roomList);
     roomListView.setAdapter(adapter);
     if (adapter.getCount() > 0) {
       roomListView.requestFocus();
@@ -344,21 +302,7 @@ public class ConnectActivity extends Activity {
     if (scanResult != null) {
       String result = scanResult.getContents();
       if (result != null && !result.isEmpty()) {
-        roomEditText.post(new Runnable() {
-          @Override
-          public void run() {
-            String id = Carrier.getIdFromAddress(result);
-            if (id==null) {
-              id=result;
-            }
-            roomEditText.setText(id);
-            try {
-              CarrierClient.getInstance(ConnectActivity.this).addFriend(result);
-            } catch (CarrierException e) {
-              e.printStackTrace();
-            }
-          }
-        });
+
       }
       return;
     }
@@ -405,7 +349,7 @@ public class ConnectActivity extends Activity {
     // If an implicit VIEW intent is launching the app, go directly to that URL.
     final Intent intent = getIntent();
     if ("android.intent.action.VIEW".equals(intent.getAction()) && !commandLineRun) {
-      startCallActivity(roomEditText.getText().toString());
+
     }
   }
 
@@ -512,7 +456,7 @@ public class ConnectActivity extends Activity {
   }
 
   @SuppressWarnings("StringSplitter")
-  public void startCallActivity(String userId) {
+  public void startCallActivity(String userId, boolean isPassive) {
     String roomUrl = sharedPref.getString(
         keyprefRoomServerUrl, getString(R.string.pref_room_server_url_default));
 
@@ -727,6 +671,7 @@ public class ConnectActivity extends Activity {
       intent.putExtra(CallActivity.EXTRA_ENABLE_RTCEVENTLOG, rtcEventLogEnabled);
       intent.putExtra(CallActivity.EXTRA_CMDLINE, commandLineRun);
       intent.putExtra(CallActivity.EXTRA_DATA_CHANNEL_ENABLED, dataChannelEnabled);
+      intent.putExtra(CallActivity.EXTRA_IS_PASSIVE, isPassive);
 
       if (dataChannelEnabled) {
         intent.putExtra(CallActivity.EXTRA_ORDERED, ordered);
@@ -792,35 +737,99 @@ public class ConnectActivity extends Activity {
       new AdapterView.OnItemClickListener() {
         @Override
         public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-          String userId = ((TextView) view).getText().toString();
-          if (ONLINE_FRIENDS.isEmpty() || !ONLINE_FRIENDS.contains(userId)) {
-            Toast.makeText(ConnectActivity.this, String.format("%s is offline.", userId), Toast.LENGTH_LONG).show();
+          User user = (User) adapterView.getItemAtPosition(i);
+          if (ONLINE_FRIENDS.isEmpty() || !ONLINE_FRIENDS.contains(user.getId())) {
+            Toast.makeText(ConnectActivity.this, String.format("%s is offline.", user.getId()), Toast.LENGTH_LONG).show();
             return;
           }
-          startCallActivity(userId);
+          startCallActivity(user.getId(), false);
           try {
-            WebrtcClient.getInstance().makeCall(userId);
+            WebrtcClient.getInstance().makeCall(user.getId());
           } catch (WebrtcException e) {
           }
         }
       };
 
-  private final OnClickListener addFavoriteListener = new OnClickListener() {
-    @Override
-    public void onClick(View view) {
-      String newRoom = roomEditText.getText().toString();
-      if (newRoom.length() > 0 && !roomList.contains(newRoom)) {
-        adapter.add(newRoom);
-        adapter.notifyDataSetChanged();
+  public void saveFriend(String id, String name) {
+    List<String> idList = new ArrayList<>();
+    String roomListJson = sharedPref.getString(keyprefRoomList, null);
+    Log.d(TAG, "saveFriend read json: " + roomListJson);
+    boolean newUser = false;
+    JSONArray jsonArray = new JSONArray();
+    if (roomListJson != null && !"[null]".equalsIgnoreCase(roomListJson) && !"[]".equalsIgnoreCase(roomListJson)) {
+      try {
+        JSONArray array = new JSONArray(roomListJson);
+        for (int i = 0; i < array.length(); i++) {
+          try {
+            JSONObject uJson = array.getJSONObject(i);
+            if (id.equalsIgnoreCase(uJson.getString("id")) && !"Unknown".equalsIgnoreCase(name)) {
+              uJson.put("name", name);
+            }
+            jsonArray.put(uJson);
+            idList.add(uJson.getString("id"));
+          } catch (Exception e) {
+            Log.e(TAG, "saveFriend: ", e);
+          }
+        }
+        if (!idList.contains(id)) {
+          jsonArray.put(createJsonUser(id, name));
+        }
+      } catch (Exception e) {
+        Log.e(TAG, "Failed to load room list: " + e.toString());
+      }
+    } else {
+      try {
+        jsonArray.put(createJsonUser(id, name));
+      } catch (Exception e) {
+        Log.e(TAG, "saveFriend: ", e);
       }
     }
-  };
 
-  private final OnClickListener connectListener = new OnClickListener() {
-    @Override
-    public void onClick(View view) {
-      String userId = roomEditText.getText().toString();
-      startCallActivity(userId);
+    if (jsonArray == null) {
+      return;
     }
-  };
+
+    roomListJson = jsonArray.toString();
+    Log.d(TAG, "saveFriend save json: " + roomListJson);
+    SharedPreferences.Editor editor = sharedPref.edit();
+    editor.putString(keyprefRoomList, roomListJson);
+    editor.commit();
+
+    if (newUser) {
+      runOnUiThread(() -> adapter.add(new User(id, name)));
+      runOnUiThread(() -> adapter.notifyDataSetChanged());
+    }
+  }
+
+  private JSONObject createJsonUser(String id, String name) throws Exception {
+    JSONObject uJson = new JSONObject();
+    uJson.put("id", id);
+    uJson.put("name", name);
+
+    return uJson;
+  }
+
+  private void refreshFriendList() {
+    if (roomList != null && !roomList.isEmpty()) {
+      ArrayList<User> list = new ArrayList<>();
+      for (User u : roomList) {
+        if (ONLINE_FRIENDS.contains(u.getId())) {
+          list.add(0, u);
+        } else {
+          list.add(u);
+        }
+      }
+
+      roomList = list;
+      adapter = new CustomListAdapter<>(this, android.R.layout.simple_list_item_1, roomList);
+      runOnUiThread(() -> roomListView.setAdapter(adapter));
+      if (adapter.getCount() > 0) {
+        runOnUiThread(() -> roomListView.requestFocus());
+        runOnUiThread(() -> roomListView.setItemChecked(0, true));
+      }
+
+      runOnUiThread(() -> adapter.setOnlineList(ONLINE_FRIENDS));
+      runOnUiThread(() -> adapter.notifyDataSetChanged());
+    }
+  }
 }

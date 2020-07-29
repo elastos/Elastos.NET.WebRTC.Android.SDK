@@ -34,19 +34,27 @@
 
        <ImageButton
            android:id="@+id/button_call_switch_camera"
-           android:background="@android:drawable/ic_menu_camera"
+           android:background="@drawable/icons8_switch_camera_48px_1"
            android:contentDescription="@string/switch_camera"
            android:layout_marginEnd="8dp"
            android:layout_width="48dp"
            android:layout_height="48dp"/>
 
         <ImageButton
-           android:id="@+id/button_call_scaling_mode"
-           android:background="@drawable/ic_action_return_from_full_screen"
-           android:contentDescription="@string/disconnect_call"
+            android:id="@+id/button_call_open_message"
+            android:background="@drawable/icons8_messaging_48px"
+            android:contentDescription="IM"
             android:layout_marginEnd="8dp"
-           android:layout_width="48dp"
-           android:layout_height="48dp"/>
+            android:layout_width="48dp"
+            android:layout_height="48dp"/>
+
+<!--        <ImageButton-->
+<!--           android:id="@+id/button_call_scaling_mode"-->
+<!--           android:background="@drawable/ic_action_return_from_full_screen"-->
+<!--           android:contentDescription="@string/disconnect_call"-->
+<!--            android:layout_marginEnd="8dp"-->
+<!--           android:layout_width="48dp"-->
+<!--           android:layout_height="48dp"/>-->
 
         <ImageButton
             android:id="@+id/button_call_speaker"

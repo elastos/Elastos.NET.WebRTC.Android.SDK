@@ -59,5 +59,14 @@
                   android:theme="@style/CallActivityTheme"
                   android:launchMode="standard">
         </activity>
+
+        <activity
+            android:name="org.elastos.carrier.webrtc.demo_apprtc.DefaultMessagesActivity"
+            android:theme="@style/BlueTheme"/>
+
+        <activity android:name="org.elastos.carrier.webrtc.demo_apprtc.InfoActivity"
+            android:label="@string/info_name"
+            android:theme="@style/AppTheme" />
+
     </application>
 </manifest>

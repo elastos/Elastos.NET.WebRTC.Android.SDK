@@ -1,5 +1,7 @@
 package org.elastos.carrier.webrtc.call;
 
+import java.nio.ByteBuffer;
+
 /**
  * call events
  */
@@ -52,5 +54,12 @@ public interface CallHandler {
      * webrtc connection closed
      */
     void onConnectionClosed();
+
+    /**
+     * webrtc message received
+     * @param buffer message data
+     * @param binary whether binary data or not
+     */
+    void onMessage(ByteBuffer buffer, boolean binary);
 
 }

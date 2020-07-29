@@ -23,6 +23,7 @@
 package org.elastos.carrier.webrtc.demo_apprtc;
 
 import android.content.Context;
+import android.os.Build;
 import android.util.Log;
 
 import org.elastos.carrier.AbstractCarrierHandler;
@@ -99,8 +100,11 @@ public class CarrierClient {
 
 		try {
 			carrier = Carrier.createInstance(options, carrierHandler);
+			UserInfo info = carrier.getSelfInfo();
+			info.setName(Build.MANUFACTURER + " " + Build.MODEL);
+			carrier.setSelfInfo(info);
 			carrier.start(0);
-			Log.i(TAG, "Carrier node is ready now");
+			Log.i(TAG, "Carrier node is ready now: " + carrier.getSelfInfo());
 
 		}
 		catch (CarrierException /*| InterruptedException*/ e) {
@@ -175,9 +179,13 @@ public class CarrierClient {
 			for (CarrierHandler carrierHandler : carrierHandlers) {
 				if(carrierHandler!=null) {
 					carrierHandler.onFriendRequest(carrier, userId, info, hello);
+					Log.d(TAG, "onFriendRequest: " + info);
 					Log.d(TAG, "carrier onFriendRequest(): userId: " + userId + ", hello:" + hello + ".");
 				}
 				try {
+					UserInfo userInfo = carrier.getSelfInfo();
+					userInfo.setName(Build.MANUFACTURER + " " + Build.MODEL);
+					carrier.setSelfInfo(userInfo);
 					carrier.acceptFriend(userId);
 				} catch (CarrierException e) {
 					e.printStackTrace();

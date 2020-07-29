@@ -1,26 +1,27 @@
 package org.elastos.carrier.webrtc;
 
 public class PeerConnectionParametersBuilder {
-    boolean videoCallEnabled = true;
-    boolean tracing = false;
-    int videoWidth = 1280;
-    int videoHeight = 720;
-    int videoFps = 30;
-    int videoMaxBitrate = 0;
-    String videoCodec = "vp8";
-    boolean videoCodecHwAcceleration = false;
-    boolean videoFlexfecEnabled = false;
-    int audioStartBitrate = 0;
-    String audioCodec = "opus";
-    boolean noAudioProcessing = false;
-    boolean aecDump = false;
-    boolean saveInputAudioToFile = false;
-    boolean useOpenSLES = false;
-    boolean disableBuiltInAEC = false;
-    boolean disableBuiltInAGC = false;
-    boolean disableBuiltInNS = false;
-    boolean disableWebRtcAGCAndHPF = false;
-    boolean enableRtcEventLog = false;
+    private boolean videoCallEnabled = true;
+    private boolean tracing = false;
+    private int videoWidth = 1280;
+    private int videoHeight = 720;
+    private int videoFps = 30;
+    private int videoMaxBitrate = 0;
+    private String videoCodec = "vp8";
+    private boolean videoCodecHwAcceleration = false;
+    private boolean videoFlexfecEnabled = false;
+    private int audioStartBitrate = 0;
+    private String audioCodec = "opus";
+    private boolean noAudioProcessing = false;
+    private boolean aecDump = false;
+    private boolean saveInputAudioToFile = false;
+    private boolean useOpenSLES = false;
+    private boolean disableBuiltInAEC = false;
+    private boolean disableBuiltInAGC = false;
+    private boolean disableBuiltInNS = false;
+    private boolean disableWebRtcAGCAndHPF = false;
+    private boolean enableRtcEventLog = false;
+    private CarrierPeerConnectionClient.DataChannelParameters dataChannelParameters = null;
 
     private PeerConnectionParametersBuilder() {
     }
@@ -35,7 +36,7 @@ public class PeerConnectionParametersBuilder {
                 this.videoMaxBitrate, this.videoCodec, this.videoCodecHwAcceleration, this.videoFlexfecEnabled,
                 this.audioStartBitrate, this.audioCodec, this.noAudioProcessing, this.aecDump, this.saveInputAudioToFile,
                 this.useOpenSLES, this.disableBuiltInAEC, this.disableBuiltInAGC, this.disableBuiltInNS, this.disableWebRtcAGCAndHPF,
-                this.enableRtcEventLog, null
+                this.enableRtcEventLog, this.dataChannelParameters
         );
     }
 
@@ -136,6 +137,11 @@ public class PeerConnectionParametersBuilder {
 
     public PeerConnectionParametersBuilder enableRtcEventLog(boolean b) {
         this.enableRtcEventLog = enableRtcEventLog;
+        return this;
+    }
+
+    public PeerConnectionParametersBuilder dataChannelParameter(CarrierPeerConnectionClient.DataChannelParameters dataChannelParameters) {
+        this.dataChannelParameters = dataChannelParameters;
         return this;
     }
 }

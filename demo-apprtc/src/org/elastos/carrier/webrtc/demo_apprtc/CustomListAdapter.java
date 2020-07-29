@@ -7,6 +7,8 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
+import org.elastos.carrier.webrtc.demo_apprtc.model.User;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,7 +21,7 @@ public class CustomListAdapter<T> extends ArrayAdapter {
     private List<String> onlineList = new ArrayList<>();
 
     public CustomListAdapter(@NonNull Context context, @LayoutRes int resource,
-                         @NonNull List<String> userIds) {
+                         @NonNull List<User> userIds) {
         super(context, resource, userIds);
     }
 
@@ -27,13 +29,14 @@ public class CustomListAdapter<T> extends ArrayAdapter {
     @Override
     public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
         View view = super.getView(position, convertView, parent);
-        String id = (String) getItem(position);
-        if (this.onlineList.contains(id)) {
+        User user = (User) getItem(position);
+        ((TextView) view).setText("[" + user.getName() + "]\n" + user.getId());
+        if (this.onlineList.contains(user.getId())) {
             ((TextView) view).setTextColor(Color.GREEN);
         } else {
             ((TextView) view).setTextColor(Color.WHITE);
         }
-        return super.getView(position, convertView, parent);
+        return view;
     }
 
     public void addOnline(String id) {

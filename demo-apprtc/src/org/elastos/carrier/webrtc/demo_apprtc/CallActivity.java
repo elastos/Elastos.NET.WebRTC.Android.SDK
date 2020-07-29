@@ -95,6 +95,7 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents,
     public static final String EXTRA_NEGOTIATED = "org.elastos.carrier.webrtc.demo.apprtc.NEGOTIATED";
     public static final String EXTRA_ID = "org.elastos.carrier.webrtc.demo.apprtc.ID";
     public static final String EXTRA_ENABLE_RTCEVENTLOG = "org.elastos.carrier.webrtc.demo.apprtc.ENABLE_RTCEVENTLOG";
+    public static final String EXTRA_IS_PASSIVE = "org.elastos.carrier.webrtc.demo.apprtc.IS_PASSIVE";
 
     private static final int CAPTURE_PERMISSION_REQUEST_CODE = 1;
 
@@ -158,7 +159,8 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents,
         commandLineRun = intent.getBooleanExtra(EXTRA_CMDLINE, false);
         Log.d(TAG, "VIDEO_FILE: '" + intent.getStringExtra(EXTRA_VIDEO_FILE_AS_CAMERA) + "'");
 
-        connected = false;
+        boolean isPassive = intent.getBooleanExtra(EXTRA_IS_PASSIVE, false);
+        connected = !isPassive;
         initUIControls(intent);
 
         // Check for mandatory permissions.
@@ -171,7 +173,11 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents,
             }
         }
 
-        startCall();
+        try {
+            startCall();
+        } catch (Exception e) {
+            Log.e(TAG, "onCreate: ", e);
+        }
     }
 
     protected void initUIControls(Intent intent) {
@@ -224,7 +230,11 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents,
         ft.add(R.id.call_fragment_container, callFragment);
         ft.add(R.id.call_fragment_container, callInviteFragment);
         ft.add(R.id.hud_fragment_container, hudFragment);
-        ft.hide(callFragment);
+        if (connected) {
+            ft.hide(callInviteFragment);
+        } else {
+            ft.hide(callFragment);
+        }
         ft.commit();
     }
 
@@ -344,6 +354,12 @@ public class CallActivity extends Activity implements CallFragment.OnCallEvents,
         ft.show(callFragment);
         ft.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE);
         ft.commit();
+    }
+
+    @Override
+    public void onOpenMessage() {
+        Intent intent = new Intent(this, DefaultMessagesActivity.class);
+        startActivity(intent);
     }
 
     // Helper functions.

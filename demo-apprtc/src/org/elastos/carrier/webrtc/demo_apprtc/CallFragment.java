@@ -30,6 +30,7 @@ public class CallFragment extends Fragment {
   private TextView contactView;
   private ImageButton cameraSwitchButton;
   private ImageButton videoScalingButton;
+  private ImageButton messageButton;
   private ImageButton speakerButton;
   private ImageButton videoButton;
   private ImageButton toggleMuteButton;
@@ -50,6 +51,7 @@ public class CallFragment extends Fragment {
     boolean onToggleMic();
     boolean onToggleSpeaker();
     boolean onToggleVideo();
+    void onOpenMessage();
   }
 
   @Override
@@ -61,7 +63,8 @@ public class CallFragment extends Fragment {
     contactView = controlView.findViewById(R.id.contact_name_call);
     ImageButton disconnectButton = controlView.findViewById(R.id.button_call_disconnect);
     cameraSwitchButton = controlView.findViewById(R.id.button_call_switch_camera);
-    videoScalingButton = controlView.findViewById(R.id.button_call_scaling_mode);
+    // videoScalingButton = controlView.findViewById(R.id.button_call_scaling_mode);
+    messageButton = controlView.findViewById(R.id.button_call_open_message);
     speakerButton = controlView.findViewById(R.id.button_call_speaker);
     speakerButton.setAlpha(0.3f);
     videoButton = controlView.findViewById(R.id.button_call_video);
@@ -100,19 +103,19 @@ public class CallFragment extends Fragment {
       }
     });
 
-    videoScalingButton.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View view) {
-        if (scalingType == ScalingType.SCALE_ASPECT_FILL) {
-          videoScalingButton.setBackgroundResource(R.drawable.ic_action_full_screen);
-          scalingType = ScalingType.SCALE_ASPECT_FIT;
-        } else {
-          videoScalingButton.setBackgroundResource(R.drawable.ic_action_return_from_full_screen);
-          scalingType = ScalingType.SCALE_ASPECT_FILL;
-        }
-        callEvents.onVideoScalingSwitch(scalingType);
-      }
-    });
+//    videoScalingButton.setOnClickListener(new View.OnClickListener() {
+//      @Override
+//      public void onClick(View view) {
+//        if (scalingType == ScalingType.SCALE_ASPECT_FILL) {
+//          videoScalingButton.setBackgroundResource(R.drawable.ic_action_full_screen);
+//          scalingType = ScalingType.SCALE_ASPECT_FIT;
+//        } else {
+//          videoScalingButton.setBackgroundResource(R.drawable.ic_action_return_from_full_screen);
+//          scalingType = ScalingType.SCALE_ASPECT_FILL;
+//        }
+//        callEvents.onVideoScalingSwitch(scalingType);
+//      }
+//    });
     scalingType = ScalingType.SCALE_ASPECT_FILL;
 
     toggleMuteButton.setOnClickListener(new View.OnClickListener() {
@@ -120,6 +123,13 @@ public class CallFragment extends Fragment {
       public void onClick(View view) {
         boolean enabled = callEvents.onToggleMic();
         toggleMuteButton.setAlpha(enabled ? 1.0f : 0.3f);
+      }
+    });
+
+    messageButton.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View view) {
+        callEvents.onOpenMessage();
       }
     });
 

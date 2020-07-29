@@ -46,6 +46,7 @@ import org.json.JSONObject;
 import org.webrtc.Camera1Enumerator;
 import org.webrtc.Camera2Enumerator;
 import org.webrtc.CameraEnumerator;
+import org.webrtc.DataChannel;
 import org.webrtc.EglBase;
 import org.webrtc.IceCandidate;
 import org.webrtc.Logging;
@@ -57,6 +58,7 @@ import org.webrtc.SurfaceViewRenderer;
 import org.webrtc.VideoCapturer;
 import org.webrtc.VideoSink;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -267,6 +269,23 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
             carrierPeerConnectionClient.setVideoEnabled(enable);
     }
 
+    /**
+     * send data
+     * @param byteBuffer message content
+     * @param binary binary file or plain text
+     */
+    public void sendMessage(ByteBuffer byteBuffer, boolean binary) throws WebrtcException {
+        if (byteBuffer == null) {
+            throw new IllegalArgumentException("byteBuffer can not be null");
+        }
+        if (carrierPeerConnectionClient == null) {
+            throw new IllegalArgumentException("carrierPeerConnectionClient is null");
+        }
+        if (carrierPeerConnectionClient != null) {
+            carrierPeerConnectionClient.sendMessage(new DataChannel.Buffer(byteBuffer, binary));
+        }
+    }
+
     @Override
     protected void finalize() throws Throwable {
         super.finalize();
@@ -281,7 +300,13 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
      */
     @Override
     protected void onFriendInvite(Carrier carrier, String from, String data) {
-        Log.e(TAG, "carrier friend invite  onFriendInviteRequest from: " + from);
+        Log.e(TAG, "carrier friend invite onFriendInviteRequest from: " + from);
+        Log.e(TAG, "carrier friend invite onFriendInviteRequest data: " + data);
+        try {
+            replyFriendInvite(from, 0, "", "");
+        } catch (Exception e) {
+            Log.e(TAG, "onFriendInvite: ", e);
+        }
         if (data != null && (data.contains("msg") ||  data.contains("type"))) {
             this.remoteUserId = from;
             onCarrierMessage(data, from);
@@ -374,7 +399,7 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
             return;
         }
 
-        sendOffer(sdp, true, peerConnectionParameters.videoCallEnabled);
+        sendOffer(sdp, true, peerConnectionParameters.videoCallEnabled, peerConnectionParameters.dataChannelParameters != null);
         Log.d(TAG, "sendOfferSdp() from " + currentUserId + ", to: " + remoteUserId);
     }
 
@@ -422,7 +447,7 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
         }
         // Create peer connection client.
         carrierPeerConnectionClient = new CarrierPeerConnectionClient(
-                context, getIceServers(), eglBase, peerConnectionParameters, this);
+                context, getIceServers(), eglBase, peerConnectionParameters, this, callHandler);
         PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
         carrierPeerConnectionClient.createPeerConnectionFactory(options);
     }
@@ -706,7 +731,7 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
      * @param audio enable audio
      * @param video enable video
      */
-    private void sendOffer(SessionDescription sdp, boolean audio, boolean video) {
+    private void sendOffer(SessionDescription sdp, boolean audio, boolean video, boolean data) {
         if (sdp == null) {
             Log.e(TAG, "send offer error, offer sdp is null");
             return;
@@ -723,6 +748,9 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
         }
         if (video) {
             options.put("video");
+        }
+        if (data) {
+            options.put("data");
         }
         jsonPut(json, MessageKey.options.name(), options);
 
