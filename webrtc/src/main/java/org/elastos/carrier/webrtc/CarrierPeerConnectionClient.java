@@ -1252,6 +1252,10 @@ public class CarrierPeerConnectionClient {
 
         @Override
         public void onDataChannel(final DataChannel dc) {
+            if (WebrtcClient.getInstance().isInitiator()) {
+                Log.d(TAG, "onDataChannel: initial call, don't do anything.");
+                return;
+            }
             dataChannel = dc;
             Log.d(TAG, "New Data channel: label = " + dc.label() + "; id = " + dc.id());
             if (!dataChannelEnabled) {

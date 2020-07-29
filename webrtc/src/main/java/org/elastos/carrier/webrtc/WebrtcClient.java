@@ -157,6 +157,14 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
     }
 
     /**
+     * if this is a passive call
+     * @return
+     */
+    public boolean isInitiator() {
+        return initiator;
+    }
+
+    /**
      * Make call to remote peer. And remote peer could choose to accept this
      * call inviation, or hangup (reject) the calll invatation.
      *

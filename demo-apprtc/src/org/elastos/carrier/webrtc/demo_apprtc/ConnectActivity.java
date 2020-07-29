@@ -131,6 +131,13 @@ public class ConnectActivity extends Activity {
       @Override
       public void onFriendConnection(Carrier carrier, String friendId, ConnectionStatus status) {
         Log.d(TAG, "onFriendConnection: " + friendId);
+        try {
+          FriendInfo friendInfo = carrier.getFriend(friendId);
+          refreshFriendInfo(new User(friendId, (friendInfo.getName() == null || "".equals(friendInfo.getName().trim())) ? "Unknown" : friendInfo.getName()));
+          Log.d(TAG, "onFriendConnection: " + friendInfo);
+        } catch (Exception e) {
+          Log.e(TAG, "onFriendConnection: ", e);
+        }
         switch (status) {
           case Connected:
             addOnlineFriend(friendId);
@@ -807,6 +814,16 @@ public class ConnectActivity extends Activity {
     uJson.put("name", name);
 
     return uJson;
+  }
+
+  private void refreshFriendInfo(User user) {
+    if (roomList != null && user != null && !roomList.isEmpty()) {
+      for (User u : roomList) {
+        if (u.getId().equalsIgnoreCase(user.getId()) && !"Unknown".equalsIgnoreCase(user.getName())) {
+          u.setName(user.getName());
+        }
+      }
+    }
   }
 
   private void refreshFriendList() {
