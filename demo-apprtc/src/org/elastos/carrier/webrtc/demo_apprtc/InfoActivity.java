@@ -14,6 +14,9 @@ import android.Manifest;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -30,10 +33,12 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.google.zxing.integration.android.IntentIntegrator;
@@ -64,6 +69,7 @@ public class InfoActivity extends Activity {
   private static boolean commandLineRun = false;
 
   private ImageButton addFavoriteButton;
+  private Button copyAddressButton;
   private EditText roomEditText;
   private ImageView mQRCodeImage;
   private TextView mAdrress;
@@ -96,6 +102,8 @@ public class InfoActivity extends Activity {
     mAdrress = findViewById(R.id.myaddress);
     addFavoriteButton = findViewById(R.id.add_favorite_button);
     addFavoriteButton.setOnClickListener(addFavoriteListener);
+    copyAddressButton = findViewById(R.id.copy_address);
+    copyAddressButton.setOnClickListener(copyAddressListener);
 
     requestPermissions();
 
@@ -377,4 +385,18 @@ public class InfoActivity extends Activity {
     }
   };
 
+  private final OnClickListener copyAddressListener = new OnClickListener() {
+    @Override
+    public void onClick(View view) {
+      try {
+        String address = CarrierClient.getInstance(INSTANCE).getCarrier().getAddress();
+        ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipData clipData = ClipData.newPlainText("", address);
+        cm.setPrimaryClip(clipData);
+        Toast.makeText(INSTANCE, String.format("%s copied", address), Toast.LENGTH_LONG).show();
+      } catch (Exception e) {
+        Log.e(TAG, "onClick: ", e);
+      }
+    }
+  };
 }

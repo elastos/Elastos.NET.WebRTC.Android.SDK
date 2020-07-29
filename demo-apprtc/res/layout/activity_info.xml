@@ -55,4 +55,13 @@
         android:layout_width="match_parent"
         android:textIsSelectable="true"
         android:layout_height="48dp"/>
+
+    <Button
+        android:id="@+id/copy_address"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:text="Copy Address"
+        android:textSize="36sp"
+        android:contentDescription="Copy Address" />
 </LinearLayout>
