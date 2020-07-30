@@ -98,6 +98,8 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
     private SurfaceViewRenderer localVideoRenderer;
     private SurfaceViewRenderer remoteVideoRenderer;
     private SessionDescription remoteSdp;
+    private boolean callInitialed = false;
+    private List<IceCandidate> remoteIceList;
 
     private WebrtcClient(Context context,
                          Carrier carrier,
@@ -324,6 +326,7 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
 
     // accept the call invite and then send the offer.
     private void initialCall() {
+        callInitialed = true;
         Log.d(TAG, "Connect to carrier user: " + remoteUserId);
         connectionState = ConnectionState.NEW;
         List<PeerConnection.IceServer> iceServers = getIceServers();
@@ -358,6 +361,7 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
 
     // Disconnect from call and send bye messages - runs on a local looper thread.
     private void disconnectFromCallInternal() {
+        callInitialed = false;
         Log.d(TAG, "Disconnect. Connection state: " + connectionState);
         if (connectionState == ConnectionState.CONNECTED) {
             Log.d(TAG, "Closing call.");
@@ -520,7 +524,15 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
             if (array != null && array.length() > 0) {
                 for (int i = 0; i < array.length(); i++) {
                     JSONObject cJson = array.optJSONObject(i);
-                    carrierPeerConnectionClient.addRemoteIceCandidate(toJavaCandidate(cJson));
+                    if (callInitialed) {
+                        carrierPeerConnectionClient.addRemoteIceCandidate(toJavaCandidate(cJson));
+                    } else {
+                        if (remoteIceList == null) {
+                            remoteIceList = new ArrayList<>();
+                        }
+                        Log.e(TAG, "handleCandidate: cache ice candidate");
+                        remoteIceList.add(toJavaCandidate(cJson));
+                    }
                 }
             }
         } catch (Exception e) {
@@ -623,11 +635,11 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
             // PeerConnectionEvents.onLocalDescription event.
             carrierPeerConnectionClient.createAnswer();
         }
-        if (signalingParameters.iceCandidates != null) {
-            // Add remote ICE candidates from room.
-            for (IceCandidate iceCandidate : signalingParameters.iceCandidates) {
+        if (remoteIceList != null && !remoteIceList.isEmpty()) {
+            for (IceCandidate iceCandidate : remoteIceList) {
                 carrierPeerConnectionClient.addRemoteIceCandidate(iceCandidate);
             }
+            remoteIceList.clear();
         }
     }
 
