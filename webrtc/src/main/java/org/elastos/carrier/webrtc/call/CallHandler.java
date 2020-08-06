@@ -13,8 +13,9 @@ public interface CallHandler {
      * @param friendId who is calling you
      * @param audio is audio enabled
      * @param video is video enabled
+     * @param data is data enabled
      */
-    void onInvite(String friendId, boolean audio, boolean video);
+    void onInvite(String friendId, boolean audio, boolean video, boolean data);
 
     /**
      * when your friend accept you invite

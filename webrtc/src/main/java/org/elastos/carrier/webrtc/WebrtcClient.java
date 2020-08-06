@@ -74,7 +74,7 @@ import java.util.List;
  * Messages to other party (with local Ice candidates and answer SDP) can
  * be sent after Carrier connection is established.
  */
-public class WebrtcClient extends CarrierExtension implements PeerConnectionEvents {
+public class WebrtcClient extends CarrierExtension {
     private static final String TAG = "WebrtcClient";
 
     private static WebrtcClient INSTANCE;
@@ -149,15 +149,6 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
         return INSTANCE;
     }
 
-    // Put a |key|->|value| mapping in |json|.
-    private static void jsonPut(JSONObject json, String key, Object value) {
-        try {
-            json.put(key, value);
-        } catch (JSONException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     /**
      * if this is a passive call
      * @return
@@ -213,10 +204,6 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
 
     public CallState getCallState() {
         return this.callState;
-    }
-
-    private void setCallState(CallState callState) {
-        this.callState = callState;
     }
 
     /**
@@ -279,6 +266,18 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
             carrierPeerConnectionClient.setVideoEnabled(enable);
     }
 
+    public void setDataEnable(boolean enable) {
+        if (carrierPeerConnectionClient != null) {
+            carrierPeerConnectionClient.setDataChannelEnabled(enable);
+        }
+    }
+
+    public void setMediaEnable(boolean video, boolean audio, boolean data) {
+        setVideoEnable(video);
+        setAudioEnable(audio);
+        setDataEnable(data);
+    }
+
     /**
      * send data
      * @param byteBuffer message content
@@ -322,6 +321,19 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
             onCarrierMessage(data, from);
             Log.d(TAG, "Get the carrier message: " + data);
         }
+    }
+
+    // Put a |key|->|value| mapping in |json|.
+    private static void jsonPut(JSONObject json, String key, Object value) {
+        try {
+            json.put(key, value);
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void setCallState(CallState callState) {
+        this.callState = callState;
     }
 
     // accept the call invite and then send the offer.
@@ -459,7 +471,7 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
         }
         // Create peer connection client.
         carrierPeerConnectionClient = new CarrierPeerConnectionClient(
-                context, getIceServers(), eglBase, peerConnectionParameters, this, callHandler);
+                context, getIceServers(), eglBase, peerConnectionParameters, new PCEvents(), callHandler);
         PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
         carrierPeerConnectionClient.createPeerConnectionFactory(options);
     }
@@ -479,6 +491,7 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
         JSONArray options = json.optJSONArray(MessageKey.options.name());
         boolean audio = false;
         boolean video = false;
+        boolean data = false;
         if (options != null && options.length() > 0) {
             for (int i = 0; i < options.length(); i++) {
                 String o = options.optString(i, "");
@@ -488,12 +501,15 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
                 if ("video".equalsIgnoreCase(o)) {
                     video = true;
                 }
+                if ("data".equalsIgnoreCase(o)) {
+                    data = true;
+                }
             }
         }
         this.setCallState(CallState.RINGING);
         signalingParameters = new SignalingParameters(getIceServers(), false, remoteUserId, null, null);
         // emit user callback
-        callHandler.onInvite(remoteUserId, audio, video);
+        callHandler.onInvite(remoteUserId, audio, video, data);
     }
 
     private void handleAnswer(JSONObject json) {
@@ -728,17 +744,9 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
 
     private void send(String message) {
         try {
-            String data = new JSONObject()
-                    .put("cmd", "send")
-                    .put("msg", message)
-                    .put("remoteUserId", remoteUserId)
-                    .toString();
             // no wrap
             Log.d(TAG, "Calling control command : " + message);
             inviteFriend(remoteUserId, message, friendInviteResponseHandler);
-
-        } catch (JSONException e) {
-            Log.e(TAG, "send: Carrier send JSON error: " + e.getMessage());
         } catch (CarrierException e) {
             e.printStackTrace();
             Log.e(TAG, "send: carrier send message error: " + e.getMessage());
@@ -877,63 +885,6 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
         send(json.toString());
     }
 
-    /**
-     * start implements PeerConnectionEvents
-     */
-    @Override
-    public void onLocalDescription(SessionDescription sdp) {
-        if (initiator) {
-            sendOfferSdp(sdp);
-        } else {
-            sendAnswerSdp(sdp);
-        }
-    }
-
-    @Override
-    public void onIceCandidate(IceCandidate candidate) {
-        sendLocalIceCandidate(candidate);
-    }
-
-    @Override
-    public void onIceCandidatesRemoved(IceCandidate[] candidates) {
-        sendLocalIceCandidateRemovals(candidates);
-    }
-
-    @Override
-    public void onIceConnected() {
-        callHandler.onIceConnected();
-    }
-
-    @Override
-    public void onIceDisconnected() {
-        callHandler.onIceDisConnected();
-    }
-
-    @Override
-    public void onConnected() {
-        this.setCallState(CallState.ACTIVE);
-        callHandler.onActive();
-    }
-
-    @Override
-    public void onDisconnected() {
-        callHandler.onEndCall(CallReason.NORMAL_HANGUP);
-    }
-
-    @Override
-    public void onPeerConnectionClosed() {
-        callHandler.onConnectionClosed();
-    }
-
-    @Override
-    public void onPeerConnectionStatsReady(StatsReport[] reports) {
-    }
-
-    @Override
-    public void onPeerConnectionError(String description) {
-        callHandler.onConnectionError(description);
-    }
-
     private enum ConnectionState {NEW, CONNECTED, CLOSED, ERROR}
 
     /**
@@ -999,5 +950,65 @@ public class WebrtcClient extends CarrierExtension implements PeerConnectionEven
         public void onReceived(String from, int status, String reason, String data) {
             Log.e(TAG, "carrier friend invite  onReceived from: " + from);
         }
+    }
+
+    /**
+     * PeerConnectionEvents implement
+     */
+    private class PCEvents implements PeerConnectionEvents {
+        @Override
+        public void onLocalDescription(SessionDescription sdp) {
+            if (initiator) {
+                sendOfferSdp(sdp);
+            } else {
+                sendAnswerSdp(sdp);
+            }
+        }
+
+        @Override
+        public void onIceCandidate(IceCandidate candidate) {
+            sendLocalIceCandidate(candidate);
+        }
+
+        @Override
+        public void onIceCandidatesRemoved(IceCandidate[] candidates) {
+            sendLocalIceCandidateRemovals(candidates);
+        }
+
+        @Override
+        public void onIceConnected() {
+            callHandler.onIceConnected();
+        }
+
+        @Override
+        public void onIceDisconnected() {
+            callHandler.onIceDisConnected();
+        }
+
+        @Override
+        public void onConnected() {
+            setCallState(CallState.ACTIVE);
+            callHandler.onActive();
+        }
+
+        @Override
+        public void onDisconnected() {
+            callHandler.onEndCall(CallReason.NORMAL_HANGUP);
+        }
+
+        @Override
+        public void onPeerConnectionClosed() {
+            callHandler.onConnectionClosed();
+        }
+
+        @Override
+        public void onPeerConnectionStatsReady(StatsReport[] reports) {
+        }
+
+        @Override
+        public void onPeerConnectionError(String description) {
+            callHandler.onConnectionError(description);
+        }
+
     }
 }

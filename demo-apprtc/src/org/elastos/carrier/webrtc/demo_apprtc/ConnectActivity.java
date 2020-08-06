@@ -25,27 +25,16 @@ import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 
-import androidx.core.app.ActivityCompat;
-
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.ContextMenu;
-import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.View.OnClickListener;
-import android.view.inputmethod.EditorInfo;
 import android.webkit.URLUtil;
 import android.widget.AdapterView;
-import android.widget.EditText;
-import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.material.snackbar.Snackbar;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 
@@ -57,10 +46,8 @@ import org.elastos.carrier.webrtc.PeerConnectionParametersBuilder;
 import org.elastos.carrier.webrtc.WebrtcClient;
 import org.elastos.carrier.webrtc.demo_apprtc.apprtc.R;
 import org.elastos.carrier.webrtc.demo_apprtc.model.User;
-import org.elastos.carrier.webrtc.demo_apprtc.util.QRCodeUtils;
 import org.elastos.carrier.AbstractCarrierHandler;
 import org.elastos.carrier.Carrier;
-import org.elastos.carrier.exceptions.CarrierException;
 import org.elastos.carrier.webrtc.exception.WebrtcException;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -164,13 +151,12 @@ public class ConnectActivity extends Activity {
       }
     });
 
-    CarrierPeerConnectionClient.DataChannelParameters dataChannelParameters =
-            new CarrierPeerConnectionClient.DataChannelParameters(true, -1, -1, "", false, 3);
     CarrierPeerConnectionClient.PeerConnectionParameters peerConnectionParameters =
             PeerConnectionParametersBuilder
-            .builder()
-            .dataChannelParameter(dataChannelParameters)
-            .build();
+                    .builder()
+                    .enableData(true)
+                    .enableVideo(true)
+                    .build();
     WebrtcClient.createInstance(this, CarrierClient.getInstance(this).getCarrier(), new CallHandlerImpl(),  peerConnectionParameters);
 
     if (Build.VERSION.SDK_INT >= 23) {

@@ -21,6 +21,7 @@ public class PeerConnectionParametersBuilder {
     private boolean disableBuiltInNS = false;
     private boolean disableWebRtcAGCAndHPF = false;
     private boolean enableRtcEventLog = false;
+    private boolean enableData = false;
     private CarrierPeerConnectionClient.DataChannelParameters dataChannelParameters = null;
 
     private PeerConnectionParametersBuilder() {
@@ -31,6 +32,11 @@ public class PeerConnectionParametersBuilder {
     }
 
     public CarrierPeerConnectionClient.PeerConnectionParameters build() {
+        // if data is enabled, create dataChannelParameter
+        if (enableData) {
+            this.dataChannelParameters =
+                    new CarrierPeerConnectionClient.DataChannelParameters(true, -1, -1, "", false, 3);
+        }
         return new CarrierPeerConnectionClient.PeerConnectionParameters(
                 this.videoCallEnabled, this.tracing, this.videoWidth, this.videoHeight, this.videoFps,
                 this.videoMaxBitrate, this.videoCodec, this.videoCodecHwAcceleration, this.videoFlexfecEnabled,
@@ -40,7 +46,7 @@ public class PeerConnectionParametersBuilder {
         );
     }
 
-    public PeerConnectionParametersBuilder videoEnabled(boolean enable) {
+    public PeerConnectionParametersBuilder enableVideo(boolean enable) {
         this.videoCallEnabled = enable;
         return this;
     }
@@ -140,8 +146,8 @@ public class PeerConnectionParametersBuilder {
         return this;
     }
 
-    public PeerConnectionParametersBuilder dataChannelParameter(CarrierPeerConnectionClient.DataChannelParameters dataChannelParameters) {
-        this.dataChannelParameters = dataChannelParameters;
+    public PeerConnectionParametersBuilder enableData(boolean enableData) {
+        this.enableData = enableData;
         return this;
     }
 }

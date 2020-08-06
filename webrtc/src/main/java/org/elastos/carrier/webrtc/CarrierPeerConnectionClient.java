@@ -138,7 +138,7 @@ public class CarrierPeerConnectionClient {
     private final Context appContext;
     private final PeerConnectionParameters peerConnectionParameters;
     private final PeerConnectionEvents events;
-    private final boolean dataChannelEnabled;
+    private boolean dataChannelEnabled;
     private EglBase rootEglBase;
     @Nullable
     private PeerConnectionFactory factory;
@@ -662,43 +662,7 @@ public class CarrierPeerConnectionClient {
         rtcConfig.sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN;
         peerConnection = factory.createPeerConnection(rtcConfig, pcObserver);
         if (dataChannelEnabled) {
-            Log.d(TAG, "createPeerConnectionInternal: create data channel");
-            DataChannel.Init init = new DataChannel.Init();
-            init.ordered = peerConnectionParameters.dataChannelParameters.ordered;
-            init.negotiated = peerConnectionParameters.dataChannelParameters.negotiated;
-            init.maxRetransmits = peerConnectionParameters.dataChannelParameters.maxRetransmits;
-            init.maxRetransmitTimeMs = peerConnectionParameters.dataChannelParameters.maxRetransmitTimeMs;
-            init.id = peerConnectionParameters.dataChannelParameters.id;
-            init.protocol = peerConnectionParameters.dataChannelParameters.protocol;
-            dataChannel = peerConnection.createDataChannel("Carrier webrtc data", init);
-            dataChannel.registerObserver(new DataChannel.Observer() {
-                @Override
-                public void onBufferedAmountChange(long previousAmount) {
-                    try {
-                        Log.d(TAG, "Data channel buffered amount changed(created): " + dataChannel.label() + ": " + dataChannel.state());
-                    } catch (Exception e) {
-                        Log.e(TAG, "onBufferedAmountChange(created): ", e);
-                    }
-                }
-
-                @Override
-                public void onStateChange() {
-                    try {
-                        Log.d(TAG, "Data channel state changed(created): " + dataChannel.label() + ": " + dataChannel.state());
-                    } catch (Exception e) {
-                        Log.e(TAG, "onStateChange(created): ", e);
-                    }
-                }
-
-                @Override
-                public void onMessage(final DataChannel.Buffer buffer) {
-                    if (callHandler != null) {
-                        callHandler.onMessage(buffer.data, buffer.binary);
-                    }
-                    Log.d(TAG, "onMessage(created): binary = " + buffer.binary);
-                }
-            });
-            Log.d(TAG, "createPeerConnectionInternal: data channel state -> " + dataChannel.state());
+            createDataChannel();
         }
         isInitiator = false;
         // Set INFO libjingle logging.
@@ -737,6 +701,46 @@ public class CarrierPeerConnectionClient {
             }
         }
         Log.d(TAG, "Peer connection created.");
+    }
+
+    private void createDataChannel() {
+        Log.d(TAG, "createPeerConnectionInternal: create data channel");
+        DataChannel.Init init = new DataChannel.Init();
+        init.ordered = peerConnectionParameters.dataChannelParameters.ordered;
+        init.negotiated = peerConnectionParameters.dataChannelParameters.negotiated;
+        init.maxRetransmits = peerConnectionParameters.dataChannelParameters.maxRetransmits;
+        init.maxRetransmitTimeMs = peerConnectionParameters.dataChannelParameters.maxRetransmitTimeMs;
+        init.id = peerConnectionParameters.dataChannelParameters.id;
+        init.protocol = peerConnectionParameters.dataChannelParameters.protocol;
+        dataChannel = peerConnection.createDataChannel("Carrier webrtc data", init);
+        dataChannel.registerObserver(new DataChannel.Observer() {
+            @Override
+            public void onBufferedAmountChange(long previousAmount) {
+                try {
+                    Log.d(TAG, "Data channel buffered amount changed(created): " + dataChannel.label() + ": " + dataChannel.state());
+                } catch (Exception e) {
+                    Log.e(TAG, "onBufferedAmountChange(created): ", e);
+                }
+            }
+
+            @Override
+            public void onStateChange() {
+                try {
+                    Log.d(TAG, "Data channel state changed(created): " + dataChannel.label() + ": " + dataChannel.state());
+                } catch (Exception e) {
+                    Log.e(TAG, "onStateChange(created): ", e);
+                }
+            }
+
+            @Override
+            public void onMessage(final DataChannel.Buffer buffer) {
+                if (callHandler != null) {
+                    callHandler.onMessage(buffer.data, buffer.binary);
+                }
+                Log.d(TAG, "onMessage(created): binary = " + buffer.binary);
+            }
+        });
+        Log.d(TAG, "createPeerConnectionInternal: data channel state -> " + dataChannel.state());
     }
 
     private File createRtcEventLogOutputFile() {
@@ -877,6 +881,17 @@ public class CarrierPeerConnectionClient {
                 remoteVideoTrack.setEnabled(renderVideo);
             }
         });
+    }
+
+    public void setDataChannelEnabled(final boolean enable) {
+        if (enable) {
+            dataChannelEnabled = true;
+            if (dataChannel == null) {
+                createDataChannel();
+            }
+        } else  {
+            dataChannelEnabled = false;
+        }
     }
 
     public void createOffer() {

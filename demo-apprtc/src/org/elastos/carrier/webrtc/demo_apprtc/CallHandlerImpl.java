@@ -14,7 +14,7 @@ public class CallHandlerImpl implements CallHandler {
     private static final String TAG = "CallHandlerImpl";
 
     @Override
-    public void onInvite(String friendId, boolean audio, boolean video) {
+    public void onInvite(String friendId, boolean audio, boolean video, boolean data) {
         Log.d(TAG, "onInvite: " + friendId);
         /*
         try {
