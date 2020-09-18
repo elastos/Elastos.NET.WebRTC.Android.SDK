@@ -2,7 +2,7 @@ import java.util.function.BooleanSupplier
 
 apply plugin: 'com.android.library'
 apply plugin: 'com.novoda.bintray-release'
-
+apply plugin: 'maven'
 
 android {
     compileSdkVersion 28
@@ -11,7 +11,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 28
         versionCode 1
-        versionName "5.4.2"
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled true
     }
@@ -53,7 +53,6 @@ android {
     }
 }
 
-
 dependencies {
     api fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
 
@@ -84,12 +83,22 @@ dependencies {
 
 }
 
+uploadArchives {
+    repositories.mavenDeployer {
+        // local file system
+        repository(url:"file://$buildDir//outputs//maven")
+        pom.groupId = "org.elastos.carrier"
+        pom.artifactId = "webrtc"
+        pom.version = "1.0.0"
+    }
+}
+
 publish {
     userOrg = 'elastos'
     groupId = 'org.elastos.carrier'
     artifactId = 'webrtc'
     publishVersion = '1.0.0'
     desc = 'Elastos Carrier WebRTC SDK'
-    repoName = 'Elastos.NET.Carrier.WebRTC.Android.SDK'
-    website = 'https://github.com/elastos/Elastos.NET.Carrier.WebRTC.Android.SDK'
+    repoName = 'Elastos.NET.WebRTC.Android.SDK'
+    website = 'https://github.com/elastos/Elastos.NET.WebRTC.Android.SDK'
 }
