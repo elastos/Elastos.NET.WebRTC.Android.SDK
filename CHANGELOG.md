@@ -1,4 +1,4 @@
-## 1.0.0 (Septemble 18, 2020)
+## 1.0.0 (September 18, 2020)
 
 ### webrtc sdk
 
