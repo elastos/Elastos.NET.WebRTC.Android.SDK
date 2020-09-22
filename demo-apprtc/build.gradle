@@ -60,26 +60,17 @@ ext {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
-    //implementation "com.android.support:appcompat-v7:28.0.0"
     api 'androidx.annotation:annotation:1.1.0'
 
-    implementation project(':webrtc')
-    implementation project(':chatkit')
-    //implementation project(':carrier')
-
+    implementation 'org.elastos.carrier:webrtc:1.0.0'
     implementation 'org.webrtc:google-webrtc:1.0.30039'
+    implementation project(':chatkit')
 
     implementation 'com.journeyapps:zxing-android-embedded:3.6.0'
     implementation 'com.google.zxing:core:3.4.0'
     implementation 'com.google.android.material:material:1.1.0'
-    //implementation 'com.android.support:design:28.0.0'
-    //Picasso
     implementation "com.squareup.picasso:picasso:$picassoVersion"
-
-    //ImageViews
     implementation "de.hdodenhof:circleimageview:$circleImageViewVersion"
     implementation "com.github.siyamed:android-shape-imageview:$shapeImageViewVersion"
-
-    //Utils
     implementation "me.relex:circleindicator:$circleindicatorVersion"
 }
