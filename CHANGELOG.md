@@ -1,3 +1,8 @@
+## 1.0.1 (December 22, 2020)
+
+* Upgrade chatkit SDK to 28.
+* Upgrade carrier SDK to v6.0.1.
+
 ## 1.0.0 (September 18, 2020)
 
 ### webrtc sdk
