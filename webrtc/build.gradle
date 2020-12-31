@@ -11,7 +11,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 28
         versionCode 1
-        versionName "1.0.1"
+        versionName "1.0.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled true
     }
@@ -89,7 +89,7 @@ uploadArchives {
         repository(url:"file://$buildDir//outputs//maven")
         pom.groupId = "org.elastos.carrier"
         pom.artifactId = "webrtc"
-        pom.version = "1.0.1"
+        pom.version = "1.0.2"
     }
 }
 
@@ -97,7 +97,7 @@ publish {
     userOrg = 'elastos'
     groupId = 'org.elastos.carrier'
     artifactId = 'webrtc'
-    publishVersion = '1.0.1'
+    publishVersion = '1.0.2'
     desc = 'Elastos Carrier WebRTC SDK'
     repoName = 'Elastos.NET.WebRTC.Android.SDK'
     website = 'https://github.com/elastos/Elastos.NET.WebRTC.Android.SDK'

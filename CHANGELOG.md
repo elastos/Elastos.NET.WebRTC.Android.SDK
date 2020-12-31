@@ -1,3 +1,7 @@
+## 1.0.2 (December 31, 2020)
+
+* Upgrade carrier SDK to v6.0.2.
+
 ## 1.0.1 (December 22, 2020)
 
 * Upgrade chatkit SDK to 28.
